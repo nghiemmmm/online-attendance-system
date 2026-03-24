@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "skills": {
+    "debugging-streamlit": {
+      "source": "streamlit/streamlit",
+      "sourceType": "github",
+      "computedHash": "0dc44e0fbc557ea8eba6a81a498102c0979734d4309f4e4e225a58ae9c5641c0"
+    },
+    "developing-with-streamlit": {
+      "source": "streamlit/agent-skills",
+      "sourceType": "github",
+      "computedHash": "d366960761de1ec907dee42ddbdc08b9c868584cebc8c9fe8e0efdccb4bc5db7"
+    },
+    "fastapi": {
+      "source": "tiangolo/fastapi",
+      "sourceType": "github",
+      "computedHash": "ee23d5285caf055cf164ff45dd34888d381143564666baacab8aa786f22e413a"
+    },
+    "fastapi-best-practices": {
+      "source": "ofershap/fastapi-best-practices",
+      "sourceType": "github",
+      "computedHash": "f0cd8883ae20acdab775420fe3d4fd9493751285d61eb65b284763cff5c470d6"
+    },
+    "fastapi-otel-common": {
+      "source": "devdenvino/fastapi_otel_common",
+      "sourceType": "github",
+      "computedHash": "ed1bb2b0d617c10bedd809edfb719ba507acf3f003da152b17f65c6838484009"
+    },
+    "fba": {
+      "source": "fastapi-practices/skills",
+      "sourceType": "github",
+      "computedHash": "b2bceccc50dd008d4dc85673021f34b71f0706415176e5a4fba041efedccd7c0"
+    },
+    "python-fastapi-ddd-testing-skill": {
+      "source": "iktakahiro/python-fastapi-ddd-skill",
+      "sourceType": "github",
+      "computedHash": "1f4bd5eebcdfa28862a6d039018b33e2b3f695da79a63bca3d1c15b46e30516a"
+    }
+  }
+}

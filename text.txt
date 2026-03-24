@@ -1,0 +1,2 @@
+uvicorn app.main:app --reload
+ python -m streamlit run app/frontend/streamlit_ui.py
