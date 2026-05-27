@@ -1,1 +1,0 @@
-# gọi ra từ env 

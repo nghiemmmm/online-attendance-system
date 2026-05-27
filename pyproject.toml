@@ -1,2 +1,3 @@
 [tool.fastapi]
 entrypoint = "main:app"
+#là nơi khai báo dependency, tool dev, type check, lint, coverage. Nói ngắn gọn: đây là “bộ luật” của backend Python này.

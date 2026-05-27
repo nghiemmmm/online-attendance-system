@@ -10,6 +10,14 @@ var pc = null;
 // data channel
 var dc = null, dcInterval = null;
 
+function getApiBaseUrl() {
+    // If UI runs on Streamlit (8501), call FastAPI on 8000.
+    if (window.location.port === '8501') {
+        return 'http://127.0.0.1:8000';
+    }
+    return window.location.origin;
+}
+
 navigator.mediaDevices.enumerateDevices()
     .then(function(devices) { // 成功時
         console.log(devices)
@@ -83,7 +91,7 @@ function negotiate() {
         }
 
         document.getElementById('offer-sdp').textContent = offer.sdp;
-        return fetch('http://127.0.0.1:8000/offer', {
+        return fetch(getApiBaseUrl() + '/webrtc/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,
                 type: offer.type,
@@ -94,13 +102,39 @@ function negotiate() {
             },
             method: 'POST'
         });
-    }).then(function(response) {
-        return response.json();
+    }).then(async function(response) {
+        var payload;
+        try {
+            payload = await response.json();
+        } catch (err) {
+            throw new Error('Server did not return JSON for WebRTC negotiation');
+        }
+        if (!response.ok) {
+            throw new Error(payload.detail || 'Failed to negotiate WebRTC session');
+        }
+        if (!payload || !payload.sdp || !payload.type) {
+            throw new Error('Invalid SDP answer from server');
+        }
+        return payload;
     }).then(function(answer) {
-        document.getElementById('answer-sdp').textContent = answer.sdp;
-        return pc.setRemoteDescription(answer);
+        var normalizedType = String(answer.type || '').toLowerCase().trim();
+        if (normalizedType !== 'answer' && normalizedType !== 'pranswer') {
+            throw new Error('Invalid SDP type from server: ' + answer.type);
+        }
+
+        if (typeof answer.sdp !== 'string' || answer.sdp.trim().length === 0) {
+            throw new Error('Empty SDP from server');
+        }
+
+        // Normalize line endings to CRLF for strict SDP parsers.
+        var normalizedSdp = answer.sdp.replace(/\r?\n/g, '\r\n').trim() + '\r\n';
+        var remoteDescription = { type: normalizedType, sdp: normalizedSdp };
+
+        document.getElementById('answer-sdp').textContent = normalizedSdp;
+        return pc.setRemoteDescription(remoteDescription);
     }).catch(function(e) {
-        alert(e);
+        console.error('WebRTC negotiate error:', e);
+        alert(e.message || e);
     });
 }
 
@@ -267,6 +301,11 @@ function sdpFilterCodec(kind, codec, realSdp) {
                 allowed.push(parseInt(match[1]));
             }
         }
+    }
+
+    // If codec is not present in SDP, keep original SDP to avoid invalid m-lines.
+    if (allowed.length === 0) {
+        return realSdp;
     }
 
     var skipRegex = 'a=(fmtp|rtcp-fb|rtpmap):([0-9]+)';

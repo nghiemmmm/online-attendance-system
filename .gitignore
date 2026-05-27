@@ -1,2 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
 venv/
+.venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and local temp files
+*.log
+app/logs/
+text.txt
+tempCodeRunnerFile.py
+app/**/tempCodeRunnerFile.py
+
+# IDE / agent local state
 .agents/
+.vscode/
+.idea/
+skills-lock.json
+
+# Data and generated model/vector artifacts
+dataset/
+vector_db/
+app/database/db_face/
+
+
+# OS files
+Thumbs.db
+.DS_Store

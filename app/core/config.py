@@ -1,32 +1,140 @@
-from pydantic_settings import BaseSettings
-from typing import Optional
+'''
+ quản lý cấu hình ứng dụng. File này đọc biến môi trường từ .env, rồi tạo đối tượng settings để các nơi khác dùng chung. Nó chứa các giá trị quan trọng như SECRET_KEY, chuỗi kết nối PostgreSQL, domain frontend, thời gian hết hạn token, cấu hình email, và chế độ chạy local/staging/production.
+'''
+import secrets
+import warnings
+from typing import Annotated, Any
+
+from pydantic import (
+    AnyUrl,
+    BeforeValidator,
+    EmailStr,
+    HttpUrl,
+    PostgresDsn,
+    computed_field,
+    model_validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
+
+env_file="../.env"
+
+def parse_cors(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",") if i.strip()]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
+
+
+def parse_debug(v: Any) -> bool:
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        value = v.strip().lower()
+        if value in {"1", "true", "yes", "on", "debug", "development", "dev"}:
+            return True
+        if value in {"0", "false", "no", "off", "release", "production", "prod"}:
+            return False
+    raise ValueError(v)
+
 
 class Settings(BaseSettings):
-    # Application
-    APP_NAME: str = "Fashion Object Detection API"
+    model_config = SettingsConfigDict(
+        # Use top level .env file (one level above ./backend/)
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
+    )
+    APP_NAME: str = "diemdanh"
     VERSION: str = "1.0.0"
-    DEBUG: bool = False
-    
-    # Server
+    API_V1_STR: str = "/api/v1"
     HOST: str = "0.0.0.0"
     PORT: int = 5050
-    API_PREFIX: str = "x"
-    
-    # Model
-    MODEL_CHECKPOINT: str = "yainage90/fashion-object-detection"
-    DETECTION_THRESHOLD: float = 0.4
-    
-    # Security
-    SECRET_KEY: str = "ggfd"  
+    DEBUG: Annotated[bool, BeforeValidator(parse_debug)] = False
+    #Tạo secret key ngẫu nhiên. dùng cho JWT signing ,session, authentication
+    SECRET_KEY: str = secrets.token_urlsafe(32)
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    API_TOKEN: Optional[str] = None
-    
-    # API
-    API_URL: Optional[str] = None
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    # 60 minutes * 24 hours * 8 days = 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    FRONTEND_HOST: str = "http://localhost:5173"
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
 
-settings = Settings()
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def all_cors_origins(self) -> list[str]:
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
+            self.FRONTEND_HOST
+        ]
+
+    PROJECT_NAME: str = "diemdanh"
+    # SENTRY_DSN: HttpUrl | None = None
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_PORT: int = 5433
+    POSTGRES_USER: str = "root"
+    POSTGRES_PASSWORD: str = "123456"
+    POSTGRES_DB: str = "diemdanh"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: int = 587
+    SMTP_HOST: str | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: EmailStr | None = None
+    EMAILS_FROM_NAME: str | None = None
+
+    @model_validator(mode="after")
+    def _set_default_emails_from(self) -> Self:
+        if not self.EMAILS_FROM_NAME:
+            self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def emails_enabled(self) -> bool:
+        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    EMAIL_TEST_USER: EmailStr = "test@example.com"
+    FIRST_SUPERUSER: EmailStr
+    FIRST_SUPERUSER_PASSWORD: str
+
+    def _check_default_secret(self, var_name: str, value: str | None) -> None:
+        if value == "changethis":
+            message = (
+                f'The value of {var_name} is "changethis", '
+                "for security, please change it, at least for deployments."
+            )
+            if self.ENVIRONMENT == "local":
+                warnings.warn(message, stacklevel=1)
+            else:
+                raise ValueError(message)
+
+    @model_validator(mode="after")
+    def _enforce_non_default_secrets(self) -> Self:
+        self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
+        self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        self._check_default_secret(
+            "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
+        )
+
+        return self
+
+
+settings = Settings()  # type: ignore

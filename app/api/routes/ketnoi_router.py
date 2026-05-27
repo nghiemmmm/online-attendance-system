@@ -1,11 +1,16 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 import uuid
 import logging
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaRelay
-from app.frontend.my_media_transform_check import VideoTransformTrack
+from fastapi.templating import Jinja2Templates
+from app.webrtc.webrtc import VideoTransformTrack
 
+
+templates = Jinja2Templates(directory="app/templates")
 # Global state
 pcs = set()
 dcs = set()
@@ -18,57 +23,122 @@ router = APIRouter(
 )
 
 @router.get("/offer", include_in_schema=False)
+async def offer(
+    request: Request,
+) -> HTMLResponse:
+    return templates.TemplateResponse("index.html", {"request": request})
+
 @router.post("/offer", include_in_schema=False)
 async def offer(request: Request):
-    params = await request.json()
-    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    pc: Optional[RTCPeerConnection] = None
+    try:
+        try:
+            params = await request.json()
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
-    pc = RTCPeerConnection()
-    pc_id = "PeerConnection(%s)" % uuid.uuid4()
-    pcs.add(pc)
+        sdp = params.get("sdp") if isinstance(params, dict) else None
+        offer_type = params.get("type") if isinstance(params, dict) else None
 
-    def log_info(msg, *args):
-        root_logger.info(pc_id + " " + msg, *args)
+        if not sdp or not offer_type:
+            raise HTTPException(status_code=422, detail="Missing required fields: sdp, type")
 
-    # Media recorder
-    recorder = MediaBlackhole()
+        try:
+            offer = RTCSessionDescription(sdp=sdp, type=offer_type)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid WebRTC offer") from exc
 
-    @pc.on("datachannel")
-    def on_datachannel(channel):
-        dcs.add(channel)
+        pc = RTCPeerConnection()
+        pc_id = "PeerConnection(%s)" % uuid.uuid4()
+        pcs.add(pc)
 
-        @channel.on("message")
-        def on_message(message):
-            if isinstance(message, str) and message.startswith("ping"):
-                channel.send("pong" + message[4:])
+        def log_info(msg, *args):
+            root_logger.info(pc_id + " " + msg, *args)
 
-    @pc.on("connectionstatechange")
-    async def on_connectionstatechange():
-        log_info("Connection state is %s", pc.connectionState)
-        if pc.connectionState == "failed":
-            await pc.close()
+        # Media recorder
+        recorder = MediaBlackhole()
+
+        @pc.on("datachannel")
+        def on_datachannel(channel):
+            dcs.add(channel)
+
+            @channel.on("message")
+            def on_message(message):
+                if isinstance(message, str) and message.startswith("ping"):
+                    channel.send("pong" + message[4:])
+
+        @pc.on("connectionstatechange")
+        async def on_connectionstatechange():
+            log_info("Connection state is %s", pc.connectionState)
+            if pc.connectionState == "failed":
+                await pc.close()
+                pcs.discard(pc)
+
+        @pc.on("track")
+        def on_track(track):
+            log_info("Track %s received", track.kind)
+
+            if track.kind == "video":
+                pc.addTrack(VideoTransformTrack(relay.subscribe(track), transform="")) 
+                video_from_track = VideoTransformTrack(relay.subscribe(track), transform="")
+
+
+            @track.on("ended")
+            async def on_ended():
+                log_info("Track %s ended", track.kind)
+                await recorder.stop()
+
+        # Handle WebRTC offer
+        await pc.setRemoteDescription(offer)
+        await recorder.start()
+
+        # Send answer
+        answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+
+        if pc.localDescription is None or not pc.localDescription.sdp:
+            raise HTTPException(status_code=500, detail="Failed to generate SDP answer")
+
+        return JSONResponse(
+            {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type},
+        )
+    except HTTPException:
+        if pc is not None:
             pcs.discard(pc)
+            await pc.close()
+        raise
+    except Exception:
+        if pc is not None:
+            pcs.discard(pc)
+            await pc.close()
+        root_logger.exception("Unexpected error while processing /webrtc/offer")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while processing WebRTC offer",
+        )
 
-    @pc.on("track")
-    def on_track(track):
-        log_info("Track %s received", track.kind)
 
-        if track.kind == "video":
-            pc.addTrack(VideoTransformTrack(relay.subscribe(track), transform=""))
+@router.post("/message", include_in_schema=False)
+async def message(request: Request):
+    try:
+        try:
+            params = await request.json()
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
-        @track.on("ended")
-        async def on_ended():
-            log_info("Track %s ended", track.kind)
-            await recorder.stop()
+        message_text = params.get("message") if isinstance(params, dict) else None
+        if not message_text:
+            raise HTTPException(status_code=422, detail="Missing required field: message")
 
-    # Handle WebRTC offer
-    await pc.setRemoteDescription(offer)
-    await recorder.start()
+        for dc in dcs:
+            dc.send(message_text)
 
-    # Send answer
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
-
-    return JSONResponse(
-        {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type},
-    )
+        return JSONResponse({"message": "Message sent"})
+    except HTTPException:
+        raise
+    except Exception:
+        root_logger.exception("Unexpected error while processing /webrtc/message")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while sending message",
+        )
