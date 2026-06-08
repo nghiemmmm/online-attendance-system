@@ -13,6 +13,10 @@ from app.core.security import create_access_token
 from app.services.models import load_model
 from app.utils.logger import logger
 
+from starlette.middleware.sessions import SessionMiddleware
+import secrets
+
+
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 app = FastAPI(
@@ -23,6 +27,9 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+# Add SessionMiddleware to enable session support
+# Generate a random secret key for session encryption
+app.add_middleware(SessionMiddleware, secret_key=secrets.token_urlsafe(16))
 access_token = create_access_token(
     data={"sub": "test_user"},
     expires_delta=timedelta(minutes=30000),
@@ -38,6 +45,7 @@ if settings.all_cors_origins:
         allow_headers=["*"],
     )
 
+app.add_middleware(SessionMiddleware, secret_key=secrets.token_urlsafe(16))
 app.include_router(api_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

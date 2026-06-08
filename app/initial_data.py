@@ -11,6 +11,7 @@ import logging
 
 from sqlmodel import Session
 
+# pyrefly: ignore [missing-import]
 from app.core.db import engine, init_db
 
 logging.basicConfig(level=logging.INFO)

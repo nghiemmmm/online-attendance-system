@@ -37,3 +37,9 @@ rồi gửi kèm trong header mỗi lần gọi API cần đăng nhập
 Frontend phải gửi:Authorization: Bearer abc.xyz.123
 lay FastAPI lấy token từ heade -> def get_current_account(session: SessionDep, token: TokenDep) -> TaiKhoan: -> Nó decode JWT: -> Nó decode JWT: -> account = session.get(TaiKhoan, account_id) -> Nếu tài khoản tồn tại và trang_thai=True, trả về current_account
 Nếu API yêu cầu admin: -> dependencies=[Depends(get_current_active_superuser)]
+
+
+luong dang ky : TaiKhoanRegister từ request
+ -> convert thành TaiKhoanCreate
+ -> hash password
+ -> insert TaiKhoan vào DB

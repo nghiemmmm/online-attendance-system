@@ -17,6 +17,8 @@ from facenet_pytorch import InceptionResnetV1, MTCNN
 # Initialize FaceNet + MTCNN
 # ===============================
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+model = None
+mtcnn = None
 
 def load_model(model_class=InceptionResnetV1, detector_class=MTCNN, keep_all=True):
     """
@@ -28,7 +30,11 @@ def load_model(model_class=InceptionResnetV1, detector_class=MTCNN, keep_all=Tru
     return model, detector
 
 
-model, mtcnn = load_model()
+def ensure_model_loaded():
+    global model, mtcnn
+    if model is None or mtcnn is None:
+        model, mtcnn = load_model()
+    return model, mtcnn
 
 
 def load_image_file(file_path):
@@ -45,7 +51,8 @@ def face_locations(img):
     """
     Trả về list bounding boxes (top, right, bottom, left)
     """
-    boxes, _ = mtcnn.detect(img)
+    _, detector = ensure_model_loaded()
+    boxes, _ = detector.detect(img)
     if boxes is None:
         return []
     return [(int(y1), int(x2), int(y2), int(x1)) for x1, y1, x2, y2 in boxes]
@@ -58,23 +65,24 @@ def face_encodings(img, known_face_locations=None):
     Trích xuất embedding 512-d cho từng face
     Nếu known_face_locations=None → detect tất cả
     """
+    face_model, detector = ensure_model_loaded()
     embeddings = []
 
     if known_face_locations is None:
-        faces, _ = mtcnn(img, return_prob=True)
+        faces, _ = detector(img, return_prob=True)
         if faces is None:
             return []
         for face in faces:
-            face_embedding = model(face.unsqueeze(0).to(device))
+            face_embedding = face_model(face.unsqueeze(0).to(device))
             embeddings.append(face_embedding.detach().cpu().numpy()[0])
     else:
         for box in known_face_locations:
             y1, x2, y2, x1 = box
             face_crop = img.crop((x1, y1, x2, y2))
             # extract manually
-            face_tensor = mtcnn(face_crop)
+            face_tensor = detector(face_crop)
             if face_tensor is not None:
-                face_embedding = model(face_tensor.unsqueeze(0).to(device))
+                face_embedding = face_model(face_tensor.unsqueeze(0).to(device))
                 embeddings.append(face_embedding.detach().cpu().numpy()[0])
     return embeddings
 

@@ -14,12 +14,12 @@ class TaiKhoanBase(SQLModel):
 
 
 class TaiKhoanCreate(TaiKhoanBase):
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=5, max_length=128)
 
 
 class TaiKhoanRegister(SQLModel):
     ten_dang_nhap: str = Field(max_length=50)
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=5, max_length=128)
     vai_tro: str = Field(default="SINH_VIEN", max_length=20)
 
 

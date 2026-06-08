@@ -76,10 +76,26 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "root"
     POSTGRES_PASSWORD: str = "123456"
     POSTGRES_DB: str = "diemdanh"
+    DATABASE_URL: str | None = None
+
+    def _normalize_database_url(self, url: str) -> str:
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+psycopg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+        if "render.com" in url and "sslmode=" not in url:
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}sslmode=require"
+
+        return url
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn | str:
+        if self.DATABASE_URL:
+            return self._normalize_database_url(self.DATABASE_URL)
+
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
             username=self.POSTGRES_USER,
