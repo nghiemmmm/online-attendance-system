@@ -13,16 +13,28 @@ def get_account_by_username(
     return session.exec(statement).first()
 
 
-def get_account_by_profile_email(*, session: Session, email: str) -> TaiKhoan | None:
-    sinh_vien = session.exec(select(SinhVien).where(SinhVien.email == email)).first()
+def get_account_by_profile_google_email(
+    *, session: Session, google_email: str
+) -> TaiKhoan | None:
+    sinh_vien = session.exec(
+        select(SinhVien).where(SinhVien.google_email == google_email)
+    ).first()
     if sinh_vien and sinh_vien.ma_tai_khoan:
         return session.get(TaiKhoan, sinh_vien.ma_tai_khoan)
 
-    can_bo = session.exec(select(CanBo).where(CanBo.email == email)).first()
+    can_bo = session.exec(
+        select(CanBo).where(CanBo.google_email == google_email)
+    ).first()
     if can_bo and can_bo.ma_tai_khoan:
         return session.get(TaiKhoan, can_bo.ma_tai_khoan)
 
     return None
+
+
+def get_account_by_profile_email(*, session: Session, email: str) -> TaiKhoan | None:
+    return get_account_by_profile_google_email(
+        session=session, google_email=email
+    )
 
 
 def get_account_profile(*, session: Session, account: TaiKhoan) -> dict | None:

@@ -28,7 +28,7 @@ with tab2:
     with col1:
         teacher_id = st.text_input("Mã giáo viên")
         teacher_name = st.text_input("Tên giáo viên")
-        teacher_email = st.text_input("Email")
+        teacher_email = st.text_input("Google Email")
     
     with col2:
         teacher_subject = st.selectbox("Chuyên môn", ["Toán", "Văn", "Anh", "Lý", "Hóa", "Sinh"])
@@ -40,7 +40,7 @@ with tab2:
             data = {
                 "id": teacher_id,
                 "name": teacher_name,
-                "email": teacher_email,
+                "google_email": teacher_email,
                 "subject": teacher_subject,
                 "dob": teacher_dob.isoformat(),
                 "phone": teacher_phone
@@ -69,7 +69,7 @@ with tab3:
                 col1, col2 = st.columns(2)
                 with col1:
                     updated_name = st.text_input("Tên", value=teacher_data.get('name', ''))
-                    updated_email = st.text_input("Email", value=teacher_data.get('email', ''))
+                    updated_email = st.text_input("Google Email", value=teacher_data.get('google_email', ''))
                 
                 with col2:
                     updated_subject = st.selectbox("Chuyên môn", ["Toán", "Văn", "Anh"], index=0)
@@ -78,7 +78,7 @@ with tab3:
                 if st.button("💾 Cập nhật"):
                     data = {
                         "name": updated_name,
-                        "email": updated_email,
+                        "google_email": updated_email,
                         "subject": updated_subject,
                         "status": updated_status
                     }

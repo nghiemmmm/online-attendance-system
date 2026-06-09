@@ -16,6 +16,7 @@ lophocphan,
 hocphan,
 sinhvien,
 canbo,
+oauth_identity,
 taikhoan,
 nganh
 RESTART IDENTITY CASCADE;
@@ -80,7 +81,7 @@ INSERT INTO canbo (
     dien_thoai,
     gioi_tinh,
     ngay_sinh,
-    email,
+    google_email,
     ma_tai_khoan,
     chuc_vu,
     trang_thai
@@ -117,7 +118,7 @@ INSERT INTO sinhvien (
     ngay_sinh,
     gioi_tinh,
     dien_thoai,
-    email,
+    google_email,
     ma_nganh,
     ma_tai_khoan,
     trang_thai_hoc,

@@ -1,3 +1,72 @@
+LUONG DANG KY THUONG BANG USERNAME/PASSWORD/ROLE
+
+POST /users/signup
+        |
+        v
+Client gui JSON body:
+{
+  "ten_dang_nhap": "nguyenvana",
+  "password": "123456",
+  "vai_tro": "SINH_VIEN"
+}
+        |
+        v
+Backend nhan TaiKhoanRegister tu request
+        |
+        v
+Kiem tra ten_dang_nhap da ton tai chua
+        |
+        v
+Neu da ton tai:
+        |
+        v
+Tra loi 400: The account with this username already exists
+        |
+        v
+Neu chua ton tai:
+        |
+        v
+Convert TaiKhoanRegister thanh TaiKhoanCreate
+        |
+        v
+Hash password thanh mat_khau_hash
+        |
+        v
+Tao ban ghi TaiKhoan moi trong bang taikhoan
+        |
+        v
+trang_thai mac dinh True
+        |
+        v
+Tra ve TaiKhoanPublic
+
+Response thanh cong gom:
+- ma_tai_khoan
+- ten_dang_nhap
+- vai_tro
+- trang_thai
+- lan_dang_nhap_cuoi
+- ngay_tao
+
+Sau khi dang ky thanh cong, client dang nhap bang:
+
+POST /login/access-token
+        |
+        v
+Gui form-data:
+username=<ten_dang_nhap>
+password=<password>
+        |
+        v
+Neu dung username/password va account.trang_thai=True
+        |
+        v
+Backend tra access_token
+        |
+        v
+Client dung Authorization: Bearer <access_token>
+
+
 POST /login/access-token
         ↓
 Nhận username/password form-data

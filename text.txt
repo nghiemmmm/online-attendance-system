@@ -18,3 +18,14 @@ alembic upgrade head nếu databae ở head r thì không cần tạo
 
 
 quy trình them thay doi tu database : chỉnh model -> tạo migrate : .\venv\Scripts\alembic.exe revision --autogenerate -m "add ghi_chu to taikhoan" -> chạy migrate lên database -> .\venv\Scripts\alembic.exe upgrade head 
+
+
+
+
+quy trình test : 
+test một file : venv\Scripts\python.exe -m pytest --confcutdir=tests\register tests\register\test_google_register.py
+xem log test : venv\Scripts\python.exe -m pytest -v --confcutdir=tests\register tests\register\test_google_register.py
+test ham cu the : 
+venv\Scripts\python.exe -m pytest --confcutdir=tests\register tests\register\test_google_register.py::test_auto_register_creates_pending_account_and_google_identity
+
+venv\Scripts\python.exe -m pytest --confcutdir=tests\register tests\register\test_google_register.py tests\login\test_google_login.py

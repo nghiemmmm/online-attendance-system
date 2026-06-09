@@ -16,7 +16,7 @@ from app.models.anhkhuonmat import (
     AnhKhuonMatsPublic,
     AnhKhuonMatUpdate,
 )
-from app.models.auth import NewPassword, Token, TokenPayload, UpdatePassword
+from app.models.auth import NewPassword, Token, TokenPayload, UpdatePassword, GoogleAuthPending
 from app.models.buoihoc import (
     BuoiHoc,
     BuoiHocBase,
@@ -82,6 +82,7 @@ from app.models.nganh import (
     NganhsPublic,
     NganhUpdate,
 )
+from app.models.oauth_identity import OAuthIdentity
 from app.models.sinhvien import (
     SinhVien,
     SinhVienBase,

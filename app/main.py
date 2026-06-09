@@ -14,7 +14,6 @@ from app.services.models import load_model
 from app.utils.logger import logger
 
 from starlette.middleware.sessions import SessionMiddleware
-import secrets
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,8 +27,7 @@ app = FastAPI(
 )
 
 # Add SessionMiddleware to enable session support
-# Generate a random secret key for session encryption
-app.add_middleware(SessionMiddleware, secret_key=secrets.token_urlsafe(16))
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 access_token = create_access_token(
     data={"sub": "test_user"},
     expires_delta=timedelta(minutes=30000),
@@ -45,7 +43,6 @@ if settings.all_cors_origins:
         allow_headers=["*"],
     )
 
-app.add_middleware(SessionMiddleware, secret_key=secrets.token_urlsafe(16))
 app.include_router(api_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -55,11 +52,11 @@ root_logger = logging.getLogger("app")
 root_logger.addHandler(logging.StreamHandler())
 
 
-@app.on_event("startup")
-async def load():
-    global model, mtcnn
-    model, mtcnn = load_model()
-    logger.info(f"Model and MTCNN loaded on {DEVICE}")
+# @app.on_event("startup")
+# async def load():
+#     global model, mtcnn
+#     model, mtcnn = load_model()
+#     logger.info(f"Model and MTCNN loaded on {DEVICE}")
 
 
 @app.on_event("shutdown")

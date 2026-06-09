@@ -1,5 +1,10 @@
 from sqlmodel import Field, SQLModel
 
+class GoogleAuthPending(SQLModel):
+    message: str
+    status: str = "pending_approval"
+    ma_tai_khoan: int
+
 #Response dùng schema Token trong
 class Token(SQLModel):
     access_token: str

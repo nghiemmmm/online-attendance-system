@@ -2,7 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import col, func, select
-from app.core.security.auth.google_oauth import oauth
 
 from app import crud
 from app.api.deps import (
@@ -186,23 +185,3 @@ def delete_account(
     session.delete(account)
     session.commit()
     return Message(message="Account deleted successfully")
-
-@router.get("/auth/callback")
-async def auth_callback(request: Request):
-    try:
-        token = await oauth.google.authorize_access_token(request)
-        print("TOKEN STRUCTURE:", token)
-        print("TOKEN KEYS:", list(token.keys()))
-
-        # Use userinfo endpoint instead of trying to parse id_token
-        user_info = await oauth.google.userinfo(token=token)
-        return {"message": "Authentication successful!", "user_info": user_info}
-
-    except Exception as e:
-        print(f"Error in auth_callback: {e}")
-        return {"error": str(e)}
-
-@router.get("/login")
-async def login(request: Request):
-    redirect_uri = request.url_for("auth_callback")
-    return await oauth.google.authorize_redirect(request, redirect_uri)

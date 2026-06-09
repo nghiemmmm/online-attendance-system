@@ -53,7 +53,9 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
     if not email:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    account = crud.get_account_by_profile_email(session=session, email=email)
+    account = crud.get_account_by_profile_google_email(
+        session=session, google_email=email
+    )
     if not account:
         raise HTTPException(status_code=400, detail="Invalid token")
     if not account.trang_thai:
