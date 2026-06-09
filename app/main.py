@@ -1,5 +1,4 @@
 from datetime import timedelta
-import logging
 
 import torch
 from fastapi import FastAPI
@@ -9,7 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from app import exception_handler
 from app.api.main import api_router
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.core.security import create_access_token
+from app.middleware.logging_middleware import RequestLoggingMiddleware
 from app.services.models import load_model
 from app.utils.logger import logger
 
@@ -17,6 +18,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+setup_logging()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -26,6 +29,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+app.add_middleware(RequestLoggingMiddleware)
 # Add SessionMiddleware to enable session support
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 access_token = create_access_token(
@@ -47,9 +51,6 @@ app.include_router(api_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 exception_handler.init_app(app)
-
-root_logger = logging.getLogger("app")
-root_logger.addHandler(logging.StreamHandler())
 
 
 # @app.on_event("startup")

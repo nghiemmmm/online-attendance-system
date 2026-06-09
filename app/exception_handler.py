@@ -34,7 +34,7 @@ async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
 
-    logger.info(exc)
+    logger.warning("request_validation_error path=%s error=%s", request.url.path, exc)
     errors = [Error(developer_message=str(exc))]
     return JSONResponse(
         status_code=400, content={"errors": [error.to_response() for error in errors]}
@@ -43,6 +43,7 @@ async def validation_exception_handler(
 
 async def not_found_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """404のエラーハンドラー"""
+    logger.info("not_found path=%s", request.url.path)
     error = Error(
         developer_message="Not found",
         code=DEFAULT_CODE,

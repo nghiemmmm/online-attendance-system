@@ -16,6 +16,7 @@ lophocphan,
 hocphan,
 sinhvien,
 canbo,
+refresh_token,
 oauth_identity,
 taikhoan,
 nganh

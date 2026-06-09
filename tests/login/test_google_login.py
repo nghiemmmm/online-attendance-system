@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import google_auth_router as google_auth
-from app.models import OAuthIdentity, TaiKhoan
+from app.models import OAuthIdentity, RefreshToken, TaiKhoan
 
 
 class FakeSession:
@@ -136,6 +136,53 @@ def test_existing_google_login_rejects_unregistered_email(monkeypatch) -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Google email is not registered in the system"
+
+
+def test_existing_google_login_with_remember_me_returns_refresh_token(
+    monkeypatch,
+) -> None:
+    """Kiểm tra đăng nhập Google remember_me=True trả thêm refresh token."""
+    session = FakeSession()
+    account = make_account(ma_tai_khoan=14, trang_thai=True)
+
+    monkeypatch.setattr(
+        google_auth.crud,
+        "get_account_by_profile_google_email",
+        lambda *, session, google_email: account,
+    )
+    monkeypatch.setattr(
+        google_auth.crud,
+        "create_oauth_identity",
+        lambda *, session, provider, provider_subject, email, ma_tai_khoan: make_identity(
+            ma_tai_khoan=ma_tai_khoan
+        ),
+    )
+    monkeypatch.setattr(
+        google_auth.crud,
+        "update_oauth_identity_last_login",
+        lambda *, session, identity: identity,
+    )
+    monkeypatch.setattr(
+        google_auth.crud,
+        "create_refresh_token",
+        lambda **kwargs: RefreshToken(
+            ma_refresh_token=1,
+            ma_tai_khoan=kwargs["ma_tai_khoan"],
+            token_hash=kwargs["token_hash"],
+            expires_at=kwargs["expires_at"],
+        ),
+    )
+    patch_token_creation(monkeypatch)
+
+    result = google_auth.handle_existing_account_login(
+        session=session,
+        provider_subject="google-subject",
+        email="student@example.edu",
+        remember_me=True,
+    )
+
+    assert result.access_token == "jwt-token"
+    assert result.refresh_token
 
 
 def test_existing_google_login_rejects_inactive_account(monkeypatch) -> None:

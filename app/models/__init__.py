@@ -16,7 +16,17 @@ from app.models.anhkhuonmat import (
     AnhKhuonMatsPublic,
     AnhKhuonMatUpdate,
 )
-from app.models.auth import NewPassword, Token, TokenPayload, UpdatePassword, GoogleAuthPending
+from app.models.attendance_summary import MonthlyAttendanceSummary
+from app.models.auth import (
+    GoogleAuthPending,
+    LoginRequest,
+    LogoutRequest,
+    NewPassword,
+    RefreshTokenRequest,
+    Token,
+    TokenPayload,
+    UpdatePassword,
+)
 from app.models.buoihoc import (
     BuoiHoc,
     BuoiHocBase,
@@ -25,6 +35,7 @@ from app.models.buoihoc import (
     BuoiHocsPublic,
     BuoiHocUpdate,
 )
+from app.models.canhbaohoc_tap import CanhBaoVangItem, CanhBaoVangPublic
 from app.models.canbo import (
     CanBo,
     CanBoBase,
@@ -50,6 +61,7 @@ from app.models.diemdanh import (
     DiemDanhsPublic,
     DiemDanhUpdate,
 )
+from app.models.diemdanh_summary import TongBuoiCoMatHocKyPublic
 from app.models.hocphan import (
     HocPhan,
     HocPhanBase,
@@ -61,10 +73,17 @@ from app.models.hocphan import (
 from app.models.khieunai import (
     KhieuNai,
     KhieuNaiBase,
+    KhieuNaiCanXuLyDetail,
+    KhieuNaiCanXuLyItem,
+    KhieuNaiCanXuLysPublic,
+    KhieuNaiChapThuanRequest,
+    KhieuNaiChoXuLyMetric,
     KhieuNaiCreate,
     KhieuNaiPublic,
     KhieuNaisPublic,
     KhieuNaiUpdate,
+    KhieuNaiXuLyRequest,
+    KhieuNaiXuLyResult,
 )
 from app.models.lophocphan import (
     LopHocPhan,
@@ -74,6 +93,14 @@ from app.models.lophocphan import (
     LopHocPhansPublic,
     LopHocPhanUpdate,
 )
+from app.models.lichday import (
+    BuoiHocGanDayItem,
+    BuoiHocGanDaysPublic,
+    LichDayItem,
+    LichDaysPublic,
+    SoLuongLopHocPhanDangDayPublic,
+)
+from app.models.lichhoc import LichHocHomNayItem, LichHocHomNayPublic
 from app.models.nganh import (
     Nganh,
     NganhBase,
@@ -83,6 +110,7 @@ from app.models.nganh import (
     NganhUpdate,
 )
 from app.models.oauth_identity import OAuthIdentity
+from app.models.refresh_token import RefreshToken
 from app.models.sinhvien import (
     SinhVien,
     SinhVienBase,

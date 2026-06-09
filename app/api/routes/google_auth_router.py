@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
+import logging
 import secrets
 from typing import Any, Literal
 
@@ -12,30 +12,46 @@ from app.core import security
 from app.core.config import settings
 from app.core.security.auth.google_oauth import oauth
 from app.models import GoogleAuthPending, OAuthIdentity, TaiKhoan, TaiKhoanCreate, Token
+from app.services.auth_token_service import issue_login_tokens
 
 router = APIRouter(prefix="/auth/google", tags=["google-auth"])
+logger = logging.getLogger("app.auth.google")
 
 GoogleAuthMode = Literal["existing", "auto_register"]
 GOOGLE_PROVIDER = "google"
 
 
+def get_email_domain(email: str) -> str:
+    """Lấy domain email để log mà không ghi đầy đủ địa chỉ email."""
+    if "@" not in email:
+        return "-"
+    return email.rsplit("@", 1)[1]
+
+
 @router.get("/login")
-async def google_login(request: Request, mode: GoogleAuthMode = "existing"):
+async def google_login(
+    request: Request,
+    mode: GoogleAuthMode = "existing",
+    remember_me: bool = False,
+):
     request.session["google_auth_mode"] = mode
+    request.session["remember_me"] = remember_me
     redirect_uri = request.url_for("google_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @router.get("/login/existing")
-async def google_login_existing(request: Request):
+async def google_login_existing(request: Request, remember_me: bool = False):
     request.session["google_auth_mode"] = "existing"
+    request.session["remember_me"] = remember_me
     redirect_uri = request.url_for("google_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @router.get("/login/register")
-async def google_login_register(request: Request):
+async def google_login_register(request: Request, remember_me: bool = False):
     request.session["google_auth_mode"] = "auto_register"
+    request.session["remember_me"] = remember_me
     redirect_uri = request.url_for("google_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -48,6 +64,7 @@ async def google_callback(
     user_info = await oauth.google.userinfo(token=google_token)
     provider_subject, email = validate_google_user_info(user_info)
     mode: GoogleAuthMode = request.session.pop("google_auth_mode", "existing")
+    remember_me = request.session.pop("remember_me", False)
 
     identity = crud.get_oauth_identity_by_provider_subject(
         session=session,
@@ -59,8 +76,19 @@ async def google_callback(
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
 
-        token = create_login_token_for_account(session=session, account=account)
+        token = create_login_token_for_account(
+            session=session,
+            account=account,
+            remember_me=remember_me,
+            request=request,
+        )
         crud.update_oauth_identity_last_login(session=session, identity=identity)
+        logger.info(
+            "google_login_existing_identity account_id=%s identity_id=%s remember_me=%s",
+            account.ma_tai_khoan,
+            identity.ma_oauth_identity,
+            remember_me,
+        )
         return token
 
     if mode == "auto_register":
@@ -68,12 +96,16 @@ async def google_callback(
             session=session,
             provider_subject=provider_subject,
             email=email,
+            remember_me=remember_me,
+            request=request,
         )
 
     return handle_existing_account_login(
         session=session,
         provider_subject=provider_subject,
         email=email,
+        remember_me=remember_me,
+        request=request,
     )
 
 
@@ -102,7 +134,12 @@ def validate_google_user_info(user_info: dict[str, Any]) -> tuple[str, str]:
 
 
 def handle_existing_account_login(
-    *, session: Session, provider_subject: str, email: str
+    *,
+    session: Session,
+    provider_subject: str,
+    email: str,
+    remember_me: bool = False,
+    request: Request | None = None,
 ) -> Token:
     account = crud.get_account_by_profile_google_email(
         session=session, google_email=email
@@ -119,13 +156,28 @@ def handle_existing_account_login(
         email=email,
         account=account,
     )
-    token = create_login_token_for_account(session=session, account=account)
+    logger.info(
+        "google_identity_linked account_id=%s email_domain=%s",
+        account.ma_tai_khoan,
+        get_email_domain(email),
+    )
+    token = create_login_token_for_account(
+        session=session,
+        account=account,
+        remember_me=remember_me,
+        request=request,
+    )
     crud.update_oauth_identity_last_login(session=session, identity=identity)
     return token
 
 
 def handle_auto_register_login(
-    *, session: Session, provider_subject: str, email: str
+    *,
+    session: Session,
+    provider_subject: str,
+    email: str,
+    remember_me: bool = False,
+    request: Request | None = None,
 ) -> Token | GoogleAuthPending:
     validate_allowed_email_domain(email)
 
@@ -140,8 +192,19 @@ def handle_auto_register_login(
             email=email,
             account=account,
         )
-        token = create_login_token_for_account(session=session, account=account)
+        token = create_login_token_for_account(
+            session=session,
+            account=account,
+            remember_me=remember_me,
+            request=request,
+        )
         crud.update_oauth_identity_last_login(session=session, identity=identity)
+        logger.info(
+            "google_auto_register_existing_profile account_id=%s email_domain=%s remember_me=%s",
+            account.ma_tai_khoan,
+            get_email_domain(email),
+            remember_me,
+        )
         return token
 
     account_create = TaiKhoanCreate(
@@ -156,6 +219,11 @@ def handle_auto_register_login(
         provider_subject=provider_subject,
         email=email,
         account=account,
+    )
+    logger.info(
+        "google_auto_register_pending account_id=%s email_domain=%s",
+        account.ma_tai_khoan,
+        get_email_domain(email),
     )
 
     return GoogleAuthPending(
@@ -195,23 +263,20 @@ def create_google_identity_for_account(
     )
 
 
-def create_login_token_for_account(*, session: Session, account: TaiKhoan) -> Token:
-    if not account.trang_thai:
-        raise HTTPException(
-            status_code=400,
-            detail="Inactive account or waiting for approval",
-        )
-
-    account.lan_dang_nhap_cuoi = datetime.now(timezone.utc)
-    session.add(account)
-    session.commit()
-    session.refresh(account)
-
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return Token(
-        access_token=security.create_access_token(
-            account.ma_tai_khoan,
-            data={"role": account.vai_tro},
-            expires_delta=access_token_expires,
-        )
+def create_login_token_for_account(
+    *,
+    session: Session,
+    account: TaiKhoan,
+    remember_me: bool = False,
+    request: Request | None = None,
+) -> Token:
+    """Cấp token đăng nhập cho tài khoản Google đã xác thực."""
+    headers = getattr(request, "headers", None)
+    client = getattr(request, "client", None)
+    return issue_login_tokens(
+        session=session,
+        account=account,
+        remember_me=remember_me,
+        user_agent=headers.get("user-agent") if headers else None,
+        ip_address=client.host if client else None,
     )

@@ -1,1 +1,20 @@
 asdl;fkjasl;dkfjsldk;
+Hãy phân tích và thiết kế API FastAPI cho phép cán bộ xem tỷ lệ có mặt trung bình trong tháng hiện tại và mức tăng/giảm so với tháng trước.
+
+Yêu cầu:
+- Phân tích nghiệp vụ.
+- Xác định các bảng cần sử dụng và quan hệ dữ liệu.
+- Xác định công thức tính tỷ lệ có mặt.
+- Thiết kế endpoint RESTful phù hợp.
+- Thiết kế request/response schema.
+- Phân tích luồng Router → Service → Database.
+- Xử lý các trường hợp không có dữ liệu.
+- Đề xuất tên file, class, hàm theo PEP8.
+- Sinh code skeleton cho Router, Service và Schema.
+- Bổ sung docstring cho file, class và function.
+
+Kết quả trả về gồm:
+- Tỷ lệ có mặt trung bình tháng hiện tại.
+- Tỷ lệ có mặt tháng trước.
+- Mức tăng/giảm (%).
+- Mô tả dạng "+1.5% so với tháng trước".
