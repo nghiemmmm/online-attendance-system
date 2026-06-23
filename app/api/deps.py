@@ -53,7 +53,11 @@ def get_current_account(session: SessionDep, token: TokenDep) -> TaiKhoan:
 
     account = session.get(TaiKhoan, account_id)
     if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Account not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if not account.trang_thai:
         raise HTTPException(status_code=400, detail="Inactive account")
     return account
@@ -71,14 +75,14 @@ def get_current_active_superuser(current_account: CurrentAccount) -> TaiKhoan:
     return current_account
 
 def get_current_active_sinhvien(current_account: CurrentAccount) -> TaiKhoan:
-    if current_account.vai_tro != "SINHVIEN":
+    if current_account.vai_tro != "SINH_VIEN":
         raise HTTPException(
             status_code=403, detail="The account doesn't have enough privileges"
         )
     return current_account
 
-def get_current_active_canbo(current_account: CurrentAccount) -> TaiKhoan:
-    if current_account.vai_tro != "CANBO":
+def get_current_active_giangvien(current_account: CurrentAccount) -> TaiKhoan:
+    if current_account.vai_tro != "GIANG_VIEN":
         raise HTTPException(
             status_code=403, detail="The account doesn't have enough privileges"
         )

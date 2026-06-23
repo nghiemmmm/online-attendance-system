@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 import uuid
 import logging
@@ -39,6 +39,7 @@ async def offer(request: Request):
 
         sdp = params.get("sdp") if isinstance(params, dict) else None
         offer_type = params.get("type") if isinstance(params, dict) else None
+        ma_buoi_hoc = params.get("ma_buoi_hoc") if isinstance(params, dict) else None
 
         if not sdp or not offer_type:
             raise HTTPException(status_code=422, detail="Missing required fields: sdp, type")
@@ -79,8 +80,8 @@ async def offer(request: Request):
             log_info("Track %s received", track.kind)
 
             if track.kind == "video":
-                pc.addTrack(VideoTransformTrack(relay.subscribe(track), transform="")) 
-                video_from_track = VideoTransformTrack(relay.subscribe(track), transform="")
+                vt = VideoTransformTrack(relay.subscribe(track), ma_buoi_hoc=ma_buoi_hoc)
+                pc.addTrack(vt)
 
 
             @track.on("ended")

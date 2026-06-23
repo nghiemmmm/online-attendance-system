@@ -68,7 +68,7 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
 def seed_warning_data(session: Session):
     """Seed student, classes, lessons and attendance records for warning tests."""
-    can_bo = CanBo(ho="Nguyen", ten="Giang", google_email="gv@example.edu")
+    can_bo = CanBo(ho="Nguyen", ten="Giang", google_ten_dang_nhap="gv@example.edu")
     nganh = Nganh(ten_nganh="Cong nghe thong tin")
     hoc_phan_1 = HocPhan(ma_hoc_phan=901, ten_hoc_phan="Co so du lieu")
     hoc_phan_2 = HocPhan(ma_hoc_phan=902, ten_hoc_phan="Lap trinh web")
@@ -202,7 +202,7 @@ def test_read_canh_bao_vang_can_include_safe_classes() -> None:
 def test_read_canh_bao_vang_returns_empty_when_no_warnings() -> None:
     """Test absence warning API returns empty response when there are no warnings."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Tran", ten="Giang", google_email="gv2@example.edu")
+        can_bo = CanBo(ho="Tran", ten="Giang", google_ten_dang_nhap="gv2@example.edu")
         nganh = Nganh(ten_nganh="He thong thong tin")
         hoc_phan = HocPhan(ma_hoc_phan=903, ten_hoc_phan="Kiem thu phan mem")
         session.add_all([can_bo, nganh, hoc_phan])

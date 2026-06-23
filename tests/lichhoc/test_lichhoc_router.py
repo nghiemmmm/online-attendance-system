@@ -67,7 +67,7 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 def test_read_lich_hoc_hom_nay_returns_student_lessons() -> None:
     """Test today schedule API returns only active registered lessons."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Nguyen", ten="Giang", google_email="gv@example.edu")
+        can_bo = CanBo(ho="Nguyen", ten="Giang", google_ten_dang_nhap="gv@example.edu")
         nganh = Nganh(ten_nganh="Cong nghe thong tin")
         hoc_phan_1 = HocPhan(
             ma_hoc_phan=801,
@@ -88,7 +88,7 @@ def test_read_lich_hoc_hom_nay_returns_student_lessons() -> None:
             ho="Le",
             ten="An",
             ma_nganh=nganh.ma_nganh,
-            google_email="an@student.edu",
+            google_ten_dang_nhap="an@student.edu",
         )
         session.add(sinh_vien)
         session.commit()

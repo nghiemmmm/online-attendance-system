@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import IntegrityError
@@ -111,13 +111,72 @@ def read_can_bo(
     return can_bo
 
 
+from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_giangvien, CurrentAccount
+from sqlmodel import select
+from app.models import LopHocPhan, HocPhan
+
+@router.get(
+    "/me/lich-day",
+    dependencies=[Depends(get_current_active_giangvien)],
+)
+def read_my_lich_day(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    from_date: date | None = None,
+    to_date: date | None = None,
+    hoc_ky: Annotated[int | None, Query(ge=1, le=3)] = None,
+    nam_hoc: Annotated[str | None, Query(max_length=20)] = None,
+    trang_thai: bool | None = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+) -> Any:
+    """Lấy lịch dạy của cán bộ đang đăng nhập."""
+    can_bo = crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not can_bo:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ cán bộ")
+    
+    lich_day, count = crud.get_lich_day_by_can_bo(
+        session=session, ma_can_bo=can_bo.ma_can_bo, from_date=from_date, to_date=to_date, hoc_ky=hoc_ky, nam_hoc=nam_hoc, trang_thai=trang_thai, skip=skip, limit=limit,
+    )
+    return {"data": lich_day, "count": count}
+
+@router.get(
+    "/me/lop-hoc-phan",
+    dependencies=[Depends(get_current_active_giangvien)],
+)
+def read_my_lop_hoc_phan(
+    session: SessionDep,
+    current_account: CurrentAccount,
+) -> Any:
+    """Lấy danh sách các lớp học phần cán bộ đang giảng dạy."""
+    can_bo = crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not can_bo:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ cán bộ")
+    
+    statement = select(LopHocPhan, HocPhan).join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan).where(LopHocPhan.ma_can_bo == can_bo.ma_can_bo)
+    results = session.exec(statement).all()
+    
+    lop_hoc_phans = []
+    for lhp, hp in results:
+        lop_hoc_phans.append({
+            "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
+            "ma_hoc_phan": lhp.ma_hoc_phan,
+            "ten_hoc_phan": hp.ten_hoc_phan,
+            "hoc_ky": lhp.hoc_ky,
+            "nam_hoc": lhp.nam_hoc,
+            "trang_thai": lhp.trang_thai
+        })
+    return {"data": lop_hoc_phans, "count": len(lop_hoc_phans)}
+
+
 @router.get(
     "/{ma_can_bo}/lich-day",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_active_giangvien)],
     response_model=LichDaysPublic,
 )
 def read_lich_day_can_bo(
     session: SessionDep,
+    current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
     from_date: date | None = None,
     to_date: date | None = None,
@@ -127,156 +186,83 @@ def read_lich_day_can_bo(
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> LichDaysPublic:
-    """
-    Lấy lịch dạy của một cán bộ/giảng viên.
-
-    Lịch được tổng hợp từ lớp học phần, thời khóa biểu mẫu và các buổi học thực tế.
-    """
+    """Lấy lịch dạy của một cán bộ/giảng viên."""
     if from_date and to_date and from_date > to_date:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="from_date must be before or equal to to_date",
-        )
-
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="from_date must be before or equal to to_date")
     can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-
+    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
+        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
     lich_day, count = crud.get_lich_day_by_can_bo(
-        session=session,
-        ma_can_bo=ma_can_bo,
-        from_date=from_date,
-        to_date=to_date,
-        hoc_ky=hoc_ky,
-        nam_hoc=nam_hoc,
-        trang_thai=trang_thai,
-        skip=skip,
-        limit=limit,
+        session=session, ma_can_bo=ma_can_bo, from_date=from_date, to_date=to_date, hoc_ky=hoc_ky, nam_hoc=nam_hoc, trang_thai=trang_thai, skip=skip, limit=limit,
     )
     return LichDaysPublic(data=lich_day, count=count)
 
-
 @router.get(
     "/{ma_can_bo}/buoi-hoc/gan-day",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_active_giangvien)],
     response_model=BuoiHocGanDaysPublic,
 )
 def read_buoi_hoc_gan_day_can_bo(
     session: SessionDep,
+    current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
     limit: Annotated[int, Query(ge=1, le=20)] = 5,
 ) -> BuoiHocGanDaysPublic:
     """Lay danh sach buoi hoc gan day cua can bo kem thong ke diem danh."""
     can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-
-    buoi_hocs, count = crud.get_buoi_hoc_gan_day_by_can_bo(
-        session=session,
-        ma_can_bo=ma_can_bo,
-        limit=limit,
-    )
+    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
+        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    buoi_hocs, count = crud.get_buoi_hoc_gan_day_by_can_bo(session=session, ma_can_bo=ma_can_bo, limit=limit)
     return BuoiHocGanDaysPublic(data=buoi_hocs, count=count)
-
 
 @router.get(
     "/{ma_can_bo}/lop-hoc-phan/dang-day/count",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_active_giangvien)],
     response_model=SoLuongLopHocPhanDangDayPublic,
 )
 def count_lop_hoc_phan_dang_day(
     session: SessionDep,
+    current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
     as_of_date: date | None = None,
 ) -> SoLuongLopHocPhanDangDayPublic:
-    """
-    Đếm số lớp học phần cán bộ đang giảng dạy trong học kỳ hiện tại.
-
-    Nếu không truyền as_of_date, hệ thống dùng ngày hiện tại để suy luận học kỳ.
-    """
     can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-
+    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
+        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
     target_date = as_of_date or date.today()
-    count, hoc_ky, nam_hoc = crud.count_lop_hoc_phan_dang_day_by_can_bo(
-        session=session,
-        ma_can_bo=ma_can_bo,
-        as_of_date=target_date,
-    )
-    return SoLuongLopHocPhanDangDayPublic(
-        ma_can_bo=ma_can_bo,
-        hoc_ky=hoc_ky,
-        nam_hoc=nam_hoc,
-        as_of_date=target_date,
-        count=count,
-    )
-
+    count, hoc_ky, nam_hoc = crud.count_lop_hoc_phan_dang_day_by_can_bo(session=session, ma_can_bo=ma_can_bo, as_of_date=target_date)
+    return SoLuongLopHocPhanDangDayPublic(ma_can_bo=ma_can_bo, hoc_ky=hoc_ky, nam_hoc=nam_hoc, as_of_date=target_date, count=count)
 
 @router.get(
     "/{ma_can_bo}/attendance/monthly-summary",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_active_giangvien)],
     response_model=MonthlyAttendanceSummary,
 )
 def read_monthly_attendance_summary(
     session: SessionDep,
+    current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
     reference_date: date | None = None,
 ) -> MonthlyAttendanceSummary:
-    """
-    Lấy tỷ lệ có mặt trung bình tháng hiện tại và so sánh với tháng trước.
-
-    Nếu không truyền reference_date, hệ thống dùng ngày hiện tại.
-    """
     can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-
-    return get_monthly_attendance_summary(
-        session=session,
-        ma_can_bo=ma_can_bo,
-        reference_date=reference_date or date.today(),
-    )
-
+    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
+        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    return get_monthly_attendance_summary(session=session, ma_can_bo=ma_can_bo, reference_date=reference_date or date.today())
 
 @router.get(
     "/{ma_can_bo}/khieu-nai/cho-xu-ly/count",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_active_giangvien)],
     response_model=KhieuNaiChoXuLyMetric,
 )
 def read_khieu_nai_cho_xu_ly_count(
     session: SessionDep,
+    current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
 ) -> KhieuNaiChoXuLyMetric:
-    """
-    Lấy số lượng khiếu nại đang chờ xử lý thuộc các lớp cán bộ phụ trách.
-
-    Chỉ tính khiếu nại có trạng thái CHO_XU_LY và chưa có thời điểm xử lý.
-    """
     can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-
-    return get_khieu_nai_cho_xu_ly_metric(
-        session=session,
-        ma_can_bo=ma_can_bo,
-    )
-
+    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
+        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    return get_khieu_nai_cho_xu_ly_metric(session=session, ma_can_bo=ma_can_bo)
 
 @router.post(
     "/",
@@ -349,9 +335,6 @@ def update_can_bo(
     dependencies=[Depends(get_current_active_superuser)],
     response_model=Message,
 )
-
-
-
 def delete_can_bo(
     session: SessionDep,
     ma_can_bo: Annotated[int, Path(ge=1)],

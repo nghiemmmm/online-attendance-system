@@ -14,7 +14,8 @@ def ensure_pgvector_extension(session: Session) -> None:
 
 
 def init_db(session: Session) -> None:
-    ensure_pgvector_extension(session)
+    # ensure_pgvector_extension(session)
+
 
     account = session.exec(
         select(TaiKhoan).where(TaiKhoan.ten_dang_nhap == settings.FIRST_SUPERUSER)

@@ -1,0 +1,1196 @@
+XÁC ĐỊNH YÊU CẦU HỆ THỐNG 
+Đề tài : HỆ THỐNG ĐIỂM DANH SINH VIÊN TỰ ĐỘNG BẰNG NHẬN DIỆN KHUÔN MẶT
+Phạm vi áp dụng đề tài
+Đề tài tập trung khai thác dữ liệu hình ảnh khuôn mặt phục vụ cho quá trình nhận diện và điểm danh tự động. Nguồn dữ liệu bao gồm các ảnh khuôn mặt lưu trữ sẵn trong hệ thống và hình ảnh thu nhận trực tiếp từ webcam theo thời gian thực. Phạm vi này giúp hệ thống hoạt động linh hoạt trong cả môi trường thử nghiệm và thực tế, đồng thời tương thích với các thiết bị phổ biến mà không yêu cầu phần cứng chuyên dụng.
+Hệ thống được triển khai chủ yếu trên máy tính cá nhân, trong đó toàn bộ quá trình xử lý, nhận diện và ghi nhận điểm danh được thực hiện cục bộ nhằm giảm độ trễ và tăng tính bảo mật dữ liệu.
+Về công nghệ, đề tài sử dụng các thư viện hỗ trợ nhận diện khuôn mặt có sẵn, kết hợp với webcam thông thường để xây dựng hệ thống. Đề tài không tập trung phát triển các mô hình phức tạp mà chủ yếu khai thác công cụ có sẵn để so sánh khuôn mặt giữa ảnh đăng ký và ảnh chụp thực tế.
+Đề tài hướng đến bài toán điểm danh trong môi trường lớp học trực tiếp quy mô lớn. Các yếu tố như ánh sáng, góc chụp và chất lượng hình ảnh chỉ được xem xét ở mức cơ bản, tạo nền tảng cho việc mở rộng và phát triển hệ thống trong tương lai.
+Mục tiêu đề tài
+Xây dựng giải pháp hỗ trợ giảng viên quản lý sự tham gia của sinh viên trong các buổi học một cách hiệu quả, chính xác và thuận tiện.
+Tự động hóa quá trình điểm danh thông qua webcam và công nghệ nhận diện khuôn mặt, giúp giảm sự phụ thuộc vào các phương pháp điểm danh thủ công truyền thống. Hệ thống có khả năng nhận diện và xác thực sinh viên theo thời gian thực nhằm nâng cao độ chính xác và hạn chế tình trạng điểm danh hộ.
+Xây dựng hệ thống đơn giản, dễ triển khai trên máy tính cá nhân và có khả năng hoạt động ổn định với các thiết bị phổ biến. Hệ thống cũng hỗ trợ giáo viên theo dõi và quản lý sự tham gia của sinh viên một cách thuận tiện hơn.
+Góp phần ứng dụng công nghệ vào giáo dục, tạo môi trường học tập hiện đại và nâng cao trải nghiệm học tập cho sinh viên.
+Các bước xác định yêu cầu
+Quá trình thực hiện gồm 3 bước chính:
+Bước 1: Khảo sát và phân tích hiện trạng — Khảo sát nhu cầu người dùng, phân tích hạn chế của phương pháp điểm danh truyền thống và xác định các đối tượng sử dụng hệ thống gồm sinh viên, giảng viên và quản trị viên.
+Bước 2: Lập danh sách các yêu cầu — Kết quả nhận được là danh sách các yêu cầu sẽ được thực hiện trên hệ thống máy tính.
+Bước 3: Xác định yêu cầu chức năng hệ thống và yêu cầu chất lượng.
+1. Đối tượng tham gia xác định yêu cầu
+Gồm 2 nhóm người:
+Chuyên viên tin học: Phụ trách các vấn đề kỹ thuật của hệ thống, bao gồm trưởng dự án, lập trình viên, người phụ trách phần nhận diện khuôn mặt và kiểm thử viên. Nhóm này có nhiệm vụ nghiên cứu công nghệ, phân tích yêu cầu hệ thống và đề xuất các giải pháp kỹ thuật phù hợp để xây dựng hệ thống điểm danh bằng nhận diện khuôn mặt.
+Nhà chuyên môn: Nhóm am hiểu quy trình nghiệp vụ thực tế, bao gồm giảng viên, quản trị viên và bộ phận quản lý. Nhóm này có nhiệm vụ đưa ra các yêu cầu liên quan đến hoạt động điểm danh, quản lý lớp học và tiêu chí chuyên cần, đồng thời phối hợp với nhóm kỹ thuật để đảm bảo hệ thống phù hợp với thời gian và chi phí triển khai.
+2. Khảo sát hiện trạng
+2.1 Các hình thức thực hiện phổ biến
+Quan sát: Theo dõi quy trình điểm danh truyền thống (gọi tên, điểm mặt) tại các lớp học có đông sinh viên. Khảo sát thực tế ghi nhận: một lớp hơn 70 sinh viên có thể mất đến 15 phút để điểm danh thủ công, gây lãng phí thời gian giảng dạy. Ngoài ra còn ghi nhận tình trạng điểm danh hộ, học thuê vẫn xảy ra.
+Phỏng vấn trực tiếp: Phỏng vấn giảng viên và cán bộ quản lý về nhu cầu theo dõi chuyên cần, quy định tỷ lệ tham dự tối thiểu. Phỏng vấn sinh viên về mong muốn tra cứu lịch sử điểm danh cá nhân. Xác định vai trò của từng đối tượng: Sinh viên (thực hiện điểm danh), Giảng viên (quản lý lớp học), Quản trị viên (quản lý dữ liệu toàn hệ thống).
+Thu thập thông tin, tài liệu: Cấu trúc dữ liệu quản lý hiện có (thông tin sinh viên, lớp học phần, lịch học); các quy định về thời lượng tham dự tối thiểu của một khóa học; hệ thống quản lý đào tạo hiện có để đảm bảo tích hợp và đồng bộ dữ liệu.
+2.2 Quy trình thực hiện
+1. Tìm hiểu tổng quan về thế giới thực:
+Quy mô hoạt động: Hệ thống phục vụ điểm danh tại các lớp học có thể có tới hơn 70 sinh viên. Đối tượng phục vụ bao gồm sinh viên, giảng viên và cán bộ quản lý đào tạo của nhà trường.
+Các hoạt động đơn vị tham gia: Giảng dạy, học tập và quản lý chuyên cần. Hiện trạng chủ yếu vẫn sử dụng phương pháp thủ công hoặc thiết bị vân tay/thẻ từ còn nhiều hạn chế.
+2. Tìm hiểu hiện trạng tổ chức:
+Sinh viên: Có trách nhiệm thực hiện điểm danh khi tham gia buổi học; quyền tra cứu kết quả điểm danh cá nhân và báo cáo sai sót cho giảng viên.
+Giảng viên: Có trách nhiệm quản lý lớp học phần, tạo buổi học và mở phiên điểm danh; quyền chỉnh sửa thủ công trạng thái điểm danh khi có sự cố.
+Quản trị viên: Trách nhiệm quản lý cơ sở dữ liệu chung; quyền can thiệp sâu để quản lý toàn bộ người dùng, lớp học phần và cấu hình hệ thống.
+3. Tìm hiểu hiện trạng nghiệp vụ:
+Thông tin đầu vào: Thông tin sinh viên, dữ liệu hình ảnh khuôn mặt từ webcam, thông tin lớp học phần và lịch học.
+Quá trình xử lý: Webcam chụp ảnh sinh viên trong buổi học, hệ thống so sánh với ảnh khuôn mặt đã đăng ký để xác định danh tính và cập nhật trạng thái điểm danh (Có mặt / Vắng / Muộn).
+Thông tin kết xuất: Kết quả điểm danh theo thời gian thực; thống kê tỷ lệ chuyên cần; báo cáo điểm danh xuất ra Excel; thông báo đến người dùng.
+4. Xếp loại các nghiệp vụ:
+Nghiệp vụ lưu trữ: Lưu hồ sơ sinh viên, giảng viên, ảnh khuôn mặt đăng ký, thông tin lớp học phần và lịch sử điểm danh.
+Nghiệp vụ tra cứu: Tìm kiếm sinh viên theo mã số, tra cứu trạng thái điểm danh theo buổi hoặc toàn khóa học.
+Nghiệp vụ tính toán: Tính số buổi vắng, tỷ lệ chuyên cần của mỗi sinh viên.
+Nghiệp vụ tổng hợp, thống kê: Tổng hợp sĩ số sau buổi học; xuất báo cáo chuyên cần theo tháng, học kỳ; hiển thị biểu đồ phân tích.
+3. LẬP DANH SÁCH CÁC YÊU CẦU
+Để có được danh sách đầy đủ và chính xác các yêu cầu, quá trình lập danh sách được thực hiện theo các bước:
+Xác định yêu cầu chức năng nghiệp vụ
+Xác định yêu cầu chức năng hệ thống
+Xác định yêu cầu phi chức năng (chất lượng)
+Cách tiến hành: Nhà chuyên môn đề xuất và chuyên viên tin học xem xét lại.
+Bước tiến hành:
+Xác định người dùng sẽ sử dụng phần mềm: Sinh viên (SV), Giảng viên (GV), Quản trị viên (QTV).
+Xác định các công việc mà người dùng sẽ thực hiện trên phần mềm theo từng loại: Lưu trữ, Tra cứu, Tính toán, Kết xuất.
+I. BỘ PHẬN: SINH VIÊN (Mã số: SV)
+Sinh viên là đối tượng trực tiếp tham gia lớp học và cần được ghi nhận sự hiện diện một cách chính xác và minh bạch.
+1. Bảng yêu cầu chức năng nghiệp vụ
+STT
+Công việc
+Loại công việc
+Quy định liên quan
+Mô tả chức năng
+Biểu mẫu
+1
+Thực hiện điểm danh
+Lưu trữ, Tra cứu
+SV_QĐ_01
+Sinh viên nhìn vào webcam để hệ thống so sánh khuôn mặt với ảnh đã đăng ký và ghi nhận trạng thái Có mặt / Vắng / Muộn.
+SV_BM_01
+2
+Tra cứu kết quả điểm danh cá nhân
+Tra cứu
+SV_QĐ_02
+Xem lịch sử điểm danh theo môn học, học kỳ hoặc trạng thái chuyên cần. Chỉ được xem dữ liệu của chính mình.
+SV_BM_02
+3
+Kiểm tra điểm chuyên cần tích lũy
+Tra cứu, Tính toán
+SV_QĐ_03
+Theo dõi số buổi có mặt, vắng và tỷ lệ chuyên cần của từng môn học. Hệ thống cảnh báo khi sắp vượt quá số buổi nghỉ cho phép.
+SV_BM_02
+4
+Gửi khiếu nại điểm danh
+Lưu trữ
+SV_QĐ_04
+Sinh viên gửi phản hồi khi bị ghi nhận sai (vắng hoặc muộn) kèm lý do để giảng viên xem xét lại.
+SV_BM_03
+5
+Quản lý tài khoản cá nhân
+Lưu trữ, Tra cứu
+SV_QĐ_06
+Đăng ký, đăng nhập, đổi mật khẩu, cập nhật email và số điện thoại liên hệ.
+—
+2. Bảng quy định liên quan đến Sinh viên
+STT
+Mã số
+Tên quy định
+Mô tả chi tiết
+Ghi chú
+1
+SV_QĐ_01
+Điều kiện điểm danh hợp lệ
+Khuôn mặt quét được qua webcam phải khớp với ảnh gốc đã đăng ký thì sinh viên mới được tính là có mặt. Sinh viên phải nhìn thẳng vào camera, ngồi ở nơi đủ sáng, không che khuôn mặt. Khuôn mặt nhận diện phải đúng với người đang đăng nhập tài khoản.
+Ngăn tình trạng điểm danh hộ.
+2
+SV_QĐ_02
+Quy định tra cứu thông tin cá nhân
+Sinh viên chỉ được phép xem dữ liệu điểm danh của chính mình, không được xem của bạn học. Hệ thống cho phép lọc theo môn học, theo học kỳ hoặc theo trạng thái có mặt/vắng.
+Đảm bảo tính riêng tư.
+3
+SV_QĐ_03
+Cách tính điểm chuyên cần
+Tỷ lệ chuyên cần (%) = (Số buổi có mặt ÷ Tổng số buổi đã học) × 100. Buổi đi muộn được tính là nửa buổi có mặt. Buổi vắng không phép tính là 0. Hệ thống sẽ gửi cảnh báo khi sinh viên vắng quá 20% tổng số buổi của môn học.
+Áp dụng theo quy định mỗi môn.
+4
+SV_QĐ_04
+Quy định khiếu nại điểm danh
+Sinh viên chỉ được khiếu nại khi bị ghi nhận là vắng hoặc muộn. Mỗi buổi học chỉ được gửi 1 khiếu nại và phải gửi trong vòng 48 giờ kể từ khi buổi học kết thúc. Khiếu nại bắt buộc phải nhập lý do rõ ràng.
+Giảng viên phụ trách sẽ xem xét và phản hồi.
+5
+SV_QĐ_05
+Quy định bảo mật tài khoản
+Mật khẩu được mã hóa khi lưu trữ. Sinh viên sai mật khẩu quá 5 lần liên tiếp sẽ bị khóa tài khoản tạm thời 15 phút. Email đăng ký phải là duy nhất và không được trùng với người khác.
+Bảo vệ tài khoản.
+3. Các biểu mẫu chi tiết
+SV_BM_01: PHIẾU GHI NHẬN ĐIỂM DANH
+Thông tin
+Giá trị
+Họ và tên / Mã sinh viên
+Lớp học phần – Buổi số
+Thời điểm điểm danh
+Trạng thái
+(Có mặt / Vắng / Muộn)
+Mức độ khớp khuôn mặt
+(Cao / Trung bình / Thấp)
+Phương thức ghi nhận
+(Khuôn mặt / Thủ công / Sau khiếu nại)
+SV_BM_02: BẢNG LỊCH SỬ ĐIỂM DANH CÁ NHÂN
+STT
+Môn học
+Ngày học
+Buổi
+Trạng thái
+Phút muộn
+Phương thức
+Ghi chú
+1
+Lập trình Web
+10/01/2025
+5
+Có mặt
+0
+Khuôn mặt
+2
+Mạng máy tính
+11/01/2025
+3
+Vắng
+–
+Khuôn mặt
+Đã khiếu nại
+SV_BM_03: PHIẾU GỬI KHIẾU NẠI ĐIỂM DANH
+Thông tin
+Nội dung
+Họ và tên sinh viên
+Mã sinh viên
+Môn học – Buổi số
+Trạng thái điểm danh hiện tại
+Lý do khiếu nại (bắt buộc)
+Bằng chứng đính kèm
+Ngày gửi khiếu nại
+II. BỘ PHẬN: GIẢNG VIÊN (Mã số: GV)
+Giảng viên đóng vai trò quản lý lớp học và thiết lập các tiêu chuẩn chuyên cần cho từng buổi học.
+1. Bảng yêu cầu chức năng nghiệp vụ
+STT
+Công việc
+Loại công việc
+Quy định liên quan
+Mô tả chức năng
+Biểu mẫu
+1
+Tạo và quản lý buổi học
+Lưu trữ
+GV_QĐ_01
+Tạo buổi học mới, thiết lập thời gian bắt đầu/kết thúc và mở phiên điểm danh để hệ thống nhận diện hoạt động.
+GV_BM_01
+2
+Mở / Đóng phiên điểm danh
+Lưu trữ
+GV_QĐ_01
+Bật phòng điểm danh khi bắt đầu buổi học và đóng lại khi kết thúc. Chỉ giảng viên phụ trách lớp mới có quyền thao tác.
+GV_BM_01
+3
+Theo dõi sĩ số theo thời gian thực
+Tra cứu
+GV_QĐ_02
+Xem số sinh viên đang có mặt, vắng và muộn ngay trong buổi học.
+—
+4
+Điều chỉnh tiêu chuẩn điểm danh
+Lưu trữ
+GV_QĐ_02
+Tùy chỉnh số phút muộn tối đa, số lần chụp ảnh trong buổi học để xác định sinh viên có mặt.
+GV_BM_01
+5
+Cập nhật trạng thái điểm danh thủ công
+Lưu trữ
+GV_QĐ_03
+Sửa trạng thái điểm danh khi có sự cố kỹ thuật hoặc khi sinh viên có lý do hợp lệ (vắng có phép, đến muộn).
+GV_BM_02
+6
+Quản lý danh sách sinh viên trong lớp
+Tra cứu, Lưu trữ
+GV_QĐ_04
+Xem, thêm, xóa sinh viên trong lớp học phần do mình phụ trách.
+GV_BM_02
+7
+Thống kê chuyên cần lớp học
+Tính toán, Tổng hợp
+GV_QĐ_05
+Thống kê tỷ lệ chuyên cần của từng sinh viên theo buổi, theo tháng hoặc toàn khóa học.
+GV_BM_03
+8
+Xuất báo cáo điểm danh
+Kết xuất
+GV_QĐ_05
+Xuất danh sách điểm danh và báo cáo chuyên cần ra file Excel hoặc PDF theo lớp hoặc theo buổi.
+GV_BM_03
+9
+Duyệt khiếu nại điểm danh
+Lưu trữ
+GV_QĐ_06
+Xem khiếu nại của sinh viên, chấp thuận hoặc từ chối kèm ghi chú. Sau khi chấp thuận, hệ thống tự cập nhật lại trạng thái.
+—
+2. Bảng quy định liên quan đến Giảng viên
+STT
+Mã số
+Tên quy định
+Mô tả chi tiết
+Ghi chú
+1
+GV_QĐ_01
+Quy định tạo và mở buổi học
+Buổi học phải gắn với một lớp học phần do giảng viên phụ trách. Thời gian kết thúc phải sau thời gian bắt đầu. Trạng thái buổi học chuyển theo thứ tự: Chưa bắt đầu → Đang diễn ra → Đã kết thúc. Chỉ giảng viên phụ trách mới được mở/đóng phiên điểm danh.
+Giảng viên có thể tạo buổi học trước để sinh viên xem lịch.
+2
+GV_QĐ_02
+Quy định tiêu chuẩn điểm danh
+Giảng viên có thể tùy chỉnh số phút muộn tối đa cho mỗi buổi học (mặc định 15 phút). Trong buổi học, hệ thống có thể chụp ảnh nhiều lần để kiểm tra sinh viên có duy trì sự hiện diện hay không. Sinh viên phải có mặt đủ số lần kiểm tra mới được tính có mặt.
+Hạn chế tình trạng điểm danh xong rồi rời lớp.
+3
+GV_QĐ_03
+Quy định chỉnh sửa thủ công
+Khi chỉnh sửa trạng thái điểm danh, giảng viên bắt buộc phải nhập lý do (ví dụ: sinh viên xin phép, lỗi camera). Hệ thống tự động lưu lại người sửa và thời điểm sửa để có thể truy ngược. Phương thức ghi nhận sẽ chuyển từ "Khuôn mặt" sang "Thủ công".
+Đảm bảo minh bạch khi can thiệp dữ liệu.
+4
+GV_QĐ_04
+Quy định quản lý lớp học phần
+Giảng viên chỉ có quyền xem và quản lý các lớp học phần do mình phụ trách. Việc thêm/xóa sinh viên khỏi lớp chỉ ảnh hưởng đến danh sách điểm danh, không thay đổi thông tin cá nhân của sinh viên (do quản trị viên quản lý).
+5
+GV_QĐ_05
+Cách tính và xuất báo cáo chuyên cần
+Tỷ lệ chuyên cần (%) = (Số buổi có mặt ÷ Tổng số buổi đã diễn ra) × 100. Đi muộn tính là nửa buổi có mặt. Vắng không phép tính là 0. Báo cáo có thể xuất theo từng buổi, theo tháng hoặc toàn học kỳ, dưới dạng Excel hoặc PDF.
+Áp dụng cho thống kê cuối kỳ.
+6
+GV_QĐ_06
+Quy định duyệt khiếu nại
+Chỉ giảng viên phụ trách lớp mới được duyệt khiếu nại của sinh viên trong lớp đó. Khi chấp thuận: trạng thái điểm danh tự động chuyển thành "Có mặt", phương thức ghi nhận chuyển thành "Sau khiếu nại". Khi từ chối: trạng thái giữ nguyên và phải kèm ghi chú lý do.
+Sinh viên được thông báo kết quả qua hệ thống.
+3. Các biểu mẫu chi tiết
+GV_BM_01: PHIẾU TẠO BUỔI HỌC
+Thông tin
+Giá trị
+Lớp học phần (Mã lớp)
+Số thứ tự buổi học
+Thời gian bắt đầu (dự kiến)
+Thời gian kết thúc (dự kiến)
+Số phút muộn tối đa
+Số lần kiểm tra trong buổi
+Ghi chú buổi học
+GV_BM_02: DANH SÁCH ĐIỂM DANH LỚP HỌC PHẦN
+STT
+Mã SV
+Họ và tên
+Trạng thái
+Phút muộn
+Phương thức
+Lý do sửa
+Ghi chú
+1
+SV001
+Nguyễn Văn A
+Có mặt
+0
+Khuôn mặt
+2
+SV002
+Trần Thị B
+Vắng có phép
+–
+Thủ công
+Xin phép
+GV_BM_03: BÁO CÁO THỐNG KÊ CHUYÊN CẦN LỚP HỌC PHẦN
+STT
+Mã SV
+Họ và tên
+Buổi 1
+Buổi 2
+Buổi 3
+…
+Tổng vắng
+Tỷ lệ (%)
+Ghi chú
+1
+SV001
+Nguyễn Văn A
+P
+P
+L
+…
+0
+100%
+2
+SV002
+Trần Thị B
+P
+V
+P
+…
+1
+90%
+Ghi chú ký hiệu: P = Có mặt, V = Vắng, L = Muộn.
+III. BỘ PHẬN: QUẢN TRỊ VIÊN (Mã số: QTV)
+Quản trị viên là người hỗ trợ hạ tầng và xử lý các tình huống bất khả kháng của hệ thống, đồng thời quản lý dữ liệu chung của toàn trường.
+1. Bảng yêu cầu chức năng nghiệp vụ
+STT
+Công việc
+Loại công việc
+Quy định liên quan
+Mô tả chức năng
+Biểu mẫu
+1
+Quản lý tài khoản người dùng
+Lưu trữ, Tra cứu
+QTV_QĐ_01
+Thêm, cập nhật, xóa và tìm kiếm tài khoản sinh viên, giảng viên trong hệ thống.
+QTV_BM_01
+2
+Quản lý lớp học phần
+Lưu trữ, Tra cứu
+QTV_QĐ_02
+Thêm mới, chỉnh sửa, xóa và tìm kiếm thông tin lớp học phần; phân công giảng viên phụ trách.
+QTV_BM_02
+3
+Đăng ký khuôn mặt sinh viên 
+Lưu trữ
+QTV_QĐ_03
+Quản trị viên trực tiếp thu thập, chụp hoặc tải ảnh chân dung đạt chuẩn của sinh viên lên hệ thống để làm dữ liệu gốc. 
+QTV_BM_03
+4
+Cập nhật ảnh khuôn mặt 
+Lưu trữ
+QTV_QĐ_03
+Quản trị viên thao tác cập nhật lại dữ liệu ảnh khi sinh viên thay đổi diện mạo hoặc khi hệ thống báo lỗi ảnh cũ chất lượng kém. 
+QTV_BM_03
+5
+Phân quyền sử dụng hệ thống
+Lưu trữ
+QTV_QĐ_04
+Phân quyền cho từng nhóm người dùng (Quản trị viên / Giảng viên / Sinh viên) tương ứng với chức năng được phép sử dụng.
+—
+6
+Thống kê điểm danh toàn trường
+Tổng hợp, Tra cứu
+QTV_QĐ_05
+Tổng hợp dữ liệu điểm danh theo lớp, theo khoa, theo học kỳ; thống kê những sinh viên vắng quá 20% số buổi.
+QTV_BM_04
+7
+Xuất dữ liệu điểm danh
+Kết xuất
+QTV_QĐ_05
+Xuất dữ liệu ra file Excel hoặc CSV theo lớp, theo học kỳ hoặc theo từng sinh viên.
+QTV_BM_04
+8
+Sao lưu và phục hồi dữ liệu
+Lưu trữ
+QTV_QĐ_06
+Thực hiện sao lưu dữ liệu định kỳ và phục hồi khi cần thiết.
+—
+9
+Xem lịch sử thao tác hệ thống
+Tra cứu
+QTV_QĐ_07
+Theo dõi nhật ký thao tác của người dùng (đăng nhập, chỉnh sửa điểm danh, duyệt khiếu nại) để kiểm soát.
+—
+2. Bảng quy định liên quan đến Quản trị viên
+STT
+Mã số
+Tên quy định
+Mô tả chi tiết
+Ghi chú
+1
+QTV_QĐ_01
+Quy định quản lý tài khoản
+Email là định danh duy nhất, không được trùng. Mật khẩu được mã hóa khi lưu trữ. Mỗi tài khoản chỉ thuộc một trong ba vai trò: Quản trị viên, Giảng viên hoặc Sinh viên. Tài khoản mới mặc định ở trạng thái kích hoạt.
+2
+QTV_QĐ_02
+Quy định quản lý lớp học phần
+Mỗi lớp học phần được xác định bởi mã lớp + học kỳ + năm học và phải là duy nhất. Mỗi lớp phải có ít nhất một giảng viên phụ trách và một sĩ số tối đa. Lớp đang trong học kỳ hiện tại không thể bị xóa.
+3
+QTV_QĐ_03
+Quy định quản lý ảnh khuôn mặt
+Quản trị viên chịu trách nhiệm thu thập, kiểm tra độ sắc nét và tải ảnh khuôn mặt của sinh viên lên hệ thống. Sinh viên chỉ có thể bắt đầu điểm danh sau khi hồ sơ khuôn mặt đã được duyệt. Mỗi sinh viên chỉ có một bộ ảnh đang hoạt động tại một thời điểm.
+Khi cập nhật ảnh mới, ảnh cũ sẽ ngừng hoạt động.
+4
+QTV_QĐ_04
+Quy định phân quyền
+Quản trị viên: toàn quyền với hệ thống. Giảng viên: chỉ thao tác trên các lớp học phần do mình phụ trách. Sinh viên: chỉ thực hiện điểm danh, xem thông tin cá nhân và gửi khiếu nại. Mỗi vai trò chỉ thấy được các chức năng phù hợp với quyền của mình.
+5
+QTV_QĐ_05
+Quy định thống kê và xuất báo cáo
+Báo cáo tổng hợp được lập theo học kỳ, năm học hoặc theo khoa. Hệ thống tự cảnh báo những sinh viên vắng vượt 20% tổng số buổi. File xuất ra hỗ trợ định dạng Excel hoặc CSV, có tên file chuẩn theo quy tắc: Mã lớp _ Buổi _ Ngày.
+6
+QTV_QĐ_06
+Quy định sao lưu dữ liệu
+Sao lưu tự động lúc 02:00 sáng mỗi ngày. Lưu trữ tối thiểu 30 bản sao lưu gần nhất. Nếu sao lưu thất bại, hệ thống gửi cảnh báo qua email cho quản trị viên. Việc phục hồi được thực hiện trực tiếp từ giao diện quản trị.
+7
+QTV_QĐ_07
+Quy định nhật ký hệ thống
+Hệ thống ghi lại mọi thao tác quan trọng: đăng nhập, thay đổi trạng thái điểm danh, phê duyệt hồ sơ khuôn mặt, duyệt khiếu nại. Nhật ký được lưu tối thiểu 1 năm và có thể lọc theo người dùng, thời gian hoặc loại thao tác.
+Phục vụ kiểm tra và đối chiếu khi có tranh chấp.
+3. Các biểu mẫu chi tiết
+QTV_BM_01: BẢNG QUẢN LÝ TÀI KHOẢN NGƯỜI DÙNG
+STT
+Họ và tên
+Email
+Vai trò
+Trạng thái
+Ngày tạo
+1
+Nguyễn Văn A
+a@school.edu.vn
+Quản trị viên
+Kích hoạt
+01/01/2025
+2
+Trần Thị B
+b@school.edu.vn
+Giảng viên
+Kích hoạt
+02/01/2025
+QTV_BM_02: BẢNG QUẢN LÝ LỚP HỌC PHẦN
+STT
+Mã lớp
+Tên học phần
+Giảng viên
+Học kỳ
+Sĩ số
+Trạng thái
+1
+CS101_HK1
+Lập trình cơ bản
+Nguyễn Văn A
+HK1-2024
+40
+Đang học
+2
+CS202_HK1
+Mạng máy tính
+Trần Văn C
+HK1-2024
+35
+Đang học
+QTV_BM_03: PHIẾU THU THẬP DỮ LIỆU KHUÔN MẶT
+Thông tin
+Chi tiết
+Mã sinh viên
+Họ và tên
+Số ảnh đã nộp
+Đánh giá chất lượng ảnh
+(Đạt / Không đạt)
+Đánh giá ánh sáng
+(Đạt / Không đạt)
+Ghi chú của Quản trị viên
+QTV_BM_04: BÁO CÁO TỔNG HỢP ĐIỂM DANH TOÀN TRƯỜNG
+STT
+Tên học phần
+Giảng viên
+Tổng buổi
+SV có mặt TB
+Tỷ lệ (%)
+Học kỳ
+Ghi chú
+1
+Lập trình web
+Nguyễn Văn A
+30
+38/40
+95%
+HK1-2024
+4. XÁC ĐỊNH YÊU CẦU CHỨC NĂNG HỆ THỐNG VÀ YÊU CẦU CHẤT LƯỢNG
+Cách tiến hành: Chuyên viên tin học và nhà chuyên môn cùng đề xuất và xem xét lại các yêu cầu.
+Bước tiến hành:
+Bước 1: Xem xét các yêu cầu chức năng hệ thống cơ bản: phân quyền, sao lưu, phục hồi, đăng nhập, đăng xuất, đổi mật khẩu, v.v.
+Bước 2: Xem xét các yêu cầu chức năng hệ thống chuyên biệt: nhận diện khuôn mặt tự động, chống điểm danh hộ, thống kê theo thời gian thực, v.v.
+Bước 3: Xem xét các yêu cầu về chất lượng theo các tiêu chuẩn: Tiến hóa, Tiện dụng, Hiệu quả, Tương thích.
+4.1 Bảng yêu cầu chức năng hệ thống
+STT
+Nội dung
+Mô tả chi tiết
+Ghi chú
+1
+Phân quyền sử dụng
+Mỗi vai trò (Quản trị viên / Giảng viên / Sinh viên) chỉ truy cập được các chức năng được phép. Hệ thống tự kiểm tra quyền mỗi khi người dùng thao tác.
+Bắt buộc
+2
+Đăng nhập / Đăng xuất / Đổi mật khẩu
+Đăng nhập bằng email và mật khẩu. Cho phép đăng xuất, đổi mật khẩu (yêu cầu nhập mật khẩu cũ). Sai mật khẩu quá 5 lần liên tiếp sẽ bị khóa tạm thời 15 phút.
+Bắt buộc
+3
+Nhận diện khuôn mặt tự động
+Hệ thống chụp ảnh sinh viên qua webcam trong buổi học, so sánh với ảnh đã đăng ký để tự động ghi nhận trạng thái Có mặt / Vắng / Muộn.
+Bắt buộc
+4
+Chống điểm danh hộ
+Yêu cầu sinh viên chớp mắt hoặc xoay đầu nhẹ trước camera để xác nhận là người thật, không phải ảnh in hoặc video phát lại. Nếu không vượt qua kiểm tra, hệ thống từ chối ghi nhận và lưu lại sự cố.
+Bắt buộc
+5
+Thông báo theo thời gian thực
+Giảng viên nhận thông báo khi có sinh viên được điểm danh thành công hoặc khi phát hiện trường hợp đáng ngờ. Sinh viên nhận thông báo kết quả điểm danh và kết quả xử lý khiếu nại.
+Bắt buộc
+6
+Sao lưu và phục hồi dữ liệu
+Tự động sao lưu hàng ngày lúc 02:00 sáng, lưu trữ tối thiểu 30 bản gần nhất. Quản trị viên có thể phục hồi dữ liệu trực tiếp từ giao diện. Cảnh báo qua email khi sao lưu thất bại.
+Bắt buộc
+7
+Xuất dữ liệu báo cáo
+Xuất danh sách điểm danh và báo cáo chuyên cần ra file Excel hoặc CSV theo buổi, theo môn học hoặc theo học kỳ. Tên file đặt theo quy tắc: Mã lớp _ Buổi _ Ngày.
+Bắt buộc
+8
+Quản lý nhật ký hệ thống
+Ghi lại mọi thao tác quan trọng (đăng nhập, sửa điểm danh, duyệt khuôn mặt, duyệt khiếu nại). Quản trị viên có thể xem và lọc nhật ký theo người dùng, thời gian, loại thao tác. Lưu trữ tối thiểu 1 năm.
+Nên có
+4.2 Bảng yêu cầu về chất lượng
+STT
+Nội dung
+Tiêu chuẩn
+Mô tả chi tiết
+1
+Độ chính xác nhận diện
+Hiệu quả
+Hệ thống phải nhận đúng sinh viên với độ chính xác trên 95% trong điều kiện ánh sáng bình thường. Hạn chế tối đa việc nhận sai người (dưới 1%) và không được từ chối người thật quá 5%. Cần kiểm tra định kỳ hàng tháng để duy trì độ chính xác.
+2
+Tốc độ xử lý
+Hiệu quả
+Mỗi lần nhận diện một sinh viên không quá 1 giây. Kết quả điểm danh được hiển thị trong vòng 3 giây. Hệ thống hỗ trợ tối thiểu 70 sinh viên cùng lúc trong một lớp học.
+3
+Giao diện thân thiện, dễ sử dụng
+Tiện dụng
+Giao diện trực quan, thao tác đơn giản, không cần đào tạo chuyên sâu. Hỗ trợ trên trình duyệt phổ biến (Chrome, Firefox, Edge, Safari) và hoạt động được trên cả máy tính lẫn điện thoại. Font chữ rõ ràng, màu sắc nhất quán.
+4
+Khả năng mở rộng và tiến hóa
+Tiến hóa
+Hệ thống có thể nâng cấp công nghệ nhận diện trong tương lai mà không ảnh hưởng dữ liệu cũ. Có thể bổ sung phương thức điểm danh khác (mã QR, điểm danh thủ công) khi cần. Các thiết lập như số phút muộn tối đa có thể chỉnh sửa qua giao diện mà không cần lập trình lại.
+5
+Bảo mật dữ liệu
+Tiến hóa
+Dữ liệu khuôn mặt được mã hóa khi lưu trữ. Mọi giao tiếp giữa máy tính sinh viên và máy chủ đều được mã hóa đường truyền. Tuân thủ quy định bảo vệ dữ liệu cá nhân, không chia sẻ dữ liệu cho bên thứ ba.
+6
+Tương thích hệ thống quản lý đào tạo
+Tương thích
+Có thể kết nối với hệ thống quản lý đào tạo của nhà trường để đồng bộ dữ liệu sinh viên và lớp học phần. File xuất ra (Excel/CSV) tương thích với mẫu báo cáo của phòng đào tạo. Giao diện thống nhất với phong cách của trường.
+7
+Độ tin cậy và khả năng phục hồi
+Tương thích
+Hệ thống hoạt động ổn định ít nhất 99% thời gian trong giờ học chính thức. Khi có sự cố kỹ thuật, giảng viên có thể chuyển sang điểm danh thủ công thay thế. Dữ liệu không bị mất nhờ cơ chế sao lưu tự động hằng ngày.
+5. THIẾT KẾ CƠ SỞ DỮ LIỆU
+Hệ thống sử dụng cơ sở dữ liệu quan hệ (MySQL / PostgreSQL) với thiết kế tách biệt tài khoản (TaiKhoan) khỏi thông tin nghiệp vụ (SinhVien, CanBo) và phân tách rõ học phần (HocPhan) với lớp học phần (LopHocPhan). Các bảng liên kết với nhau qua khóa ngoại để đảm bảo tính toàn vẹn dữ liệu.
+a) Bảng TaiKhoan — Tài khoản đăng nhập
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaTaiKhoan
+int
+PK, AUTO_INCREMENT
+Mã tài khoản
+2
+TenDangNhap
+varchar(50)
+UNIQUE, NOT NULL
+Tên đăng nhập
+3
+MatKhauHash
+varchar(255)
+NOT NULL
+Mật khẩu đã mã hóa
+4
+VaiTro
+varchar(20)
+NOT NULL
+ADMIN | GIANG_VIEN | SINH_VIEN
+5
+TrangThai
+bit
+DEFAULT 1
+1: Hoạt động, 0: Khóa
+6
+LanDangNhapCuoi
+datetime
+NULL
+Thời điểm đăng nhập lần cuối
+7
+NgayTao
+datetime
+DEFAULT now()
+Thời điểm tạo tài khoản
+b) Bảng Nganh — Ngành học
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaNganh
+int
+PK, AUTO_INCREMENT
+Mã ngành
+2
+TenNganh
+nvarchar(100)
+NOT NULL
+Tên ngành học
+3
+MoTa
+nvarchar(255)
+NULL
+Mô tả ngành
+c) Bảng SinhVien — Thông tin sinh viên
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaSinhVien
+int
+PK, AUTO_INCREMENT
+Mã sinh viên
+2
+Ho
+nvarchar(50)
+NOT NULL
+Họ của sinh viên
+3
+Ten
+nvarchar(50)
+NOT NULL
+Tên của sinh viên
+4
+NgaySinh
+date
+NULL
+Ngày sinh
+5
+GioiTinh
+nvarchar(10)
+NULL
+Giới tính
+6
+DienThoai
+nvarchar(15)
+NULL
+Số điện thoại
+7
+Email
+nvarchar(100)
+UNIQUE
+Email liên lạc
+8
+MaNganh
+int
+FK → Nganh, NOT NULL
+Ngành học của sinh viên
+9
+MaTaiKhoan
+int
+FK → TaiKhoan, UNIQUE
+Tài khoản đăng nhập
+10
+TrangThaiHoc
+bit
+DEFAULT 1
+1: Còn học, 0: Nghỉ học
+11
+ThoiGianBatDauHoc
+datetime
+DEFAULT now()
+Thời điểm bắt đầu học
+d) Bảng CanBo — Cán bộ / Giảng viên
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaCanBo
+int
+PK, AUTO_INCREMENT
+Mã cán bộ
+2
+Ho
+nvarchar(50)
+NOT NULL
+Họ
+3
+Ten
+nvarchar(50)
+NOT NULL
+Tên
+4
+DienThoai
+nvarchar(15)
+NULL
+Số điện thoại
+5
+GioiTinh
+nvarchar(10)
+NULL
+Giới tính
+6
+NgaySinh
+date
+NULL
+Ngày sinh
+7
+Email
+nvarchar(100)
+UNIQUE
+Email liên lạc
+8
+MaTaiKhoan
+int
+FK → TaiKhoan, UNIQUE
+Tài khoản đăng nhập
+9
+ChucVu
+nvarchar(50)
+NULL
+Chức vụ
+10
+TrangThai
+bit
+DEFAULT 1
+1: Hoạt động, 0: Ngừng hoạt động
+e) Bảng HocPhan — Học phần
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaHocPhan
+int
+PK
+Mã học phần
+2
+TenHocPhan
+nvarchar(100)
+NOT NULL
+Tên học phần
+3
+MoTa
+nvarchar(200)
+NULL
+Mô tả học phần
+4
+SoTinChi
+smallint
+NOT NULL
+Số tín chỉ
+5
+TrangThai
+bit
+DEFAULT 1
+1: Đang hoạt động, 0: Ngừng
+f) Bảng LopHocPhan — Lớp học phần
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaLopHocPhan
+int
+PK, AUTO_INCREMENT
+Mã lớp học phần
+2
+MaHocPhan
+int
+FK → HocPhan, NOT NULL
+Học phần tương ứng
+3
+MaCanBo
+int
+FK → CanBo, NOT NULL
+Giảng viên phụ trách
+4
+HocKy
+smallint
+NOT NULL
+Học kỳ (1, 2, hè...)
+5
+NamHoc
+varchar(20)
+NOT NULL
+Năm học (vd: 2024-2025)
+6
+TyLeChuyenCanToiThieu
+float
+DEFAULT 0.8
+Tỷ lệ chuyên cần tối thiểu
+7
+TrangThai
+bit
+DEFAULT 1
+1: Đang học, 0: Đã kết thúc
+8
+NgayTao
+datetime
+DEFAULT now()
+Ngày tạo lớp học phần
+g) Bảng ThoiKhoaBieu — Thời khóa biểu
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaThoiKhoaBieu
+int
+PK, AUTO_INCREMENT
+Mã thời khóa biểu
+2
+MaLopHocPhan
+int
+FK → LopHocPhan, NOT NULL
+Lớp học phần
+3
+Thu
+tinyint
+NOT NULL
+Thứ trong tuần (2–8)
+4
+TietBatDau
+tinyint
+NULL
+Tiết bắt đầu
+5
+TietKetThuc
+tinyint
+NULL
+Tiết kết thúc
+6
+GioBatDau
+time
+NULL
+Giờ bắt đầu
+7
+GioKetThuc
+time
+NULL
+Giờ kết thúc
+8
+NgayBatDau
+date
+NOT NULL
+Ngày bắt đầu áp dụng
+9
+NgayKetThuc
+date
+NOT NULL
+Ngày kết thúc áp dụng
+h) Bảng BuoiHoc — Buổi học
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaBuoiHoc
+int
+PK, AUTO_INCREMENT
+Mã buổi học
+2
+MaLopHocPhan
+int
+FK → LopHocPhan, NOT NULL
+Lớp học phần
+3
+NgayHoc
+date
+NOT NULL
+Ngày diễn ra buổi học
+4
+GioBatDau
+time
+NULL
+Giờ bắt đầu
+5
+GioKetThuc
+time
+NULL
+Giờ kết thúc
+6
+SoBuoi
+smallint
+NULL
+Số thứ tự buổi học
+7
+TrangThai
+nvarchar(20)
+NOT NULL
+CHUA_DIEN_RA | DANG_DIEN_RA | DA_KET_THUC
+8
+NguongNhanDien
+float
+DEFAULT 0.5
+Ngưỡng độ tin cậy nhận diện
+9
+SoPhutMuonToiDa
+smallint
+DEFAULT 15
+Số phút trễ tối đa tính là muộn
+10
+GhiChu
+nvarchar(255)
+NULL
+Ghi chú buổi học
+i) Bảng DangKyHocPhan — Đăng ký học phần
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaSinhVien
+int
+PK, FK → SinhVien
+Sinh viên đăng ký
+2
+MaLopHocPhan
+int
+PK, FK → LopHocPhan
+Lớp học phần đăng ký
+3
+NgayDangKy
+datetime
+DEFAULT now()
+Thời điểm đăng ký
+4
+TrangThai
+bit
+DEFAULT 1
+1: Đang học, 0: Đã rút
+j) Bảng AnhKhuonMat — Ảnh khuôn mặt đăng ký
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaAnh
+int
+PK, AUTO_INCREMENT
+Mã ảnh
+2
+MaSinhVien
+int
+FK → SinhVien, NOT NULL
+Sinh viên sở hữu
+3
+DuongDanAnh
+nvarchar(255)
+NOT NULL
+Đường dẫn lưu ảnh
+4
+LoaiAnh
+nvarchar(30)
+NULL
+CHINH_DIEN | NGHIENG_TRAI | NGHIENG_PHAI
+5
+EmbeddingVector
+text
+NULL
+Vector embedding khuôn mặt
+k) Bảng DiemDanh — Kết quả điểm danh
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaDiemDanh
+int
+PK, AUTO_INCREMENT
+Mã bản ghi điểm danh
+2
+MaSinhVien
+int
+FK → SinhVien, NOT NULL
+Sinh viên
+3
+MaBuoiHoc
+int
+FK → BuoiHoc, NOT NULL
+Buổi học
+4
+TrangThai
+nvarchar(30)
+NOT NULL
+CO_MAT | VANG | MUON
+5
+PhuongThuc
+nvarchar(20)
+DEFAULT 'KHUON_MAT'
+KHUON_MAT | QR | THU_CONG
+6
+DoTinCay
+float
+NULL
+Độ tin cậy nhận diện khuôn mặt
+7
+ThoiDiemDiemDanh
+datetime
+NULL
+Thời điểm ghi nhận
+8
+LyDoChinhSua
+nvarchar(255)
+NULL
+Lý do GV chỉnh sửa thủ công
+Ghi chú: Ràng buộc UNIQUE (MaSinhVien, MaBuoiHoc) đảm bảo mỗi sinh viên chỉ có 1 bản ghi điểm danh trên mỗi buổi học.
+l) Bảng AnhDiemDanh — Ảnh ghi nhận điểm danh
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaAnh
+int
+PK, AUTO_INCREMENT
+Mã ảnh điểm danh
+2
+MaDiemDanh
+int
+FK → DiemDanh, NOT NULL
+Bản ghi điểm danh
+3
+DuongDanAnh
+nvarchar(255)
+NOT NULL
+Đường dẫn ảnh chụp
+4
+NgayTao
+datetime
+DEFAULT now()
+Thời điểm lưu ảnh
+m) Bảng KhieuNai — Khiếu nại điểm danh
+STT
+Tên trường
+Kiểu dữ liệu
+Khóa / Ràng buộc
+Ý nghĩa
+1
+MaKhieuNai
+int
+PK, AUTO_INCREMENT
+Mã khiếu nại
+2
+MaDiemDanh
+int
+FK → DiemDanh, NOT NULL
+Bản ghi điểm danh bị khiếu nại
+3
+MaSinhVien
+int
+FK → SinhVien, NOT NULL
+Sinh viên gửi khiếu nại
+4
+LyDo
+nvarchar(500)
+NOT NULL
+Lý do khiếu nại
+5
+TrangThai
+nvarchar(30)
+DEFAULT 'CHO_XU_LY'
+CHO_XU_LY | DA_DUYET | TU_CHOI
+6
+NgayGui
+datetime
+DEFAULT now()
+Thời điểm gửi
+7
+MaCanBoXuLy
+int
+FK → CanBo, NULL
+Giảng viên xử lý
+8
+GhiChuXuLy
+nvarchar(255)
+NULL
+Ghi chú khi duyệt
+9
+NgayXuLy
+datetime
+NULL
+Thời điểm xử lý
+n) Sơ đồ quan hệ giữa các bảng
+Bảng con (FK)
+Cột FK
+Quan hệ
+Bảng cha
+Ghi chú
+SinhVien
+MaTaiKhoan
+N → 1
+TaiKhoan
+Sinh viên có tài khoản đăng nhập
+CanBo
+MaTaiKhoan
+N → 1
+TaiKhoan
+Cán bộ có tài khoản đăng nhập
+SinhVien
+MaNganh
+N → 1
+Nganh
+Sinh viên thuộc một ngành
+LopHocPhan
+MaHocPhan
+N → 1
+HocPhan
+Lớp thuộc học phần
+LopHocPhan
+MaCanBo
+N → 1
+CanBo
+Lớp do giảng viên phụ trách
+ThoiKhoaBieu
+MaLopHocPhan
+N → 1
+LopHocPhan
+Thời khóa biểu của lớp học phần
+BuoiHoc
+MaLopHocPhan
+N → 1
+LopHocPhan
+Buổi học thuộc lớp học phần
+DangKyHocPhan
+MaSinhVien, MaLopHocPhan
+N — N
+SinhVien, LopHocPhan
+SV đăng ký nhiều lớp học phần
+AnhKhuonMat
+MaSinhVien
+N → 1
+SinhVien
+Mỗi SV có nhiều ảnh đăng ký
+DiemDanh
+MaSinhVien
+N → 1
+SinhVien
+Điểm danh thuộc sinh viên
+DiemDanh
+MaBuoiHoc
+N → 1
+BuoiHoc
+Điểm danh thuộc buổi học
+AnhDiemDanh
+MaDiemDanh
+N → 1
+DiemDanh
+Ảnh bằng chứng điểm danh
+KhieuNai
+MaDiemDanh, MaSinhVien
+N → 1
+DiemDanh, SinhVien
+Khiếu nại liên kết điểm danh và SV
+KhieuNai
+MaCanBoXuLy
+N → 1
+CanBo
+Khiếu nại được xử lý bởi giảng viên

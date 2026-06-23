@@ -3,7 +3,7 @@ import logging
 import secrets
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlmodel import Session
 
 from app import crud

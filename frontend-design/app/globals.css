@@ -1,0 +1,202 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* AttendAI Design System */
+  --color-primary: #0A2540;
+  --color-primary-light: #1A3A5C;
+  --color-accent: #0EA5E9;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-surface: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-muted: #64748B;
+  --color-dark-bg: #0D1117;
+  --color-dark-panel: #161B22;
+
+  /* Shadcn Tokens */
+  --background: var(--color-surface);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-card);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-card);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-primary);
+  --primary-foreground: #FFFFFF;
+  --secondary: #EFF6FF;
+  --secondary-foreground: var(--color-primary);
+  --muted: #F1F5F9;
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-accent);
+  --accent-foreground: #FFFFFF;
+  --destructive: var(--color-danger);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-accent);
+  
+  /* Status Colors */
+  --success: var(--color-success);
+  --success-foreground: #166534;
+  --success-bg: #DCFCE7;
+  --warning: var(--color-warning);
+  --warning-foreground: #92400E;
+  --warning-bg: #FEF9C3;
+  --danger: var(--color-danger);
+  --danger-foreground: #991B1B;
+  --danger-bg: #FEE2E2;
+  --pending: #3B82F6;
+  --pending-foreground: #1E40AF;
+  --pending-bg: #DBEAFE;
+
+  /* Charts */
+  --chart-1: var(--color-success);
+  --chart-2: var(--color-warning);
+  --chart-3: var(--color-danger);
+  --chart-4: var(--color-accent);
+  --chart-5: var(--color-primary);
+
+  --radius: 0.5rem;
+
+  /* Sidebar */
+  --sidebar: var(--color-primary);
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: var(--color-accent);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--color-primary-light);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: var(--color-primary-light);
+  --sidebar-ring: var(--color-accent);
+}
+
+.dark {
+  --background: var(--color-dark-bg);
+  --foreground: #F8FAFC;
+  --card: var(--color-dark-panel);
+  --card-foreground: #F8FAFC;
+  --popover: var(--color-dark-panel);
+  --popover-foreground: #F8FAFC;
+  --primary: var(--color-accent);
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: var(--color-accent);
+  --accent-foreground: #FFFFFF;
+  --destructive: var(--color-danger);
+  --destructive-foreground: #FFFFFF;
+  --border: #2D3748;
+  --input: #2D3748;
+  --ring: var(--color-accent);
+  --sidebar: var(--color-dark-panel);
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: var(--color-accent);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #2D3748;
+  --sidebar-ring: var(--color-accent);
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Inter Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Custom AttendAI colors */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-bg: var(--danger-bg);
+  --color-pending: var(--pending);
+  --color-pending-foreground: var(--pending-foreground);
+  --color-pending-bg: var(--pending-bg);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom animations for AttendAI */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+@keyframes face-scan {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 100;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+.animate-face-scan {
+  animation: face-scan 2s linear infinite;
+}

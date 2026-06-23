@@ -1,129 +1,57 @@
-# Hệ thống Điểm danh bằng Khuôn mặt
+# Hệ thống Điểm danh Khuôn mặt Trực tuyến
 
-Hệ thống tích hợp thuật toán nhận diện khuôn mặt với WebRTC để tự động điểm danh sinh viên trong lớp học trực tuyến.
+Hệ thống điểm danh trực tuyến dựa trên công nghệ nhận diện khuôn mặt (Face Recognition) kết nối với thời gian thực qua WebRTC.
 
-## 🚀 Cách chạy
+## Kiến trúc Hệ thống
+Dự án được xây dựng trên nền tảng công nghệ hiện đại:
+- **Backend:** FastAPI (Python) + SQLModel.
+- **Database:** PostgreSQL (hoặc SQLite cho môi trường Dev).
+- **Trí tuệ nhân tạo (AI):** FaceNet (InceptionResnetV1) + MTCNN (Phát hiện khuôn mặt) + FAISS (Cơ sở dữ liệu Vector siêu tốc).
+- **Frontend:** Next.js (React) + Tailwind CSS + Shadcn UI.
+- **Giao thức Thời gian thực:** WebRTC (aiortc) truyền tải video và phân tích ảnh tự động.
 
-### 1. Cài đặt dependencies
+## Các tính năng nổi bật
+1. **Điểm danh tự động qua Camera:** Giảng viên chỉ cần mở phiên điểm danh. Hệ thống sẽ kết nối WebRTC và AI tự động "chộp" khung hình, nhận diện và chốt Có Mặt/Đi Muộn cho sinh viên.
+2. **Luật điểm danh chặt chẽ:** Điểm danh sau thời gian `số phút muộn tối đa` sẽ tự động bị chuyển sang Đi Muộn. Khi đóng phiên, hệ thống tự động đánh `Vắng` cho những bạn chưa điểm danh.
+3. **Khiếu nại tự động:** Sinh viên có quyền gửi đơn khiếu nại trong vòng 48 giờ sau khi buổi học kết thúc.
+4. **Báo cáo và Backup:** Hỗ trợ xuất file Excel chuyên nghiệp (dùng `pandas`, `openpyxl`). Hỗ trợ gọi lệnh PostgreSQL Dump để sao lưu hệ thống.
+
+---
+
+## Hướng dẫn cài đặt và chạy (Dành cho Developer)
+
+### 1. Khởi động Backend (FastAPI)
+Yêu cầu: Đã cài đặt Python 3.10+
 
 ```bash
+# 1. Tạo môi trường ảo và kích hoạt
+python -m venv .venv
+.\.venv\Scripts\activate   # Trên Windows
+
+# 2. Cài đặt thư viện
 pip install -r requirements.txt
+pip install pandas openpyxl
+
+# 3. Chạy Server
+uvicorn app.main:app --host 0.0.0.0 --port 5050 --reload
 ```
+> **Lưu ý:** Lần chạy đầu tiên sẽ hơi lâu (khoảng 3-5 phút) do hệ thống cần tải bộ pre-trained model `vggface2` về máy tính. 
+> Sau khi chạy thành công, truy cập Swagger UI: [http://localhost:5050/api/docs](http://localhost:5050/api/docs)
 
-### 2. Cấu hình môi trường
-
-Chỉnh sửa file `.env`:
-```env
-# FastAPI Backend
-API_URL=http://localhost:8000
-PORT=8000
-
-# Streamlit Frontend
-STREAMLIT_SERVER_PORT=8501
-```
-
-### 3. Chạy FastAPI Backend
+### 2. Khởi động Frontend (Next.js)
+Yêu cầu: Đã cài đặt Node.js 18+
 
 ```bash
-uvicorn app.main:app --reload
+cd frontend
+npm install
+npm run dev
 ```
+> Truy cập giao diện tại: [http://localhost:3000](http://localhost:3000)
 
-Backend sẽ chạy tại: http://localhost:8000
+## Ghi chú về Dữ liệu Mẫu
+Hệ thống sử dụng tài khoản theo định dạng:
+- Admin: `admin` / pass: `admin`
+- Giảng viên: `gv001` / pass: `password`
+- Sinh viên: `sv001` / pass: `password`
 
-### 4. Chạy Streamlit Frontend
-
-```bash
-streamlit run app/frontend/streamlit_ui.py
-```
-
-Frontend sẽ chạy tại: http://localhost:8501
-
-## 📁 Cấu trúc dự án
-
-```
-app/
-├── main.py                 # FastAPI entry point
-├── core/
-│   ├── config.py          # Cấu hình ứng dụng
-│   └── security.py        # Xác thực & bảo mật
-├── api/
-│   └── routes/            # API endpoints
-├── database/              # Database models & CRUD
-├── services/              # Business logic
-├── frontend/              # Streamlit UI
-│   ├── streamlit_ui.py    # Main UI entry point
-│   ├── pages/            # UI pages
-│   ├── api_client.py     # API client for backend
-│   └── settings.py       # Settings page
-└── utils/                 # Utilities
-```
-
-## 🔌 API Endpoints
-
-### Học sinh
-- `GET /api/students` - Lấy danh sách học sinh
-- `POST /api/students` - Thêm học sinh mới
-- `PUT /api/students/{id}` - Cập nhật học sinh
-- `DELETE /api/students/{id}` - Xóa học sinh
-
-### Giáo viên
-- `GET /api/teachers` - Lấy danh sách giáo viên
-- `POST /api/teachers` - Thêm giáo viên mới
-- `PUT /api/teachers/{id}` - Cập nhật giáo viên
-- `DELETE /api/teachers/{id}` - Xóa giáo viên
-
-### Điểm danh
-- `GET /api/attendance` - Lấy lịch sử điểm danh
-- `POST /api/attendance` - Ghi nhận điểm danh
-- `GET /api/attendance/stats` - Thống kê điểm danh
-
-### Yêu cầu
-- `GET /api/requests` - Lấy danh sách yêu cầu
-- `POST /api/requests` - Tạo yêu cầu mới
-- `PUT /api/requests/{id}` - Cập nhật trạng thái
-- `GET /api/requests/stats` - Thống kê yêu cầu
-
-## 👥 Vai trò người dùng
-
-### Admin
-- Quản lý học sinh và giáo viên
-- Xem dashboard thống kê
-- Quản lý hệ thống
-
-### Requester (Người yêu cầu)
-- Ghi nhận điểm danh
-- Tạo báo cáo
-
-### Responder (Người phản hồi)
-- Xử lý yêu cầu
-- Xem thống kê yêu cầu
-
-## 🛠️ Công nghệ sử dụng
-
-- **Backend**: FastAPI, Python
-- **Frontend**: Streamlit
-- **Database**: SQLAlchemy (có thể cấu hình)
-- **AI/ML**: Face recognition models
-- **Real-time**: WebRTC integration
-
-## 📝 Lưu ý
-
-- Đảm bảo FastAPI backend chạy trước khi khởi động Streamlit
-- Kiểm tra API_URL trong file `.env` đúng với port của FastAPI
-- Cần cài đặt các dependencies cho face recognition nếu sử dụng
-
-## 🔧 Troubleshooting
-
-### Lỗi kết nối API
-- Kiểm tra FastAPI có chạy tại đúng port không
-- Kiểm tra API_URL trong `.env`
-- Xem logs của FastAPI để debug
-
-### Lỗi Streamlit
-- Đảm bảo tất cả dependencies đã cài đặt
-- Kiểm tra file paths trong code
-- Xem logs của Streamlit
-
-## 📞 Hỗ trợ
-
-Liên hệ: support@facerecognition.edu.vn
+*(Lưu ý: Bạn cần tạo dữ liệu này trong CSDL hoặc sử dụng script khởi tạo nếu có).*

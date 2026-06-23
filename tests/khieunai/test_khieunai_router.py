@@ -68,8 +68,8 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
 def seed_khieu_nai_data(session: Session):
     """Seed staff, class, attendance and complaints for complaint router tests."""
-    can_bo = CanBo(ho="Nguyen", ten="Giang", google_email="giang@example.edu")
-    other_can_bo = CanBo(ho="Tran", ten="Khac", google_email="khac@example.edu")
+    can_bo = CanBo(ho="Nguyen", ten="Giang", google_ten_dang_nhap="giang@example.edu")
+    other_can_bo = CanBo(ho="Tran", ten="Khac", google_ten_dang_nhap="khac@example.edu")
     nganh = Nganh(ten_nganh="Cong nghe thong tin")
     hoc_phan = HocPhan(
         ma_hoc_phan=701,

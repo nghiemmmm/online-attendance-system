@@ -1,5 +1,6 @@
-from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.types import Float
 from sqlmodel import Field, SQLModel
 
 
@@ -26,7 +27,7 @@ class AnhKhuonMat(AnhKhuonMatBase, table=True):
     ma_sinh_vien: int = Field(foreign_key="sinhvien.ma_sinh_vien")
     embedding_vector: list[float] | None = Field(
         default=None,
-        sa_column=Column(Vector(512), nullable=True),
+        sa_column=Column(ARRAY(Float), nullable=True),
     )
 
 

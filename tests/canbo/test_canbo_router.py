@@ -128,7 +128,7 @@ def test_create_canbo_rejects_duplicate_google_email() -> None:
 def test_read_lich_day_can_bo_returns_teaching_schedule() -> None:
     """Kiểm tra API lịch dạy trả về buổi học của giảng viên theo mã cán bộ."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Le", ten="Cuong", google_email="cuong@example.edu")
+        can_bo = CanBo(ho="Le", ten="Cuong", google_ten_dang_nhap="cuong@example.edu")
         hoc_phan = HocPhan(
             ma_hoc_phan=101,
             ten_hoc_phan="Co so du lieu",
@@ -211,8 +211,8 @@ def test_read_lich_day_can_bo_rejects_invalid_date_range() -> None:
 def test_read_buoi_hoc_gan_day_can_bo_returns_recent_lessons() -> None:
     """Kiem tra API buoi hoc gan day tra ve thong ke diem danh cua can bo."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Mai", ten="Lan", google_email="lan@example.edu")
-        other_can_bo = CanBo(ho="Mai", ten="Khac", google_email="khac@example.edu")
+        can_bo = CanBo(ho="Mai", ten="Lan", google_ten_dang_nhap="lan@example.edu")
+        other_can_bo = CanBo(ho="Mai", ten="Khac", google_ten_dang_nhap="khac@example.edu")
         nganh = Nganh(ten_nganh="Khoa hoc may tinh")
         hoc_phan = HocPhan(
             ma_hoc_phan=151,
@@ -314,7 +314,7 @@ def test_read_buoi_hoc_gan_day_can_bo_returns_recent_lessons() -> None:
 def test_count_lop_hoc_phan_dang_day_returns_current_semester_count() -> None:
     """Kiểm tra API đếm số lớp học phần đang giảng dạy trong học kỳ hiện tại."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Pham", ten="Dung", google_email="dung@example.edu")
+        can_bo = CanBo(ho="Pham", ten="Dung", google_ten_dang_nhap="dung@example.edu")
         hoc_phan = HocPhan(
             ma_hoc_phan=201,
             ten_hoc_phan="Lap trinh Python",
@@ -381,7 +381,7 @@ def test_count_lop_hoc_phan_dang_day_returns_current_semester_count() -> None:
 def test_read_monthly_attendance_summary_returns_change_from_previous_month() -> None:
     """Kiểm tra API thống kê tỷ lệ có mặt tháng hiện tại so với tháng trước."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Do", ten="Hoa", google_email="hoa@example.edu")
+        can_bo = CanBo(ho="Do", ten="Hoa", google_ten_dang_nhap="hoa@example.edu")
         nganh = Nganh(ten_nganh="Cong nghe thong tin")
         hoc_phan = HocPhan(
             ma_hoc_phan=301,
@@ -493,8 +493,8 @@ def test_read_monthly_attendance_summary_returns_change_from_previous_month() ->
 def test_count_khieu_nai_cho_xu_ly_returns_staff_owned_pending_count() -> None:
     """Kiểm tra API chỉ đếm khiếu nại chờ xử lý thuộc lớp cán bộ phụ trách."""
     for client, session in make_test_client():
-        can_bo = CanBo(ho="Vu", ten="Minh", google_email="minh@example.edu")
-        other_can_bo = CanBo(ho="Hoang", ten="Nam", google_email="nam@example.edu")
+        can_bo = CanBo(ho="Vu", ten="Minh", google_ten_dang_nhap="minh@example.edu")
+        other_can_bo = CanBo(ho="Hoang", ten="Nam", google_ten_dang_nhap="nam@example.edu")
         nganh = Nganh(ten_nganh="He thong thong tin")
         hoc_phan = HocPhan(
             ma_hoc_phan=401,

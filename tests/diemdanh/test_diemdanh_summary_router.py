@@ -68,7 +68,7 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
 def seed_attendance_summary_data(session: Session):
     """Seed student semester attendance data for summary tests."""
-    can_bo = CanBo(ho="Nguyen", ten="Giang", google_email="gv@example.edu")
+    can_bo = CanBo(ho="Nguyen", ten="Giang", google_ten_dang_nhap="gv@example.edu")
     nganh = Nganh(ten_nganh="Cong nghe thong tin")
     hoc_phan = HocPhan(ma_hoc_phan=1001, ten_hoc_phan="Co so du lieu")
     other_hoc_phan = HocPhan(ma_hoc_phan=1002, ten_hoc_phan="Tri tue nhan tao")

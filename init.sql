@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS vector;
+-- CREATE EXTENSION IF NOT EXISTS vector;
 
 /* =========================================================
    RESET DATABASE
@@ -46,21 +46,36 @@ INSERT INTO taikhoan (
     mat_khau_hash,
     vai_tro,
     trang_thai,
+    so_lan_dang_nhap_sai,
+    thoi_gian_khoa,
     ngay_tao
 )
 VALUES
 (
-    'gv001',
-    'hash_gv001',
-    'GIANG_VIEN',
+    'admin@university.edu.vn',
+    '$2b$12$6dCSBvs52cfB14dAASubu.Px4/yiAFg.9yiTHieAKFeVk/C9oP1Lu',
+    'ADMIN',
     true,
+    0,
+    NULL,
     NOW()
 ),
 (
-    'sv001',
-    'hash_sv001',
+    'gv001@university.edu.vn',
+    '$2b$12$6dCSBvs52cfB14dAASubu.Px4/yiAFg.9yiTHieAKFeVk/C9oP1Lu',
+    'GIANG_VIEN',
+    true,
+    0,
+    NULL,
+    NOW()
+),
+(
+    'sv001@student.edu.vn',
+    '$2b$12$6dCSBvs52cfB14dAASubu.Px4/yiAFg.9yiTHieAKFeVk/C9oP1Lu',
     'SINH_VIEN',
     true,
+    0,
+    NULL,
     NOW()
 );
 
@@ -96,7 +111,7 @@ VALUES (
     'gva@university.edu.vn',
     (SELECT ma_tai_khoan
      FROM taikhoan
-     WHERE ten_dang_nhap = 'gv001'),
+     WHERE ten_dang_nhap = 'gv001@university.edu.vn'),
     'Giảng viên',
     true
 );
@@ -136,7 +151,7 @@ VALUES (
     (
         SELECT ma_tai_khoan
         FROM taikhoan
-        WHERE ten_dang_nhap = 'sv001'
+        WHERE ten_dang_nhap = 'sv001@student.edu.vn'
     ),
     true,
     NOW()

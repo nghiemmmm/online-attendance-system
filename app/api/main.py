@@ -12,6 +12,15 @@ from app.api.routes import (
     sinhvien,
     system_router,
     user,
+    lophocphan,
+    buoihoc,
+    nganh,
+    hocphan,
+    dangkyhocphan,
+    thoikhoabieu,
+    anhkhuonmat,
+    baocao,
+    hethong,
 )
 
 api_router = APIRouter()
@@ -26,3 +35,12 @@ api_router.include_router(diemdanh.router)
 api_router.include_router(khieunai.router)
 api_router.include_router(sinhvien.router)
 api_router.include_router(lichhoc.router)
+api_router.include_router(lophocphan.router)
+api_router.include_router(buoihoc.router)
+api_router.include_router(nganh.router)
+api_router.include_router(hocphan.router)
+api_router.include_router(dangkyhocphan.router)
+api_router.include_router(thoikhoabieu.router)
+api_router.include_router(anhkhuonmat.router)
+api_router.include_router(baocao.router)
+api_router.include_router(hethong.router)

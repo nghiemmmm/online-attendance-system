@@ -13,6 +13,7 @@ from app.core.security import create_access_token
 from app.middleware.logging_middleware import RequestLoggingMiddleware
 from app.services.models import load_model
 from app.utils.logger import logger
+import os
 
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -20,6 +21,11 @@ from starlette.middleware.sessions import SessionMiddleware
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 setup_logging()
+
+# Create uploads directory if it doesn't exist
+os.makedirs("uploads/faces", exist_ok=True)
+os.makedirs("vector_db/embeddings_db", exist_ok=True)
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -41,15 +47,16 @@ print(f"Generated test token: {access_token}")
 if settings.all_cors_origins:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.all_cors_origins,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-app.include_router(api_router)
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 exception_handler.init_app(app)
 
 

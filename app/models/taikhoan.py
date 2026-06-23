@@ -37,6 +37,8 @@ class TaiKhoan(TaiKhoanBase, table=True):
     ten_dang_nhap: str = Field(max_length=50, unique=True, index=True)
     mat_khau_hash: str = Field(max_length=255)
     lan_dang_nhap_cuoi: datetime | None = None
+    so_lan_dang_nhap_sai: int = Field(default=0)
+    thoi_gian_khoa: datetime | None = None
     ngay_tao: datetime = Field(default_factory=get_datetime_utc)
 
 

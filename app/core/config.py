@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     )
     APP_NAME: str = "diemdanh"
     VERSION: str = "1.0.0"
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/api"
     HOST: str = "0.0.0.0"
     PORT: int = 5050
     DEBUG: Annotated[bool, BeforeValidator(parse_debug)] = False

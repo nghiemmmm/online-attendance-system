@@ -4,7 +4,7 @@ Sinh vien router.
 Defines APIs for managing student profiles.
 """
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +18,14 @@ from app.models import (
     SinhVienPublic,
     SinhViensPublic,
     SinhVienUpdate,
+    LopHocPhan,
+    BuoiHoc,
+    DiemDanh,
+    DangKyHocPhan,
 )
+
+from app.api.deps import get_current_active_sinhvien, CurrentAccount
+
 
 router = APIRouter(prefix="/sinh-vien", tags=["sinh-vien"])
 
@@ -94,6 +101,84 @@ def read_sinh_viens(
         trang_thai_hoc=trang_thai_hoc,
     )
     return SinhViensPublic(data=sinh_viens, count=count)
+
+
+@router.get(
+    "/me/lich-hoc",
+    dependencies=[Depends(get_current_active_sinhvien)],
+)
+def get_my_lich_hoc(session: SessionDep, current_account: CurrentAccount) -> Any:
+    """Sinh viên xem lịch học của mình."""
+    sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not sinh_vien:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+    
+    # Tìm các lớp học phần sinh viên đăng ký
+    statement = (
+        select(LopHocPhan, BuoiHoc)
+        .join(DangKyHocPhan, DangKyHocPhan.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
+        .join(BuoiHoc, BuoiHoc.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
+        .where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+    )
+    results = session.exec(statement).all()
+    
+    # Format lại kết quả
+    lich_hoc = []
+    for lhp, bh in results:
+        lich_hoc.append({
+            "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
+            "ma_hoc_phan": lhp.ma_hoc_phan,
+            "ngay_hoc": bh.ngay_hoc,
+            "gio_bat_dau": bh.gio_bat_dau,
+            "gio_ket_thuc": bh.gio_ket_thuc,
+            "trang_thai": bh.trang_thai
+        })
+    return {"data": lich_hoc, "count": len(lich_hoc)}
+
+
+@router.get(
+    "/me/diem-danh",
+    dependencies=[Depends(get_current_active_sinhvien)],
+)
+def get_my_diem_danh(session: SessionDep, current_account: CurrentAccount) -> Any:
+    """Sinh viên xem lịch sử điểm danh."""
+    sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not sinh_vien:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+    
+    statement = (
+        select(DiemDanh, BuoiHoc, LopHocPhan)
+        .join(BuoiHoc, BuoiHoc.ma_buoi_hoc == DiemDanh.ma_buoi_hoc)
+        .join(LopHocPhan, LopHocPhan.ma_lop_hoc_phan == BuoiHoc.ma_lop_hoc_phan)
+        .where(DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+    )
+    results = session.exec(statement).all()
+    
+    lich_su = []
+    for dd, bh, lhp in results:
+        lich_su.append({
+            "ma_diem_danh": dd.ma_diem_danh,
+            "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
+            "ngay_hoc": bh.ngay_hoc,
+            "trang_thai": dd.trang_thai,
+            "thoi_diem_diem_danh": dd.thoi_diem_diem_danh,
+            "ghi_chu": dd.ghi_chu
+        })
+    return {"data": lich_su, "count": len(lich_su)}
+
+
+@router.get(
+    "/me/canh-bao",
+    dependencies=[Depends(get_current_active_sinhvien)],
+)
+def get_my_canh_bao(session: SessionDep, current_account: CurrentAccount) -> Any:
+    """Sinh viên xem các cảnh báo vắng mặt."""
+    sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not sinh_vien:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+    
+    # TODO: Implement real warning logic based on CanhBaoHocTap
+    return {"data": [], "count": 0}
 
 
 @router.get(

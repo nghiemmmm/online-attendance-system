@@ -84,6 +84,12 @@ def update_account(
     return db_account
 
 
+from fastapi import HTTPException
+from datetime import datetime, timezone, timedelta
+
+def get_datetime_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
 def authenticate_account(
     *, session: Session, ten_dang_nhap: str, password: str
 ) -> TaiKhoan | None:
@@ -92,6 +98,25 @@ def authenticate_account(
     )
     if not db_account:
         return None
+
+    # Check if account is locked
+    if db_account.thoi_gian_khoa and db_account.thoi_gian_khoa > get_datetime_utc():
+        raise HTTPException(status_code=403, detail="Account is locked. Please try again later.")
+
     if not verify_password(password, db_account.mat_khau_hash):
+        # Increment failed login attempts
+        db_account.so_lan_dang_nhap_sai += 1
+        if db_account.so_lan_dang_nhap_sai >= 5:
+            db_account.thoi_gian_khoa = get_datetime_utc() + timedelta(minutes=15)
+        
+        session.add(db_account)
+        session.commit()
         return None
+
+    # Successful login, reset lockout
+    db_account.so_lan_dang_nhap_sai = 0
+    db_account.thoi_gian_khoa = None
+    session.add(db_account)
+    session.commit()
+    
     return db_account

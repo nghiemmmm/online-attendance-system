@@ -43,7 +43,7 @@ def make_identity(*, ma_tai_khoan: int = 1) -> OAuthIdentity:
         ma_oauth_identity=10,
         provider=google_auth.GOOGLE_PROVIDER,
         provider_subject="google-subject",
-        email="student@example.edu",
+        ten_dang_nhap="student@example.edu",
         ma_tai_khoan=ma_tai_khoan,
     )
 
@@ -53,7 +53,7 @@ def test_validate_google_user_info_accepts_verified_email() -> None:
     provider_subject, email = google_auth.validate_google_user_info(
         {
             "sub": "google-subject",
-            "email": "student@example.edu",
+            "ten_dang_nhap": "student@example.edu",
             "email_verified": True,
         }
     )
@@ -68,7 +68,7 @@ def test_validate_google_user_info_rejects_unverified_email() -> None:
         google_auth.validate_google_user_info(
             {
                 "sub": "google-subject",
-                "email": "student@example.edu",
+                "ten_dang_nhap": "student@example.edu",
                 "email_verified": False,
             }
         )
@@ -124,7 +124,7 @@ def test_auto_register_creates_pending_account_and_google_identity(monkeypatch) 
         created["identity"] = {
             "provider": provider,
             "provider_subject": provider_subject,
-            "email": email,
+            "ten_dang_nhap": email,
             "ma_tai_khoan": ma_tai_khoan,
         }
         return make_identity(ma_tai_khoan=ma_tai_khoan)
@@ -139,7 +139,7 @@ def test_auto_register_creates_pending_account_and_google_identity(monkeypatch) 
     result = google_auth.handle_auto_register_login(
         session=session,
         provider_subject="google-subject",
-        email="new-student@example.edu",
+        ten_dang_nhap="new-student@example.edu",
     )
 
     assert isinstance(result, GoogleAuthPending)
@@ -151,7 +151,7 @@ def test_auto_register_creates_pending_account_and_google_identity(monkeypatch) 
     assert created["identity"] == {
         "provider": "google",
         "provider_subject": "google-subject",
-        "email": "new-student@example.edu",
+        "ten_dang_nhap": "new-student@example.edu",
         "ma_tai_khoan": 42,
     }
 
@@ -202,7 +202,7 @@ def test_auto_register_links_existing_profile_account_and_returns_token(
     result = google_auth.handle_auto_register_login(
         session=session,
         provider_subject="google-subject",
-        email="student@example.edu",
+        ten_dang_nhap="student@example.edu",
     )
 
     assert result.access_token == "jwt-token"
@@ -239,7 +239,7 @@ def test_auto_register_blocks_existing_inactive_profile_account(monkeypatch) -> 
         google_auth.handle_auto_register_login(
             session=session,
             provider_subject="google-subject",
-            email="student@example.edu",
+            ten_dang_nhap="student@example.edu",
         )
 
     assert exc_info.value.status_code == 400

@@ -57,7 +57,7 @@ def make_identity(*, ma_tai_khoan: int = 1) -> OAuthIdentity:
         ma_oauth_identity=99,
         provider=google_auth.GOOGLE_PROVIDER,
         provider_subject="google-subject",
-        email="student@example.edu",
+        ten_dang_nhap="student@example.edu",
         ma_tai_khoan=ma_tai_khoan,
     )
 
@@ -107,7 +107,7 @@ def test_existing_google_login_links_profile_account_and_returns_token(
     result = google_auth.handle_existing_account_login(
         session=session,
         provider_subject="google-subject",
-        email="student@example.edu",
+        ten_dang_nhap="student@example.edu",
     )
 
     assert result.access_token == "jwt-token"
@@ -131,7 +131,7 @@ def test_existing_google_login_rejects_unregistered_email(monkeypatch) -> None:
         google_auth.handle_existing_account_login(
             session=session,
             provider_subject="google-subject",
-            email="unknown@example.edu",
+            ten_dang_nhap="unknown@example.edu",
         )
 
     assert exc_info.value.status_code == 404
@@ -177,7 +177,7 @@ def test_existing_google_login_with_remember_me_returns_refresh_token(
     result = google_auth.handle_existing_account_login(
         session=session,
         provider_subject="google-subject",
-        email="student@example.edu",
+        ten_dang_nhap="student@example.edu",
         remember_me=True,
     )
 
@@ -207,7 +207,7 @@ def test_existing_google_login_rejects_inactive_account(monkeypatch) -> None:
         google_auth.handle_existing_account_login(
             session=session,
             provider_subject="google-subject",
-            email="student@example.edu",
+            ten_dang_nhap="student@example.edu",
         )
 
     assert exc_info.value.status_code == 400
@@ -233,7 +233,7 @@ async def test_google_callback_logs_in_with_existing_oauth_identity(
         """Giả lập Google trả về user info đã xác thực."""
         return {
             "sub": "google-subject",
-            "email": "student@example.edu",
+            "ten_dang_nhap": "student@example.edu",
             "email_verified": True,
         }
 
@@ -280,7 +280,7 @@ async def test_google_callback_rejects_missing_linked_account(monkeypatch) -> No
         """Giả lập Google user info hợp lệ."""
         return {
             "sub": "google-subject",
-            "email": "student@example.edu",
+            "ten_dang_nhap": "student@example.edu",
             "email_verified": True,
         }
 
