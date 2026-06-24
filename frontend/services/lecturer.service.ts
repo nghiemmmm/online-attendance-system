@@ -93,8 +93,8 @@ export const LecturerService = {
 
   getReports: async (): Promise<AttendanceReport[]> => {
     try {
-      const response = await apiClient.get<any>("/lop-hoc-phan/");
-      return []; 
+      const response = await apiClient.get<AttendanceReport[]>("/canbo/me/reports");
+      return response; 
     } catch (error) {
       console.error("Lỗi tải báo cáo:", error);
       throw error;
@@ -118,6 +118,56 @@ export const LecturerService = {
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái khiếu nại:", error);
       return false;
+    }
+  },
+
+  getLiveAttendance: async (maBuoiHoc: number): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any[]>(`/buoi-hoc/${maBuoiHoc}/diem-danh`);
+      return response;
+    } catch (error) {
+      console.error("Lỗi lấy danh sách điểm danh trực tiếp:", error);
+      throw error;
+    }
+  },
+
+  moDiemDanh: async (maBuoiHoc: number): Promise<any> => {
+    try {
+      const response = await apiClient.post<any>(`/buoi-hoc/${maBuoiHoc}/mo-diem-danh`, {});
+      return response;
+    } catch (error) {
+      console.error("Lỗi mở phiên điểm danh:", error);
+      throw error;
+    }
+  },
+
+  dongDiemDanh: async (maBuoiHoc: number): Promise<any> => {
+    try {
+      const response = await apiClient.post<any>(`/buoi-hoc/${maBuoiHoc}/dong-diem-danh`, {});
+      return response;
+    } catch (error) {
+      console.error("Lỗi đóng phiên điểm danh:", error);
+      throw error;
+    }
+  },
+
+  updateAttendanceManual: async (maBuoiHoc: number, maSinhVien: number, status: 'present' | 'late' | 'absent'): Promise<any> => {
+    try {
+      const statusMap = {
+        present: "CO_MAT",
+        late: "DI_MUON",
+        absent: "VANG"
+      };
+      const response = await apiClient.post<any>("/diem-danh/thu-cong", {
+        ma_buoi_hoc: maBuoiHoc,
+        ma_sinh_vien: maSinhVien,
+        trang_thai: statusMap[status],
+        ghi_chu: "Giảng viên cập nhật thủ công"
+      });
+      return response;
+    } catch (error) {
+      console.error("Lỗi cập nhật điểm danh thủ công:", error);
+      throw error;
     }
   }
 };

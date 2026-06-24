@@ -45,12 +45,6 @@ import {
 } from "lucide-react"
 import { AdminService } from "@/services/admin.service"
 
-const mockUser = {
-  name: "Admin System",
-  email: "admin@university.edu.vn",
-  avatar: ""
-}
-
 type UserRole = "student" | "lecturer" | "admin"
 type UserStatus = "active" | "locked"
 
@@ -68,6 +62,11 @@ interface UserData {
 }
 
 export default function AdminUserManagement() {
+  const [adminUser, setAdminUser] = useState({
+    name: "Admin",
+    email: "admin@university.edu.vn",
+    avatar: ""
+  })
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,6 +98,12 @@ export default function AdminUserManagement() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    AdminService.getProfile()
+      .then(p => setAdminUser({ ...p, avatar: "" }))
+      .catch(err => console.error("Lỗi tải profile admin:", err))
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -176,7 +181,7 @@ export default function AdminUserManagement() {
   return (
     <AppShell 
       role="admin" 
-      user={mockUser} 
+      user={adminUser} 
       breadcrumb="Quản lý người dùng"
     >
       <div className="space-y-6">

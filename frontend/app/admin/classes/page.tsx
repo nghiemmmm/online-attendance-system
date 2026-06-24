@@ -12,13 +12,12 @@ import { CourseClass } from "@/types/class"
 import { AdminService } from "@/services/admin.service"
 import { Loader2, AlertCircle, Plus, Search, Edit, Trash2, Users, BookOpen } from "lucide-react"
 
-const mockUser = {
-  name: "Quản Trị Viên",
-  email: "admin@university.edu.vn",
-  avatar: ""
-}
-
 export default function AdminClassesPage() {
+  const [adminUser, setAdminUser] = useState({
+    name: "Admin",
+    email: "admin@university.edu.vn",
+    avatar: ""
+  })
   const [classes, setClasses] = useState<CourseClass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +53,12 @@ export default function AdminClassesPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    AdminService.getProfile()
+      .then(p => setAdminUser({ ...p, avatar: "" }))
+      .catch(err => console.error("Lỗi tải profile admin:", err))
+  }, [])
 
   useEffect(() => {
     fetchClasses()
@@ -132,7 +137,7 @@ export default function AdminClassesPage() {
   return (
     <AppShell
       role="admin"
-      user={mockUser}
+      user={adminUser}
       breadcrumb="Quản lý lớp học phần"
     >
       <div className="space-y-6">

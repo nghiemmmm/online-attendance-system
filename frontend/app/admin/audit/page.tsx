@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { StatusBadge } from "@/components/status-badge"
+import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   History,
@@ -35,128 +35,26 @@ import {
   FileText,
   Clock,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react"
-
-// Mock data for audit logs
-const auditLogs = [
-  {
-    id: "LOG001",
-    timestamp: "2024-01-15 14:32:15",
-    user: { name: "Admin Nguyen", email: "admin@university.edu.vn", avatar: null },
-    action: "user_create",
-    target: "Tran Van Minh (SV2024001)",
-    ip: "192.168.1.100",
-    status: "success",
-    details: "Tao tai khoan sinh vien moi"
-  },
-  {
-    id: "LOG002",
-    timestamp: "2024-01-15 14:28:42",
-    user: { name: "GV. Le Thi Hoa", email: "lehoa@university.edu.vn", avatar: null },
-    action: "attendance_edit",
-    target: "Buoi hoc CS101-15/01/2024",
-    ip: "192.168.1.105",
-    status: "success",
-    details: "Chinh sua diem danh cho 3 sinh vien"
-  },
-  {
-    id: "LOG003",
-    timestamp: "2024-01-15 14:15:30",
-    user: { name: "System", email: "system@university.edu.vn", avatar: null },
-    action: "face_verify",
-    target: "Nguyen Thi Mai (SV2023045)",
-    ip: "10.0.0.1",
-    status: "warning",
-    details: "Do tin cay thap: 78.5%"
-  },
-  {
-    id: "LOG004",
-    timestamp: "2024-01-15 14:10:22",
-    user: { name: "Admin Tran", email: "admin2@university.edu.vn", avatar: null },
-    action: "face_delete",
-    target: "Du lieu khuon mat SV2022089",
-    ip: "192.168.1.101",
-    status: "success",
-    details: "Xoa du lieu khuon mat theo yeu cau"
-  },
-  {
-    id: "LOG005",
-    timestamp: "2024-01-15 13:55:18",
-    user: { name: "GV. Pham Van Duc", email: "phamduc@university.edu.vn", avatar: null },
-    action: "session_start",
-    target: "Lop CNTT-K65A - Lap trinh Web",
-    ip: "192.168.1.110",
-    status: "success",
-    details: "Bat dau phien diem danh"
-  },
-  {
-    id: "LOG006",
-    timestamp: "2024-01-15 13:45:00",
-    user: { name: "System", email: "system@university.edu.vn", avatar: null },
-    action: "login_failed",
-    target: "admin@university.edu.vn",
-    ip: "203.162.45.67",
-    status: "error",
-    details: "Dang nhap that bai - Sai mat khau (lan 3)"
-  },
-  {
-    id: "LOG007",
-    timestamp: "2024-01-15 13:30:45",
-    user: { name: "Admin Nguyen", email: "admin@university.edu.vn", avatar: null },
-    action: "settings_change",
-    target: "Cau hinh he thong",
-    ip: "192.168.1.100",
-    status: "success",
-    details: "Thay doi nguong nhan dien: 85% -> 80%"
-  },
-  {
-    id: "LOG008",
-    timestamp: "2024-01-15 13:15:33",
-    user: { name: "GV. Hoang Minh", email: "hoangminh@university.edu.vn", avatar: null },
-    action: "report_export",
-    target: "Bao cao chuyen can T1/2024",
-    ip: "192.168.1.108",
-    status: "success",
-    details: "Xuat bao cao Excel"
-  },
-  {
-    id: "LOG009",
-    timestamp: "2024-01-15 12:50:20",
-    user: { name: "Admin Tran", email: "admin2@university.edu.vn", avatar: null },
-    action: "user_update",
-    target: "Le Van Hung (SV2023067)",
-    ip: "192.168.1.101",
-    status: "success",
-    details: "Cap nhat thong tin sinh vien"
-  },
-  {
-    id: "LOG010",
-    timestamp: "2024-01-15 12:30:15",
-    user: { name: "System", email: "system@university.edu.vn", avatar: null },
-    action: "backup_complete",
-    target: "Database backup",
-    ip: "10.0.0.1",
-    status: "success",
-    details: "Sao luu co so du lieu thanh cong"
-  },
-]
+import { AdminService } from "@/services/admin.service"
 
 const actionTypes = [
-  { value: "all", label: "Tat ca hanh dong" },
-  { value: "user_create", label: "Tao nguoi dung" },
-  { value: "user_update", label: "Cap nhat nguoi dung" },
-  { value: "user_delete", label: "Xoa nguoi dung" },
-  { value: "face_upload", label: "Tai len khuon mat" },
-  { value: "face_delete", label: "Xoa khuon mat" },
-  { value: "face_verify", label: "Xac minh khuon mat" },
-  { value: "attendance_edit", label: "Sua diem danh" },
-  { value: "session_start", label: "Bat dau phien" },
-  { value: "session_end", label: "Ket thuc phien" },
-  { value: "login_success", label: "Dang nhap" },
-  { value: "login_failed", label: "Dang nhap that bai" },
-  { value: "settings_change", label: "Thay doi cai dat" },
-  { value: "report_export", label: "Xuat bao cao" },
+  { value: "all", label: "Tất cả hành động" },
+  { value: "user_create", label: "Tạo người dùng" },
+  { value: "user_update", label: "Cập nhật người dùng" },
+  { value: "user_delete", label: "Xóa người dùng" },
+  { value: "face_upload", label: "Tải lên khuôn mặt" },
+  { value: "face_delete", label: "Xóa khuôn mặt" },
+  { value: "face_verify", label: "Xác minh khuôn mặt" },
+  { value: "attendance_edit", label: "Sửa điểm danh" },
+  { value: "session_start", label: "Bắt đầu phiên" },
+  { value: "session_end", label: "Kết thúc phiên" },
+  { value: "login_success", label: "Đăng nhập" },
+  { value: "login_failed", label: "Đăng nhập thất bại" },
+  { value: "settings_change", label: "Thay đổi cài đặt" },
+  { value: "report_export", label: "Xuất báo cáo" },
 ]
 
 const getActionIcon = (action: string) => {
@@ -196,12 +94,51 @@ const getActionLabel = (action: string) => {
 }
 
 export default function AdminAuditPage() {
+  const [adminUser, setAdminUser] = useState({
+    name: "Admin",
+    email: "admin@university.edu.vn",
+    avatar: ""
+  })
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedAction, setSelectedAction] = useState("all")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
 
-  const filteredLogs = auditLogs.filter(log => {
+  const fetchLogs = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await AdminService.getLogs()
+      const mapped = response.map((log: any) => ({
+        id: log.id,
+        timestamp: log.timestamp || "2026-06-24 12:00:00",
+        user: log.user_info || { name: log.user || "Hệ thống", email: "system@university.edu.vn", avatar: null },
+        action: log.action_type || log.action || "other",
+        target: log.target || "",
+        ip: log.ip || "127.0.0.1",
+        status: log.status || "success",
+        details: log.details || ""
+      }))
+      setLogs(mapped)
+    } catch (err: any) {
+      console.error(err)
+      setError("Không thể tải nhật ký hoạt động từ máy chủ.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    AdminService.getProfile()
+      .then(p => setAdminUser({ ...p, avatar: "" }))
+      .catch(err => console.error("Lỗi tải profile admin:", err))
+    fetchLogs()
+  }, [])
+
+  const filteredLogs = logs.filter(log => {
     const matchesSearch = 
       log.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.target.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -211,237 +148,273 @@ export default function AdminAuditPage() {
     return matchesSearch && matchesAction && matchesStatus
   })
 
+  const itemsPerPage = 8
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage))
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
   return (
-    <AppShell role="admin">
-      <div className="space-y-6">
+    <AppShell role="admin" user={adminUser} breadcrumb="Nhật ký hoạt động">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Nhat ky hoat dong</h1>
+            <h1 className="text-2xl font-bold text-foreground">Nhật ký hoạt động</h1>
             <p className="text-sm text-muted-foreground">
-              Theo doi tat ca hoat dong trong he thong
+              Theo dõi tất cả hoạt động trong hệ thống
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Lam moi
+            <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
             </Button>
             <Button size="sm" className="bg-primary text-primary-foreground">
               <Download className="mr-2 h-4 w-4" />
-              Xuat log
+              Xuất log
             </Button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-primary/10 p-2">
-                  <History className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">1,247</p>
-                  <p className="text-sm text-muted-foreground">Tong hoat dong</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-success/10 p-2">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-success">1,189</p>
-                  <p className="text-sm text-muted-foreground">Thanh cong</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-warning/10 p-2">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-warning">45</p>
-                  <p className="text-sm text-muted-foreground">Canh bao</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-destructive/10 p-2">
-                  <XCircle className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-destructive">13</p>
-                  <p className="text-sm text-muted-foreground">Loi</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
+            <Loader2 className="w-10 h-10 text-[#0EA5E9] animate-spin mb-4" />
+            <p className="text-[#64748B] font-medium">Đang tải nhật ký hoạt động...</p>
+          </div>
+        )}
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Tim kiem theo nguoi dung, muc tieu, chi tiet..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={selectedAction} onValueChange={setSelectedAction}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Loai hanh dong" />
-                </SelectTrigger>
-                <SelectContent>
-                  {actionTypes.map(action => (
-                    <SelectItem key={action.value} value={action.value}>
-                      {action.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Trang thai" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tat ca</SelectItem>
-                  <SelectItem value="success">Thanh cong</SelectItem>
-                  <SelectItem value="warning">Canh bao</SelectItem>
-                  <SelectItem value="error">Loi</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                className="w-[150px]"
-                defaultValue="2024-01-15"
-              />
-              <span className="text-muted-foreground">den</span>
-              <Input
-                type="date"
-                className="w-[150px]"
-                defaultValue="2024-01-15"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {!loading && error && (
+          <Card className="border-[#EF4444] bg-[#FEF2F2]">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertTriangle className="w-12 h-12 text-[#EF4444] mb-3" />
+              <h3 className="text-lg font-semibold text-[#991B1B] mb-1">Đã xảy ra lỗi</h3>
+              <p className="text-[#DC2626] mb-4 max-w-md text-sm">{error}</p>
+              <Button onClick={fetchLogs} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
+                Thử lại
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Audit Log Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Lich su hoat dong</CardTitle>
-            <CardDescription>
-              Hien thi {filteredLogs.length} ban ghi
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
-                >
-                  {/* Action Icon */}
-                  <div className={`rounded-full p-2 ${
-                    log.status === "success" ? "bg-success/10 text-success" :
-                    log.status === "warning" ? "bg-warning/10 text-warning" :
-                    "bg-destructive/10 text-destructive"
-                  }`}>
-                    {getActionIcon(log.action)}
+        {!loading && !error && (
+          <>
+            {/* Stats */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-primary/10 p-2">
+                      <History className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{logs.length}</p>
+                      <p className="text-sm text-muted-foreground">Tổng hoạt động</p>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-success/10 p-2">
+                      <CheckCircle2 className="h-5 w-5 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-success">
+                        {logs.filter(l => l.status === "success").length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Thành công</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-warning/10 p-2">
+                      <AlertTriangle className="h-5 w-5 text-warning" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-warning">
+                        {logs.filter(l => l.status === "warning").length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Cảnh báo</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-destructive/10 p-2">
+                      <XCircle className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-destructive">
+                        {logs.filter(l => l.status === "error" || l.status === "danger").length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Lỗi</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-                  {/* Content */}
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {getActionLabel(log.action)}
-                      </span>
-                      <StatusBadge
-                        variant={
-                          log.status === "success" ? "success" :
-                          log.status === "warning" ? "warning" : "error"
-                        }
-                        size="sm"
+            {/* Filters */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Tìm kiếm theo người dùng, mục tiêu, chi tiết..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                        setCurrentPage(1)
+                      }}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Select value={selectedAction} onValueChange={(val) => {
+                    setSelectedAction(val)
+                    setCurrentPage(1)
+                  }}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Loại hành động" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {actionTypes.map(action => (
+                        <SelectItem key={action.value} value={action.value}>
+                          {action.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedStatus} onValueChange={(val) => {
+                    setSelectedStatus(val)
+                    setCurrentPage(1)
+                  }}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả</SelectItem>
+                      <SelectItem value="success">Thành công</SelectItem>
+                      <SelectItem value="warning">Cảnh báo</SelectItem>
+                      <SelectItem value="error">Lỗi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Audit Log Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Lịch sử hoạt động</CardTitle>
+                <CardDescription>
+                  Hiển thị {filteredLogs.length} bản ghi
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {paginatedLogs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Không tìm thấy bản ghi hoạt động nào phù hợp.
+                    </div>
+                  ) : (
+                    paginatedLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-start gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
                       >
-                        {log.status === "success" ? "Thanh cong" :
-                         log.status === "warning" ? "Canh bao" : "Loi"}
-                      </StatusBadge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">{log.target}</span>
-                      {" - "}
-                      {log.details}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Avatar className="h-4 w-4">
-                          <AvatarImage src={log.user.avatar || undefined} />
-                          <AvatarFallback className="text-[8px]">
-                            {log.user.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{log.user.name}</span>
-                      </div>
-                      <span>IP: {log.ip}</span>
-                    </div>
-                  </div>
+                        {/* Action Icon */}
+                        <div className={`rounded-full p-2 ${
+                          log.status === "success" ? "bg-success/10 text-success" :
+                          log.status === "warning" ? "bg-warning/10 text-warning" :
+                          "bg-destructive/10 text-destructive"
+                        }`}>
+                          {getActionIcon(log.action)}
+                        </div>
 
-                  {/* Timestamp */}
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">
-                      {log.timestamp.split(" ")[1]}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {log.timestamp.split(" ")[0]}
-                    </p>
+                        {/* Content */}
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">
+                              {getActionLabel(log.action)}
+                            </span>
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                              log.status === "success" ? "bg-emerald-500/10 text-emerald-400" :
+                              log.status === "warning" ? "bg-amber-500/10 text-amber-400" :
+                              "bg-rose-500/10 text-rose-400"
+                            )}>
+                              {log.status === "success" ? "Thành công" :
+                               log.status === "warning" ? "Cảnh báo" : "Lỗi"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">{log.target}</span>
+                            {" - "}
+                            {log.details}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Avatar className="h-4 w-4">
+                                <AvatarImage src={log.user.avatar || undefined} />
+                                <AvatarFallback className="text-[8px]">
+                                  {log.user.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{log.user.name}</span>
+                            </div>
+                            <span>IP: {log.ip}</span>
+                          </div>
+                        </div>
+
+                        {/* Timestamp */}
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-foreground">
+                            {log.timestamp.includes(" ") ? log.timestamp.split(" ")[1] : log.timestamp}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {log.timestamp.includes(" ") ? log.timestamp.split(" ")[0] : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Pagination */}
+                <div className="mt-6 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Trang {currentPage} / {totalPages}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Trước
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages || filteredLogs.length === 0}
+                    >
+                      Sau
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="mt-6 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Trang {currentPage} / 125
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Truoc
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => p + 1)}
-                >
-                  Sau
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
     </AppShell>
   )
 }

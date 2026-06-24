@@ -17,13 +17,12 @@ import {
 import Link from "next/link"
 import { AdminService } from "@/services/admin.service"
 
-const mockUser = {
-  name: "Admin System",
-  email: "admin@university.edu.vn",
-  avatar: ""
-}
-
 export default function AdminDashboard() {
+  const [adminUser, setAdminUser] = useState({
+    name: "Admin",
+    email: "admin@university.edu.vn",
+    avatar: ""
+  })
   const [stats, setStats] = useState({
     total_users: 0,
     total_students: 0,
@@ -41,12 +40,14 @@ export default function AdminDashboard() {
     setLoading(true)
     setError(null)
     try {
-      const [statsData, logsData] = await Promise.all([
+      const [statsData, logsData, profile] = await Promise.all([
         AdminService.getStats(),
-        AdminService.getLogs()
+        AdminService.getLogs(),
+        AdminService.getProfile().catch(() => ({ name: "Admin", email: "admin@university.edu.vn" }))
       ])
       setStats(statsData)
       setLogs(logsData)
+      setAdminUser({ ...profile, avatar: "" })
     } catch (err: any) {
       console.error("Lỗi tải thông tin dashboard:", err)
       setError("Không thể tải thông tin thống kê từ máy chủ.")
@@ -62,7 +63,7 @@ export default function AdminDashboard() {
   return (
     <AppShell 
       role="admin" 
-      user={mockUser} 
+      user={adminUser} 
       breadcrumb="Dashboard"
       notificationCount={stats.students_without_face}
     >

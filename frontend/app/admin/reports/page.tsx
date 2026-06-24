@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,8 +12,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { StatusBadge } from "@/components/status-badge"
+import { cn } from "@/lib/utils"
 import {
   BarChart3,
   Download,
@@ -29,7 +28,8 @@ import {
   Filter,
   RefreshCw,
   Printer,
-  Mail
+  Mail,
+  Loader2
 } from "lucide-react"
 import {
   BarChart,
@@ -48,62 +48,69 @@ import {
   AreaChart,
   Area
 } from "recharts"
-
-// Mock data for reports
-const attendanceByDepartment = [
-  { department: "CNTT", present: 892, absent: 108, late: 45, rate: 89.2 },
-  { department: "QTKD", present: 756, absent: 144, late: 67, rate: 84.0 },
-  { department: "KT", present: 634, absent: 66, late: 23, rate: 90.6 },
-  { department: "NN", present: 445, absent: 55, late: 34, rate: 89.0 },
-  { department: "Luat", present: 312, absent: 38, late: 18, rate: 89.1 },
-]
-
-const weeklyTrend = [
-  { week: "T2", rate: 87.5, students: 2450 },
-  { week: "T3", rate: 89.2, students: 2510 },
-  { week: "T4", rate: 91.0, students: 2480 },
-  { week: "T5", rate: 88.7, students: 2390 },
-  { week: "T6", rate: 85.3, students: 2200 },
-  { week: "T7", rate: 78.5, students: 1890 },
-]
-
-const monthlyComparison = [
-  { month: "T1", thisYear: 88.5, lastYear: 85.2 },
-  { month: "T2", thisYear: 89.2, lastYear: 86.1 },
-  { month: "T3", thisYear: 90.1, lastYear: 87.3 },
-  { month: "T4", thisYear: 87.8, lastYear: 84.9 },
-  { month: "T5", thisYear: 91.2, lastYear: 88.0 },
-]
-
-const statusDistribution = [
-  { name: "Co mat", value: 3039, color: "#22c55e" },
-  { name: "Vang mat", value: 411, color: "#ef4444" },
-  { name: "Di tre", value: 187, color: "#f59e0b" },
-  { name: "Xin phep", value: 89, color: "#3b82f6" },
-]
-
-const topAbsentStudents = [
-  { id: "SV001", name: "Nguyen Van A", department: "CNTT", absences: 12, rate: 60.0 },
-  { id: "SV045", name: "Tran Thi B", department: "QTKD", absences: 10, rate: 66.7 },
-  { id: "SV089", name: "Le Van C", department: "KT", absences: 9, rate: 70.0 },
-  { id: "SV123", name: "Pham Thi D", department: "NN", absences: 8, rate: 73.3 },
-  { id: "SV167", name: "Hoang Van E", department: "Luat", absences: 8, rate: 73.3 },
-]
-
-const classPerformance = [
-  { class: "CNTT-K65A", students: 45, avgRate: 92.5, trend: "up" },
-  { class: "QTKD-K65B", students: 42, avgRate: 88.2, trend: "down" },
-  { class: "KT-K65A", students: 38, avgRate: 91.0, trend: "up" },
-  { class: "NN-K65C", students: 35, avgRate: 85.5, trend: "down" },
-  { class: "CNTT-K65B", students: 44, avgRate: 89.8, trend: "up" },
-]
+import { AdminService } from "@/services/admin.service"
 
 export default function AdminReportsPage() {
+  const [adminUser, setAdminUser] = useState({
+    name: "Admin",
+    email: "admin@university.edu.vn",
+    avatar: ""
+  })
+  const [summary, setSummary] = useState({
+    total_students: 0,
+    avg_attendance_rate: 0,
+    total_sessions: 0,
+    attendance_warnings: 0
+  })
+  const [attendanceByDepartment, setAttendanceByDepartment] = useState<any[]>([])
+  const [weeklyTrend, setWeeklyTrend] = useState<any[]>([])
+  const [monthlyComparison, setMonthlyComparison] = useState<any[]>([])
+  const [statusDistribution, setStatusDistribution] = useState<any[]>([])
+  const [topAbsentStudents, setTopAbsentStudents] = useState<any[]>([])
+  const [classPerformance, setClassPerformance] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [selectedPeriod, setSelectedPeriod] = useState("month")
   const [selectedDepartment, setSelectedDepartment] = useState("all")
+  const [activeTab, setActiveTab] = useState("overview")
+
+  const fetchReportStats = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await AdminService.getReportStats()
+      if (data) {
+        setSummary(data.summary || {
+          total_students: 0,
+          avg_attendance_rate: 0,
+          total_sessions: 0,
+          attendance_warnings: 0
+        })
+        setAttendanceByDepartment(data.attendanceByDepartment || [])
+        setWeeklyTrend(data.weeklyTrend || [])
+        setMonthlyComparison(data.monthlyComparison || [])
+        setStatusDistribution(data.statusDistribution || [])
+        setTopAbsentStudents(data.topAbsentStudents || [])
+        setClassPerformance(data.classPerformance || [])
+      }
+    } catch (err: any) {
+      console.error(err)
+      setError("Không thể tải thông tin báo cáo thống kê từ máy chủ.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    AdminService.getProfile()
+      .then(p => setAdminUser({ ...p, avatar: "" }))
+      .catch(err => console.error("Lỗi tải profile admin:", err))
+    fetchReportStats()
+  }, [])
 
   return (
-    <AppShell role="admin">
+    <AppShell role="admin" user={adminUser} breadcrumb="Báo cáo & Thống kê">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -114,152 +121,183 @@ export default function AdminReportsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Lam moi
+            <Button variant="outline" size="sm" onClick={fetchReportStats} disabled={loading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
             </Button>
             <Button variant="outline" size="sm">
               <Printer className="mr-2 h-4 w-4" />
-              In bao cao
+              In báo cáo
             </Button>
             <Button size="sm" className="bg-primary text-primary-foreground">
               <Download className="mr-2 h-4 w-4" />
-              Xuat Excel
+              Xuất Excel
             </Button>
           </div>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Bo loc:</span>
-              </div>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Thoi gian" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">Tuan nay</SelectItem>
-                  <SelectItem value="month">Thang nay</SelectItem>
-                  <SelectItem value="semester">Hoc ky</SelectItem>
-                  <SelectItem value="year">Nam hoc</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Khoa" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tat ca khoa</SelectItem>
-                  <SelectItem value="cntt">Cong nghe thong tin</SelectItem>
-                  <SelectItem value="qtkd">Quan tri kinh doanh</SelectItem>
-                  <SelectItem value="kt">Ke toan</SelectItem>
-                  <SelectItem value="nn">Ngoai ngu</SelectItem>
-                  <SelectItem value="luat">Luat</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                className="w-[150px]"
-                defaultValue="2024-01-01"
-              />
-              <span className="text-muted-foreground">den</span>
-              <Input
-                type="date"
-                className="w-[150px]"
-                defaultValue="2024-01-31"
-              />
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
+            <Loader2 className="w-10 h-10 text-[#0EA5E9] animate-spin mb-4" />
+            <p className="text-[#64748B] font-medium">Đang tải báo cáo thống kê...</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <Card className="border-[#EF4444] bg-[#FEF2F2]">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertTriangle className="w-12 h-12 text-[#EF4444] mb-3" />
+              <h3 className="text-lg font-semibold text-[#991B1B] mb-1">Đã xảy ra lỗi</h3>
+              <p className="text-[#DC2626] mb-4 max-w-md text-sm">{error}</p>
+              <Button onClick={fetchReportStats} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
+                Thử lại
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && !error && (
+          <>
+            {/* Filters */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Bộ lọc:</span>
+                  </div>
+                  <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Thời gian" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="week">Tuần này</SelectItem>
+                      <SelectItem value="month">Tháng này</SelectItem>
+                      <SelectItem value="semester">Học kỳ</SelectItem>
+                      <SelectItem value="year">Năm học</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Khoa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả khoa</SelectItem>
+                      <SelectItem value="cntt">Công nghệ thông tin</SelectItem>
+                      <SelectItem value="qtkd">Quản trị kinh doanh</SelectItem>
+                      <SelectItem value="kt">Kế toán</SelectItem>
+                      <SelectItem value="nn">Ngoại ngữ</SelectItem>
+                      <SelectItem value="luat">Luật</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Summary Stats */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tổng sinh viên</p>
+                      <p className="text-2xl font-bold text-foreground">{summary.total_students.toLocaleString()}</p>
+                      <p className="flex items-center gap-1 text-xs text-success">
+                        <TrendingUp className="h-3 w-3" />
+                        +2.5% so với tháng trước
+                      </p>
+                    </div>
+                    <div className="rounded-full bg-primary/10 p-3">
+                      <Users className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tỉ lệ chuyên cần TB</p>
+                      <p className="text-2xl font-bold text-foreground">{summary.avg_attendance_rate}%</p>
+                      <p className="flex items-center gap-1 text-xs text-success">
+                        <TrendingUp className="h-3 w-3" />
+                        +1.2% so với tháng trước
+                      </p>
+                    </div>
+                    <div className="rounded-full bg-success/10 p-3">
+                      <CheckCircle2 className="h-6 w-6 text-success" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tổng buổi học</p>
+                      <p className="text-2xl font-bold text-foreground">{summary.total_sessions.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Đã kết thúc
+                      </p>
+                    </div>
+                    <div className="rounded-full bg-accent/10 p-3">
+                      <Calendar className="h-6 w-6 text-accent" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Cảnh báo chuyên cần</p>
+                      <p className="text-2xl font-bold text-destructive">{summary.attendance_warnings}</p>
+                      <p className="flex items-center gap-1 text-xs text-destructive">
+                        <TrendingDown className="h-3 w-3" />
+                        Vắng từ 3 buổi trở lên
+                      </p>
+                    </div>
+                    <div className="rounded-full bg-destructive/10 p-3">
+                      <AlertTriangle className="h-6 w-6 text-destructive" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Summary Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Tong sinh vien</p>
-                  <p className="text-2xl font-bold text-foreground">3,726</p>
-                  <p className="flex items-center gap-1 text-xs text-success">
-                    <TrendingUp className="h-3 w-3" />
-                    +2.5% so voi thang truoc
-                  </p>
-                </div>
-                <div className="rounded-full bg-primary/10 p-3">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Ti le chuyen can TB</p>
-                  <p className="text-2xl font-bold text-foreground">88.7%</p>
-                  <p className="flex items-center gap-1 text-xs text-success">
-                    <TrendingUp className="h-3 w-3" />
-                    +1.2% so voi thang truoc
-                  </p>
-                </div>
-                <div className="rounded-full bg-success/10 p-3">
-                  <CheckCircle2 className="h-6 w-6 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Tong buoi hoc</p>
-                  <p className="text-2xl font-bold text-foreground">1,245</p>
-                  <p className="text-xs text-muted-foreground">
-                    Trong thang nay
-                  </p>
-                </div>
-                <div className="rounded-full bg-accent/10 p-3">
-                  <Calendar className="h-6 w-6 text-accent" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Canh bao chuyen can</p>
-                  <p className="text-2xl font-bold text-destructive">47</p>
-                  <p className="flex items-center gap-1 text-xs text-destructive">
-                    <TrendingDown className="h-3 w-3" />
-                    Duoi 70% chuyen can
-                  </p>
-                </div>
-                <div className="rounded-full bg-destructive/10 p-3">
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Charts */}
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Tong quan</TabsTrigger>
-            <TabsTrigger value="departments">Theo khoa</TabsTrigger>
-            <TabsTrigger value="trends">Xu huong</TabsTrigger>
-            <TabsTrigger value="alerts">Canh bao</TabsTrigger>
-          </TabsList>
+        <div className="flex border-b border-border space-x-6 mb-4">
+          <button 
+            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "overview" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
+            onClick={() => setActiveTab("overview")}
+          >
+            Tổng quan
+          </button>
+          <button 
+            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "departments" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
+            onClick={() => setActiveTab("departments")}
+          >
+            Theo khoa
+          </button>
+          <button 
+            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "trends" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
+            onClick={() => setActiveTab("trends")}
+          >
+            Hiệu suất & Xu hướng
+          </button>
+          <button 
+            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "alerts" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
+            onClick={() => setActiveTab("alerts")}
+          >
+            Cảnh báo
+          </button>
+        </div>
 
-          <TabsContent value="overview" className="space-y-4">
+        {activeTab === "overview" && (
+          <div className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
               {/* Attendance Distribution */}
               <Card>
@@ -284,9 +322,9 @@ export default function AdminReportsPage() {
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          formatter={(value: number) => [value.toLocaleString(), "Luot"]}
-                        />
+                         <Tooltip 
+                           formatter={(value: any) => [value?.toLocaleString() || "0", "Lượt"]}
+                         />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -307,12 +345,12 @@ export default function AdminReportsPage() {
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                         <XAxis dataKey="week" className="text-xs" />
                         <YAxis domain={[70, 100]} className="text-xs" />
-                        <Tooltip 
-                          formatter={(value: number, name: string) => [
-                            name === "rate" ? `${value}%` : value.toLocaleString(),
-                            name === "rate" ? "Ti le" : "Sinh vien"
-                          ]}
-                        />
+                         <Tooltip 
+                           formatter={(value: any, name: any) => [
+                             name === "rate" ? `${value}%` : value?.toLocaleString() || "0",
+                             name === "rate" ? "Tỉ lệ" : "Sinh viên"
+                           ]}
+                         />
                         <Area
                           type="monotone"
                           dataKey="rate"
@@ -340,7 +378,7 @@ export default function AdminReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis dataKey="month" className="text-xs" />
                       <YAxis domain={[80, 95]} className="text-xs" />
-                      <Tooltip formatter={(value: number) => [`${value}%`, ""]} />
+                       <Tooltip formatter={(value: any) => [`${value}%`, ""]} />
                       <Legend />
                       <Line
                         type="monotone"
@@ -364,9 +402,11 @@ export default function AdminReportsPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="departments" className="space-y-4">
+        {activeTab === "departments" && (
+          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Chuyen can theo khoa</CardTitle>
@@ -415,11 +455,14 @@ export default function AdminReportsPage() {
                           <td className="px-4 py-3 text-right text-warning">{dept.late}</td>
                           <td className="px-4 py-3 text-right text-destructive">{dept.absent}</td>
                           <td className="px-4 py-3 text-right">
-                            <StatusBadge 
-                              variant={dept.rate >= 90 ? "success" : dept.rate >= 80 ? "warning" : "error"}
-                            >
-                              {dept.rate}%
-                            </StatusBadge>
+                             <span className={cn(
+                               "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                               dept.rate >= 90 ? "bg-emerald-500/10 text-emerald-400" :
+                               dept.rate >= 80 ? "bg-amber-500/10 text-amber-400" :
+                               "bg-rose-500/10 text-rose-400"
+                             )}>
+                               {dept.rate}%
+                             </span>
                           </td>
                         </tr>
                       ))}
@@ -428,9 +471,11 @@ export default function AdminReportsPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="trends" className="space-y-4">
+        {activeTab === "trends" && (
+          <div className="space-y-4">
             {/* Class Performance */}
             <Card>
               <CardHeader>
@@ -473,9 +518,11 @@ export default function AdminReportsPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="alerts" className="space-y-4">
+        {activeTab === "alerts" && (
+          <div className="space-y-4">
             {/* Alert Summary */}
             <div className="grid gap-4 md:grid-cols-3">
               <Card className="border-destructive/50 bg-destructive/5">
@@ -551,9 +598,12 @@ export default function AdminReportsPage() {
                           </td>
                           <td className="px-4 py-3 text-right text-foreground">{student.rate}%</td>
                           <td className="px-4 py-3 text-center">
-                            <StatusBadge variant={student.rate < 70 ? "error" : "warning"}>
-                              {student.rate < 70 ? "Nguy co" : "Chu y"}
-                            </StatusBadge>
+                             <span className={cn(
+                               "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
+                               student.rate < 70 ? "bg-rose-500/10 text-rose-400" : "bg-amber-500/10 text-amber-400"
+                             )}>
+                               {student.rate < 70 ? "Nguy cơ" : "Chú ý"}
+                             </span>
                           </td>
                         </tr>
                       ))}
@@ -562,8 +612,10 @@ export default function AdminReportsPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
+          </>
+        )}
       </div>
     </AppShell>
   )

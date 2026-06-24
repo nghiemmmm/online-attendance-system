@@ -23,8 +23,13 @@ import {
   CheckCircle2,
   User,
   Video,
-  VideoOff
+  VideoOff,
+  Loader2,
+  AlertCircle
 } from "lucide-react"
+import { useParams } from "next/navigation"
+import { apiClient } from "@/lib/api-client"
+import { LecturerService } from "@/services/lecturer.service"
 
 type StudentStatus = "present" | "late" | "absent" | "pending"
 
@@ -38,28 +43,49 @@ interface StudentTile {
   verifiedAt?: string
 }
 
-const mockStudents: StudentTile[] = [
-  { id: "1", name: "Nguyễn Văn A", studentId: "SV001", status: "present", confidence: "high", hasCamera: true, verifiedAt: "10:32:15" },
-  { id: "2", name: "Trần Thị B", studentId: "SV002", status: "present", confidence: "high", hasCamera: true, verifiedAt: "10:31:45" },
-  { id: "3", name: "Lê Văn C", studentId: "SV003", status: "late", confidence: "medium", hasCamera: true, verifiedAt: "10:45:20" },
-  { id: "4", name: "Phạm Thị D", studentId: "SV004", status: "pending", confidence: "low", hasCamera: true },
-  { id: "5", name: "Hoàng Văn E", studentId: "SV005", status: "present", confidence: "high", hasCamera: true, verifiedAt: "10:30:05" },
-  { id: "6", name: "Đỗ Thị F", studentId: "SV006", status: "absent", confidence: "low", hasCamera: false },
-  { id: "7", name: "Vũ Văn G", studentId: "SV007", status: "present", confidence: "high", hasCamera: true, verifiedAt: "10:33:22" },
-  { id: "8", name: "Bùi Thị H", studentId: "SV008", status: "present", confidence: "medium", hasCamera: true, verifiedAt: "10:35:10" },
-  { id: "9", name: "Ngô Văn I", studentId: "SV009", status: "pending", confidence: "low", hasCamera: true },
-  { id: "10", name: "Dương Thị K", studentId: "SV010", status: "present", confidence: "high", hasCamera: true, verifiedAt: "10:29:55" },
-  { id: "11", name: "Lý Văn L", studentId: "SV011", status: "present", confidence: "high", hasCamera: true, verifiedAt: "10:34:18" },
-  { id: "12", name: "Trịnh Thị M", studentId: "SV012", status: "absent", confidence: "low", hasCamera: false },
-]
-
 export default function LecturerLiveClassroom() {
-  const [sessionActive, setSessionActive] = useState(true)
-  const [sessionTime, setSessionTime] = useState(2537) // ~42 minutes
+  const params = useParams()
+  const maBuoiHoc = parseInt(params?.id as string)
+
+  const [sessionActive, setSessionActive] = useState(false)
+  const [sessionTime, setSessionTime] = useState(0)
   const [lateMinutes, setLateMinutes] = useState(15)
   const [checkCount, setCheckCount] = useState(4)
   const [editingStudent, setEditingStudent] = useState<string | null>(null)
-  const [students, setStudents] = useState(mockStudents)
+  const [students, setStudents] = useState<StudentTile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [className, setClassName] = useState("Lớp học phần")
+  const [sessionNum, setSessionNum] = useState(1)
+
+  const loadSessionData = async () => {
+    if (!maBuoiHoc) return
+    setLoading(true)
+    setError(null)
+    try {
+      const buoiHoc = await apiClient.get<any>(`/buoi-hoc/${maBuoiHoc}`)
+      setLateMinutes(buoiHoc.so_phut_muon_toi_da || 15)
+      setSessionNum(buoiHoc.so_buoi || 1)
+      setSessionActive(buoiHoc.trang_thai === "DANG_DIEN_RA")
+      
+      if (buoiHoc.ma_lop_hoc_phan) {
+        const lop = await apiClient.get<any>(`/lop-hoc-phan/${buoiHoc.ma_lop_hoc_phan}`)
+        setClassName(lop.ten_lop_hoc_phan || lop.ten_hoc_phan || `Lớp học phần ${buoiHoc.ma_lop_hoc_phan}`)
+      }
+      
+      const attList = await LecturerService.getLiveAttendance(maBuoiHoc)
+      setStudents(attList)
+    } catch (err: any) {
+      console.error(err)
+      setError("Không thể tải thông tin phiên điểm danh.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadSessionData()
+  }, [maBuoiHoc])
 
   // Session timer
   useEffect(() => {
@@ -69,6 +95,21 @@ export default function LecturerLiveClassroom() {
     }, 1000)
     return () => clearInterval(timer)
   }, [sessionActive])
+
+  // Active polling of student recognition statuses
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (sessionActive && maBuoiHoc) {
+      interval = setInterval(() => {
+        LecturerService.getLiveAttendance(maBuoiHoc)
+          .then(data => setStudents(data))
+          .catch(err => console.error("Lỗi cập nhật danh sách điểm danh:", err))
+      }, 5000)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [sessionActive, maBuoiHoc])
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
@@ -85,11 +126,67 @@ export default function LecturerLiveClassroom() {
     total: students.length
   }
 
-  const handleStatusChange = (studentId: string, newStatus: StudentStatus) => {
-    setStudents(prev => prev.map(s => 
-      s.id === studentId ? { ...s, status: newStatus } : s
-    ))
-    setEditingStudent(null)
+  const handleStartSession = async () => {
+    if (!maBuoiHoc) return
+    try {
+      await LecturerService.moDiemDanh(maBuoiHoc)
+      setSessionActive(true)
+      setSessionTime(0)
+      const attList = await LecturerService.getLiveAttendance(maBuoiHoc)
+      setStudents(attList)
+    } catch (err) {
+      alert("Lỗi khi mở phiên điểm danh.")
+    }
+  }
+
+  const handleEndSession = async () => {
+    if (!maBuoiHoc) return
+    if (!confirm("Bạn có chắc chắn muốn kết thúc buổi học và chốt điểm danh?")) return
+    try {
+      await LecturerService.dongDiemDanh(maBuoiHoc)
+      setSessionActive(false)
+      const attList = await LecturerService.getLiveAttendance(maBuoiHoc)
+      setStudents(attList)
+    } catch (err) {
+      alert("Lỗi khi đóng phiên điểm danh.")
+    }
+  }
+
+  const handleStatusChange = async (studentId: string, newStatus: StudentStatus) => {
+    if (!maBuoiHoc) return
+    try {
+      const studentDbId = parseInt(studentId)
+      await LecturerService.updateAttendanceManual(maBuoiHoc, studentDbId, newStatus as any)
+      
+      setStudents(prev => prev.map(s => 
+        s.id === studentId ? { ...s, status: newStatus, verifiedAt: new Date().toLocaleTimeString("vi-VN") } : s
+      ))
+      setEditingStudent(null)
+    } catch (err) {
+      alert("Không thể cập nhật điểm danh.")
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0D1117] text-white flex items-center justify-center flex-col">
+        <Loader2 className="w-10 h-10 text-[#0EA5E9] animate-spin mb-4" />
+        <p className="text-gray-400 font-medium">Đang tải dữ liệu lớp học trực tuyến...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0D1117] text-white flex items-center justify-center flex-col p-6">
+        <AlertCircle className="w-16 h-16 text-[#EF4444] mb-4" />
+        <h2 className="text-xl font-bold mb-2">Đã xảy ra lỗi</h2>
+        <p className="text-gray-400 max-w-md text-center mb-6">{error}</p>
+        <Button onClick={loadSessionData} className="bg-[#0EA5E9] text-white hover:bg-[#0EA5E9]/80">
+          Thử lại
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -99,9 +196,9 @@ export default function LecturerLiveClassroom() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">CS101 - Lập trình Web</h1>
+            <h1 className="text-xl font-bold">{className}</h1>
             <span className="px-3 py-1 bg-[#22C55E]/20 text-[#22C55E] rounded-full text-sm font-medium">
-              Buổi 8
+              Buổi {sessionNum}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -274,14 +371,14 @@ export default function LecturerLiveClassroom() {
               sessionActive ? "bg-[#22C55E] animate-pulse" : "bg-[#64748B]"
             )} />
             <span className="text-sm font-medium">
-              {sessionActive ? "Đang điểm danh — Buổi 8" : "Chưa bắt đầu"}
+              {sessionActive ? `Đang điểm danh — Buổi ${sessionNum}` : "Chưa bắt đầu"}
             </span>
           </div>
 
           {!sessionActive ? (
             <Button 
               className="w-full bg-[#22C55E] hover:bg-[#22C55E]/80 text-white"
-              onClick={() => setSessionActive(true)}
+              onClick={handleStartSession}
             >
               <Play className="w-4 h-4 mr-2" />
               Bắt đầu phiên điểm danh
@@ -289,7 +386,7 @@ export default function LecturerLiveClassroom() {
           ) : (
             <Button 
               className="w-full bg-[#EF4444] hover:bg-[#EF4444]/80 text-white"
-              onClick={() => setSessionActive(false)}
+              onClick={handleEndSession}
             >
               <Square className="w-4 h-4 mr-2" />
               Kết thúc buổi học

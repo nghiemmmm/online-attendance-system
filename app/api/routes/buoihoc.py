@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select, func
 
 from app.api.deps import SessionDep, get_current_active_giangvien, get_current_active_superuser, CurrentAccount
-from app.models import BuoiHoc, BuoiHocCreate, BuoiHocUpdate, BuoiHocPublic, BuoiHocsPublic
+from app.models import BuoiHoc, BuoiHocCreate, BuoiHocUpdate, BuoiHocPublic, BuoiHocsPublic, SinhVien, DangKyHocPhan, DiemDanh, LopHocPhan
 from app.crud import buoihoc_crud, diemdanh_crud, canbo_crud
 
 
@@ -116,3 +116,70 @@ def delete_buoihoc(
         raise HTTPException(status_code=404, detail="Buổi học không tồn tại")
     buoihoc_crud.delete_buoihoc(session=session, db_item=item)
     return {"message": "Xóa buổi học thành công"}
+
+
+@router.get("/{ma_buoi_hoc}/diem-danh", dependencies=[Depends(get_current_active_giangvien)])
+def read_buoihoc_diem_danh_list(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    ma_buoi_hoc: int,
+) -> Any:
+    """Lấy danh sách sinh viên đăng ký lớp và trạng thái điểm danh trong buổi học."""
+    buoi_hoc = session.get(BuoiHoc, ma_buoi_hoc)
+    if not buoi_hoc:
+        raise HTTPException(status_code=404, detail="Buổi học không tồn tại")
+    
+    lhp = session.get(LopHocPhan, buoi_hoc.ma_lop_hoc_phan)
+    if not lhp:
+        raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
+    
+    can_bo = canbo_crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if current_account.vai_tro != "ADMIN" and (not can_bo or lhp.ma_can_bo != can_bo.ma_can_bo):
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập dữ liệu buổi học này")
+    
+    statement_sv = (
+        select(SinhVien)
+        .join(DangKyHocPhan, DangKyHocPhan.ma_sinh_vien == SinhVien.ma_sinh_vien)
+        .where(DangKyHocPhan.ma_lop_hoc_phan == buoi_hoc.ma_lop_hoc_phan)
+    )
+    sinh_viens = session.exec(statement_sv).all()
+    
+    statement_dd = select(DiemDanh).where(DiemDanh.ma_buoi_hoc == ma_buoi_hoc)
+    diem_danhs = session.exec(statement_dd).all()
+    dd_map = {dd.ma_sinh_vien: dd for dd in diem_danhs}
+    
+    result = []
+    for sv in sinh_viens:
+        dd = dd_map.get(sv.ma_sinh_vien)
+        
+        status = "pending"
+        confidence = "medium"
+        verified_at = None
+        
+        if dd:
+            if dd.trang_thai == "CO_MAT":
+                status = "present"
+            elif dd.trang_thai == "DI_MUON":
+                status = "late"
+            elif dd.trang_thai == "VANG":
+                status = "absent"
+            
+            if (dd.do_tin_cay or 0) >= 0.85:
+                confidence = "high"
+            elif (dd.do_tin_cay or 0) >= 0.70:
+                confidence = "medium"
+            else:
+                confidence = "low"
+            verified_at = dd.thoi_diem_diem_danh.strftime("%H:%M:%S") if dd.thoi_diem_diem_danh else None
+            
+        result.append({
+            "id": str(sv.ma_sinh_vien),
+            "name": f"{sv.ho} {sv.ten}".strip(),
+            "studentId": f"SV{sv.ma_sinh_vien:03d}",
+            "status": status,
+            "confidence": confidence,
+            "hasCamera": status != "absent",
+            "verifiedAt": verified_at
+        })
+        
+    return result

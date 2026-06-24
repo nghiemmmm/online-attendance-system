@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,12 +28,6 @@ import {
 
 import { AdminService } from "@/services/admin.service"
 
-const mockUser = {
-  name: "Admin System",
-  email: "admin@university.edu.vn",
-  avatar: ""
-}
-
 type FaceStatus = "approved" | "pending" | "none" | "poor"
 
 interface StudentFace {
@@ -47,18 +41,6 @@ interface StudentFace {
   imageUrl?: string
 }
 
-const initialStudentFaces: StudentFace[] = [
-  { id: "1", name: "Nguyễn Văn A", studentId: "SV001", status: "approved", quality: 94, lastUpdated: "20/05/2026", className: "CS101" },
-  { id: "2", name: "Trần Thị B", studentId: "SV002", status: "pending", quality: 88, lastUpdated: "25/05/2026", className: "CS101" },
-  { id: "3", name: "Lê Văn C", studentId: "SV003", status: "approved", quality: 91, lastUpdated: "18/05/2026", className: "CS201" },
-  { id: "4", name: "Phạm Thị D", studentId: "SV004", status: "poor", quality: 45, lastUpdated: "22/05/2026", className: "CS101" },
-  { id: "5", name: "Hoàng Văn E", studentId: "SV005", status: "pending", quality: 85, lastUpdated: "24/05/2026", className: "CS201" },
-  { id: "6", name: "Đỗ Thị F", studentId: "SV006", status: "none", className: "CS301" },
-  { id: "7", name: "Vũ Văn G", studentId: "SV007", status: "approved", quality: 97, lastUpdated: "15/05/2026", className: "CS101" },
-  { id: "8", name: "Bùi Thị H", studentId: "SV008", status: "pending", quality: 82, lastUpdated: "26/05/2026", className: "CS201" },
-  { id: "9", name: "Ngô Văn I", studentId: "SV009", status: "poor", quality: 52, lastUpdated: "21/05/2026", className: "CS301" },
-]
-
 const statusConfig: Record<FaceStatus, { label: string; bgClass: string; textClass: string }> = {
   approved: { label: "Đã duyệt", bgClass: "bg-[#DCFCE7]", textClass: "text-[#166534]" },
   pending: { label: "Chờ duyệt", bgClass: "bg-[#FEF9C3]", textClass: "text-[#92400E]" },
@@ -67,12 +49,43 @@ const statusConfig: Record<FaceStatus, { label: string; bgClass: string; textCla
 }
 
 export default function AdminFaceManagement() {
+  const [adminUser, setAdminUser] = useState({
+    name: "Admin",
+    email: "admin@university.edu.vn",
+    avatar: ""
+  })
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedStudent, setSelectedStudent] = useState<StudentFace | null>(null)
   const [adminNotes, setAdminNotes] = useState("")
-  const [students, setStudents] = useState<StudentFace[]>(initialStudentFaces)
+  const [students, setStudents] = useState<StudentFace[]>([])
   const [isUploading, setIsUploading] = useState(false)
+
+  const fetchStudents = async () => {
+    try {
+      const response = await AdminService.getUsers("student", "all", "")
+      const mapped = (response.data || []).map((user: any) => ({
+        id: user.studentId || user.id.toString(),
+        name: user.name,
+        studentId: user.studentId ? `SV${user.studentId.padStart(3, '0')}` : `SV${user.id}`,
+        status: user.faceDataStatus || "none",
+        quality: user.faceDataStatus === "approved" ? 92 : undefined,
+        lastUpdated: user.createdAt,
+        className: "CNTT",
+        imageUrl: undefined
+      }))
+      setStudents(mapped)
+    } catch (err) {
+      console.error("Lỗi tải danh sách khuôn mặt sinh viên:", err)
+    }
+  }
+
+  useEffect(() => {
+    AdminService.getProfile()
+      .then(p => setAdminUser({ ...p, avatar: "" }))
+      .catch(err => console.error("Lỗi tải profile admin:", err))
+    fetchStudents()
+  }, [])
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !selectedStudent) return
@@ -80,7 +93,7 @@ export default function AdminFaceManagement() {
     
     setIsUploading(true)
     try {
-      const studentDbId = parseInt(selectedStudent.id) // Ensure this aligns with backend DB ID
+      const studentDbId = parseInt(selectedStudent.id)
       await AdminService.registerFace(studentDbId, file)
       
       const newImageUrl = URL.createObjectURL(file)
@@ -111,7 +124,7 @@ export default function AdminFaceManagement() {
   return (
     <AppShell 
       role="admin" 
-      user={mockUser} 
+      user={adminUser} 
       breadcrumb="Quản lý dữ liệu khuôn mặt"
     >
       <div className="flex gap-6">

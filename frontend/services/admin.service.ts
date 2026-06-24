@@ -133,5 +133,28 @@ export const AdminService = {
       console.error("Lỗi khi xóa người dùng:", error);
       throw error;
     }
+  },
+
+  getProfile: async (): Promise<{ name: string; email: string }> => {
+    try {
+      const data = await apiClient.get<any>("/users/me/profile");
+      return {
+        name: data.tai_khoan?.ten_dang_nhap?.split("@")[0] || "Quản trị viên",
+        email: data.tai_khoan?.ten_dang_nhap || "admin@university.edu.vn",
+      };
+    } catch (error) {
+      console.error("Lỗi tải thông tin cá nhân admin:", error);
+      throw error;
+    }
+  },
+
+  getReportStats: async (): Promise<any> => {
+    try {
+      const data = await apiClient.get<any>("/he-thong/reports");
+      return data;
+    } catch (error) {
+      console.error("Lỗi tải thông số báo cáo hệ thống:", error);
+      throw error;
+    }
   }
 };

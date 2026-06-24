@@ -362,3 +362,81 @@ def delete_can_bo(
         ) from exc
 
     return Message(message="Staff profile deleted successfully")
+
+
+@router.get(
+    "/me/reports",
+    dependencies=[Depends(get_current_active_giangvien)],
+)
+def read_my_reports(
+    session: SessionDep,
+    current_account: CurrentAccount,
+) -> Any:
+    """Lấy danh sách báo cáo chuyên cần các lớp học giảng viên đang dạy."""
+    from app.models import LopHocPhan, HocPhan, BuoiHoc, DiemDanh, DangKyHocPhan
+    from sqlmodel import select, func
+    
+    can_bo = crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not can_bo:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ cán bộ")
+        
+    statement = select(LopHocPhan, HocPhan).join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan).where(LopHocPhan.ma_can_bo == can_bo.ma_can_bo)
+    results = session.exec(statement).all()
+    
+    reports = []
+    for lhp, hp in results:
+        # Tổng số sinh viên đăng ký
+        stud_count = session.exec(
+            select(func.count(DangKyHocPhan.ma_sinh_vien))
+            .where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
+        ).first() or 0
+        
+        # Số buổi học tổng cộng và số buổi học đã kết thúc
+        total_sessions = session.exec(
+            select(func.count(BuoiHoc.ma_buoi_hoc))
+            .where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
+        ).first() or 0
+        
+        completed_sessions = session.exec(
+            select(BuoiHoc)
+            .where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan, BuoiHoc.trang_thai == "DA_KET_THUC")
+            .order_by(BuoiHoc.so_buoi)
+        ).all()
+        
+        # Thống kê điểm danh
+        statement_dd = select(DiemDanh).join(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
+        diem_danhs = session.exec(statement_dd).all()
+        
+        present_cnt = len([dd for dd in diem_danhs if dd.trang_thai == "CO_MAT"])
+        late_cnt = len([dd for dd in diem_danhs if dd.trang_thai in ["DI_MUON", "MUON"]])
+        total_dd_cnt = len(diem_danhs)
+        
+        avg_rate = round(((present_cnt + late_cnt) / total_dd_cnt * 100), 1) if total_dd_cnt > 0 else 0.0
+        
+        # Biểu đồ theo từng buổi học đã kết thúc
+        data_points = []
+        for bh in completed_sessions:
+            dd_buoi = [dd for dd in diem_danhs if dd.ma_buoi_hoc == bh.ma_buoi_hoc]
+            bh_present = len([dd for dd in dd_buoi if dd.trang_thai == "CO_MAT"])
+            bh_late = len([dd for dd in dd_buoi if dd.trang_thai in ["DI_MUON", "MUON"]])
+            bh_absent = len([dd for dd in dd_buoi if dd.trang_thai == "VANG"])
+            
+            data_points.append({
+                "date": bh.ngay_hoc.strftime("%d/%m") + f" (Buổi {bh.so_buoi or 1})",
+                "present": bh_present,
+                "late": bh_late,
+                "absent": bh_absent
+            })
+            
+        reports.append({
+            "id": str(lhp.ma_lop_hoc_phan),
+            "subjectCode": f"HP{lhp.ma_hoc_phan}",
+            "subjectName": hp.ten_hoc_phan,
+            "totalStudents": stud_count,
+            "completedSessions": len(completed_sessions),
+            "totalSessions": total_sessions,
+            "averageAttendanceRate": avg_rate,
+            "dataPoints": data_points
+        })
+        
+    return reports

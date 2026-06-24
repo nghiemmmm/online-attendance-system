@@ -9,13 +9,12 @@ import { LecturerService } from "@/services/lecturer.service"
 import { Loader2, AlertCircle, BarChart3, Download, Users, CheckCircle } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-const mockUser = {
-  name: "Nguyễn Văn B",
-  email: "b.nguyen@lecturer.edu.vn",
-  avatar: ""
-}
-
 export default function LecturerReportsPage() {
+  const [lecturerUser, setLecturerUser] = useState({
+    name: "Giảng viên",
+    email: "gv@university.edu.vn",
+    avatar: ""
+  })
   const [reports, setReports] = useState<AttendanceReport[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +37,15 @@ export default function LecturerReportsPage() {
   }
 
   useEffect(() => {
+    LecturerService.getProfile()
+      .then(profile => {
+        setLecturerUser({
+          name: profile.name,
+          email: profile.email,
+          avatar: ""
+        })
+      })
+      .catch(err => console.error("Lỗi tải thông tin giảng viên:", err))
     fetchReports()
   }, [])
 
@@ -46,7 +54,7 @@ export default function LecturerReportsPage() {
   return (
     <AppShell
       role="lecturer"
-      user={mockUser}
+      user={lecturerUser}
       breadcrumb="Thống kê & Báo cáo"
     >
       <div className="space-y-6">

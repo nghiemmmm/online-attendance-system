@@ -11,13 +11,12 @@ import { StudentClaim } from "@/types/student"
 import { StudentService } from "@/services/student.service"
 import { Loader2, AlertCircle, MessageSquareWarning, Plus, Clock, CheckCircle, XCircle } from "lucide-react"
 
-const mockUser = {
-  name: "Nguyễn Tuấn A",
-  email: "tuan.a@student.edu.vn",
-  avatar: ""
-}
-
 export default function StudentClaimsPage() {
+  const [studentUser, setStudentUser] = useState({
+    name: "Sinh viên",
+    email: "sv@student.edu.vn",
+    avatar: ""
+  })
   const [claims, setClaims] = useState<StudentClaim[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +44,15 @@ export default function StudentClaimsPage() {
   }
 
   useEffect(() => {
+    StudentService.getProfile()
+      .then(profile => {
+        setStudentUser({
+          name: profile.name,
+          email: profile.email,
+          avatar: ""
+        })
+      })
+      .catch(err => console.error("Lỗi tải thông tin sinh viên:", err))
     fetchClaims()
   }, [])
 
@@ -88,7 +96,7 @@ export default function StudentClaimsPage() {
   return (
     <AppShell
       role="student"
-      user={mockUser}
+      user={studentUser}
       breadcrumb="Khiếu nại điểm danh"
     >
       <div className="space-y-6">
