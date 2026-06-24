@@ -52,8 +52,10 @@ export const apiClient = {
       if (response.status === 401) {
         if (typeof window !== "undefined") {
           localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("user");
           // Redirect to login page
-          window.location.href = "/login";
+          window.location.replace("/");
         }
       }
       

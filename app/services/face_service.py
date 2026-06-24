@@ -45,11 +45,40 @@ class FaceRecognitionService:
             self.index = faiss.read_index(INDEX_PATH)
             with open(META_PATH, 'rb') as f:
                 self.names = pickle.load(f)
+            print(f"Loaded FAISS index from local cache: {self.index.ntotal} faces")
         else:
-            # Tạo index mới nếu chưa có
+            # Create a new flat L2 index for 512-dim vectors
             self.index = faiss.IndexFlatL2(512)
             self.names = []
-            self._save_faiss_index()
+            
+            # Sync index from PostgreSQL database at startup
+            try:
+                from app.core.db import engine
+                from sqlmodel import Session, select
+                from app.models import AnhKhuonMat
+                
+                with Session(engine) as session:
+                    statement = select(AnhKhuonMat).where(AnhKhuonMat.embedding_vector != None)
+                    records = session.exec(statement).all()
+                    if records:
+                        vectors = []
+                        names = []
+                        for r in records:
+                            if r.embedding_vector and len(r.embedding_vector) == 512:
+                                vectors.append(r.embedding_vector)
+                                names.append(r.ma_sinh_vien)
+                        
+                        if vectors:
+                            v_array = np.array(vectors, dtype='float32')
+                            self.index.add(v_array)
+                            self.names = names
+                            self._save_faiss_index()
+                            print(f"Successfully synchronized FAISS index from PostgreSQL database: {self.index.ntotal} faces")
+                    else:
+                        self._save_faiss_index()
+            except Exception as e:
+                print(f"Error synchronizing face embeddings from database: {e}")
+                self._save_faiss_index()
 
     def _save_faiss_index(self):
         faiss.write_index(self.index, INDEX_PATH)

@@ -22,8 +22,9 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 setup_logging()
 
-# Create uploads directory if it doesn't exist
+# Create uploads and dataset directory if it doesn't exist
 os.makedirs("uploads/faces", exist_ok=True)
+os.makedirs("dataset", exist_ok=True)
 os.makedirs("vector_db/embeddings_db", exist_ok=True)
 
 
@@ -57,6 +58,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/dataset", StaticFiles(directory="dataset"), name="dataset")
 exception_handler.init_app(app)
 
 

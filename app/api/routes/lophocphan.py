@@ -92,6 +92,83 @@ def read_lophocphan_thongke(
     return thong_ke
 
 
+@router.get("/{ma_lop_hoc_phan}/canh-bao", dependencies=[Depends(get_current_active_giangvien)])
+def read_lophocphan_canh_bao(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    ma_lop_hoc_phan: int,
+    absence_limit: float = 20.0,
+) -> Any:
+    """Lay danh sach sinh vien vang nhieu hoac co nguy co cam thi trong mot lop."""
+    item = lophocphan_crud.get_lophocphan(
+        session=session,
+        ma_lop_hoc_phan=ma_lop_hoc_phan,
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Lop hoc phan khong ton tai")
+
+    can_bo = canbo_crud.get_can_bo_by_account_id(
+        session=session,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
+    if current_account.vai_tro != "ADMIN" and (
+        not can_bo or item.ma_can_bo != can_bo.ma_can_bo
+    ):
+        raise HTTPException(status_code=403, detail="Not authorized to view warnings of this class")
+
+    total_sessions = session.exec(
+        select(func.count(BuoiHoc.ma_buoi_hoc)).where(
+            BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan,
+            BuoiHoc.trang_thai == "DA_KET_THUC",
+        )
+    ).first() or 0
+
+    statement = (
+        select(SinhVien)
+        .join(DangKyHocPhan, DangKyHocPhan.ma_sinh_vien == SinhVien.ma_sinh_vien)
+        .where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
+        .order_by(SinhVien.ma_sinh_vien)
+    )
+    sinh_viens = session.exec(statement).all()
+
+    data = []
+    for sinh_vien in sinh_viens:
+        absent_count = session.exec(
+            select(func.count(DiemDanh.ma_diem_danh))
+            .join(BuoiHoc, BuoiHoc.ma_buoi_hoc == DiemDanh.ma_buoi_hoc)
+            .where(
+                BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan,
+                DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien,
+                DiemDanh.trang_thai.in_(["VANG", "VANG_MAT"]),
+            )
+        ).first() or 0
+        absence_rate = (
+            round(absent_count / total_sessions * 100, 2)
+            if total_sessions
+            else 0.0
+        )
+        if absence_rate >= absence_limit:
+            warning_status = "VUOT_NGUONG"
+        elif absence_rate >= max(absence_limit - 5, 0):
+            warning_status = "CANH_BAO"
+        else:
+            warning_status = "AN_TOAN"
+
+        if warning_status != "AN_TOAN":
+            data.append(
+                {
+                    "ma_sinh_vien": sinh_vien.ma_sinh_vien,
+                    "ho_ten": f"{sinh_vien.ho} {sinh_vien.ten}".strip(),
+                    "so_buoi_vang": absent_count,
+                    "tong_so_buoi": total_sessions,
+                    "ty_le_vang": absence_rate,
+                    "trang_thai_canh_bao": warning_status,
+                }
+            )
+
+    return {"data": data, "count": len(data)}
+
+
 @router.post("/", response_model=LopHocPhanPublic, dependencies=[Depends(get_current_active_superuser)])
 def create_lophocphan(
     session: SessionDep,

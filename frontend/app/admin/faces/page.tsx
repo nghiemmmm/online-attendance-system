@@ -60,6 +60,7 @@ export default function AdminFaceManagement() {
   const [adminNotes, setAdminNotes] = useState("")
   const [students, setStudents] = useState<StudentFace[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const fetchStudents = async () => {
     try {
@@ -87,10 +88,8 @@ export default function AdminFaceManagement() {
     fetchStudents()
   }, [])
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0 || !selectedStudent) return
-    const file = e.target.files[0]
-    
+  const uploadFile = async (file: File) => {
+    if (!selectedStudent) return
     setIsUploading(true)
     try {
       const studentDbId = parseInt(selectedStudent.id)
@@ -111,6 +110,34 @@ export default function AdminFaceManagement() {
       alert("Có lỗi xảy ra: " + (err.response?.data?.detail || err.message))
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    uploadFile(e.target.files[0])
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    if (!isUploading) setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (isUploading || !selectedStudent) return
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0]
+      if (file.type.startsWith("image/")) {
+        uploadFile(file)
+      } else {
+        alert("Vui lòng tải lên file ảnh (JPEG/PNG).")
+      }
     }
   }
 
@@ -368,10 +395,16 @@ export default function AdminFaceManagement() {
               {/* Upload Zone */}
               <div>
                 <p className="text-sm font-medium text-[#0F172A] mb-2">Cập nhật ảnh mới</p>
-                <label className={cn(
-                  "flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-[#F8FAFC] transition-colors",
-                  isUploading && "opacity-50 cursor-not-allowed"
-                )}>
+                <label 
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={cn(
+                    "flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                    isDragging ? "border-[#0EA5E9] bg-[#F0F9FF]" : "border-[#E2E8F0] hover:bg-[#F8FAFC]",
+                    isUploading && "opacity-50 cursor-not-allowed"
+                  )}
+                >
                   <Upload className="w-6 h-6 text-[#64748B] mb-1" />
                   <span className="text-xs text-[#64748B]">
                     {isUploading ? "Đang xử lý..." : "Kéo thả ảnh chân dung rõ mặt"}

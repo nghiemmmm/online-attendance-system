@@ -112,8 +112,9 @@ def read_can_bo(
 
 
 from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_giangvien, CurrentAccount
-from sqlmodel import select
-from app.models import LopHocPhan, HocPhan
+from sqlmodel import select, func
+from app.models import LopHocPhan, HocPhan, DangKyHocPhan
+
 
 @router.get(
     "/me/lich-day",

@@ -97,9 +97,12 @@ export const StudentService = {
     }
   },
 
-  verifyFace: async (file: Blob): Promise<{ verified: boolean, confidence: number, message: string }> => {
+  verifyFace: async (file: Blob, maBuoiHoc?: number): Promise<{ verified: boolean, confidence: number, message: string }> => {
     const formData = new FormData();
     formData.append("file", file, "frame.jpg");
+    if (maBuoiHoc !== undefined && maBuoiHoc !== null) {
+      formData.append("ma_buoi_hoc", maBuoiHoc.toString());
+    }
     
     try {
       const response = await apiClient.post<any>("/anh-khuon-mat/xac-minh-truc-tiep", formData, {

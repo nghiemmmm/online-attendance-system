@@ -30,6 +30,7 @@ import {
 import { useParams } from "next/navigation"
 import { apiClient } from "@/lib/api-client"
 import { LecturerService } from "@/services/lecturer.service"
+import { WebRTCStream } from "@/components/webrtc-stream"
 
 type StudentStatus = "present" | "late" | "absent" | "pending"
 
@@ -295,6 +296,16 @@ export default function LecturerLiveClassroom() {
 
       {/* Right Sidebar - Command Center */}
       <div className="w-[32%] bg-[#161B22] border-l border-[#2D3748] flex flex-col overflow-hidden">
+        {/* Camera Nhận Diện Lớp Học WebRTC */}
+        {sessionActive && (
+          <div className="p-4 border-b border-[#2D3748] shrink-0">
+            <h3 className="text-sm font-medium text-[#94A3B8] mb-3">Camera nhận diện lớp học (AI)</h3>
+            <div className="h-[200px]">
+              <WebRTCStream maBuoiHoc={maBuoiHoc} />
+            </div>
+          </div>
+        )}
+
         {/* Attendance Summary */}
         <div className="p-4 border-b border-[#2D3748]">
           <h3 className="text-sm font-medium text-[#94A3B8] mb-4">Thống kê điểm danh</h3>

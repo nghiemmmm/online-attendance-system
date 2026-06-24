@@ -169,5 +169,85 @@ export const LecturerService = {
       console.error("Lỗi cập nhật điểm danh thủ công:", error);
       throw error;
     }
+  },
+
+  getClassSessions: async (maLopHocPhan: number): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>(`/buoi-hoc/lop-hoc-phan/${maLopHocPhan}`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Lỗi tải danh sách buổi học:", error);
+      throw error;
+    }
+  },
+
+  createSession: async (payload: any): Promise<any> => {
+    try {
+      return await apiClient.post<any>("/buoi-hoc/", payload);
+    } catch (error) {
+      console.error("Lỗi tạo buổi học:", error);
+      throw error;
+    }
+  },
+
+  updateSession: async (maBuoiHoc: number, payload: any): Promise<any> => {
+    try {
+      return await apiClient.patch<any>(`/buoi-hoc/${maBuoiHoc}`, payload);
+    } catch (error) {
+      console.error("Lỗi cập nhật buổi học:", error);
+      throw error;
+    }
+  },
+
+  cancelSession: async (maBuoiHoc: number): Promise<any> => {
+    try {
+      return await apiClient.delete<any>(`/buoi-hoc/${maBuoiHoc}/giang-vien`);
+    } catch (error) {
+      console.error("Lỗi hủy buổi học:", error);
+      throw error;
+    }
+  },
+
+  getClassWarnings: async (maLopHocPhan: number): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>(`/lop-hoc-phan/${maLopHocPhan}/canh-bao`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Lỗi tải cảnh báo chuyên cần:", error);
+      return [];
+    }
+  },
+
+  getClassStudents: async (maLopHocPhan: number): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>(`/lop-hoc-phan/${maLopHocPhan}/sinh-vien`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Lỗi tải danh sách sinh viên lớp học phần:", error);
+      return [];
+    }
+  },
+
+
+  downloadAttendanceReport: async (maLopHocPhan: number, format: "excel" | "csv" = "excel"): Promise<void> => {
+    const endpoint = format === "csv"
+      ? `/bao-cao/lop-hoc-phan/${maLopHocPhan}/export-csv`
+      : `/bao-cao/lop-hoc-phan/${maLopHocPhan}/export-excel`;
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api"}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error("Không thể xuất báo cáo điểm danh");
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `DiemDanh_${maLopHocPhan}.${format === "csv" ? "csv" : "xlsx"}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
 };

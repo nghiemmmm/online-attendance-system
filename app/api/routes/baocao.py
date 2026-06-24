@@ -41,7 +41,7 @@ def export_excel_diem_danh(
     for sv in danh_sach_sv:
         row = {
             "Mã sinh viên": sv.ma_sinh_vien,
-            "Họ tên": sv.ho_ten,
+            "Họ tên": f"{sv.ho} {sv.ten}".strip(),
         }
         
         # Lấy điểm danh cho từng buổi
@@ -71,3 +71,61 @@ def export_excel_diem_danh(
     }
 
     return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+@router.get("/lop-hoc-phan/{ma_lop_hoc_phan}/export-csv", dependencies=[Depends(get_current_active_giangvien)])
+def export_csv_diem_danh(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    ma_lop_hoc_phan: int,
+) -> Any:
+    """Giang vien xuat file CSV diem danh cua lop hoc phan."""
+    lhp = session.get(LopHocPhan, ma_lop_hoc_phan)
+    if not lhp:
+        raise HTTPException(status_code=404, detail="Lop hoc phan khong ton tai")
+
+    can_bo = canbo_crud.get_can_bo_by_account_id(
+        session=session,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
+    if current_account.vai_tro != "ADMIN" and (
+        not can_bo or lhp.ma_can_bo != can_bo.ma_can_bo
+    ):
+        raise HTTPException(status_code=403, detail="Khong co quyen truy cap du lieu lop nay")
+
+    statement_sv = (
+        select(SinhVien)
+        .join(DangKyHocPhan)
+        .where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
+    )
+    danh_sach_sv = session.exec(statement_sv).all()
+
+    statement_bh = (
+        select(BuoiHoc)
+        .where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan)
+        .order_by(BuoiHoc.ngay_hoc, BuoiHoc.gio_bat_dau)
+    )
+    danh_sach_bh = session.exec(statement_bh).all()
+
+    data = []
+    for sv in danh_sach_sv:
+        row = {
+            "Ma sinh vien": sv.ma_sinh_vien,
+            "Ho ten": f"{sv.ho} {sv.ten}".strip(),
+        }
+        for bh in danh_sach_bh:
+            ngay_str = bh.ngay_hoc.strftime("%d/%m/%Y")
+            statement_dd = select(DiemDanh).where(
+                DiemDanh.ma_buoi_hoc == bh.ma_buoi_hoc,
+                DiemDanh.ma_sinh_vien == sv.ma_sinh_vien,
+            )
+            dd = session.exec(statement_dd).first()
+            row[ngay_str] = dd.trang_thai if dd else "CHUA_DIEM_DANH"
+        data.append(row)
+
+    output = io.StringIO()
+    pd.DataFrame(data).to_csv(output, index=False)
+    csv_bytes = io.BytesIO(output.getvalue().encode("utf-8-sig"))
+    filename = f"DiemDanh_{ma_lop_hoc_phan}.csv"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return StreamingResponse(csv_bytes, headers=headers, media_type="text/csv")

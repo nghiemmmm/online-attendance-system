@@ -20,6 +20,10 @@ from app.models import (
     TaiKhoanRegister,
     TaiKhoanUpdate,
     UpdatePassword,
+    SinhVien,
+    CanBo,
+    AnhKhuonMat,
+    Nganh,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -154,77 +158,6 @@ def update_password_me(
     return Message(message="Password updated successfully")
 
 
-@router.get("/{account_id}", response_model=TaiKhoanPublic)
-def read_account_by_id(
-    account_id: int, session: SessionDep, current_account: CurrentAccount
-) -> Any:
-    account = session.get(TaiKhoan, account_id)
-    if account == current_account:
-        return account
-    if current_account.vai_tro != "ADMIN":
-        raise HTTPException(
-            status_code=403,
-            detail="The account doesn't have enough privileges",
-        )
-    if account is None:
-        raise HTTPException(status_code=404, detail="Account not found")
-    return account
-
-
-@router.patch(
-    "/{account_id}",
-    dependencies=[Depends(get_current_active_superuser)],
-    response_model=TaiKhoanPublic,
-)
-def update_account(
-    *,
-    session: SessionDep,
-    account_id: int,
-    account_in: TaiKhoanUpdate,
-) -> Any:
-    db_account = session.get(TaiKhoan, account_id)
-    if not db_account:
-        raise HTTPException(status_code=404, detail="Account not found")
-    if account_in.ten_dang_nhap:
-        existing_account = crud.get_account_by_username(
-            session=session, ten_dang_nhap=account_in.ten_dang_nhap
-        )
-        if existing_account and existing_account.ma_tai_khoan != account_id:
-            raise HTTPException(status_code=409, detail="Username already exists")
-
-    return crud.update_account(
-        session=session, db_account=db_account, account_in=account_in
-    )
-
-
-@router.delete("/{account_id}", dependencies=[Depends(get_current_active_superuser)])
-def delete_account(
-    session: SessionDep, current_account: CurrentAccount, account_id: int
-) -> Message:
-    account = session.get(TaiKhoan, account_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
-    if account == current_account:
-        raise HTTPException(
-            status_code=403, detail="Admin accounts cannot delete themselves"
-        )
-    session.delete(account)
-    session.commit()
-    return Message(message="Account deleted successfully")
-
-
-from pydantic import BaseModel
-from app.models import SinhVien, CanBo, AnhKhuonMat, Nganh
-
-class UserWithProfileCreate(BaseModel):
-    ten_dang_nhap: str
-    password: str
-    vai_tro: str  # student, lecturer, admin
-    ho: str
-    ten: str
-    dien_thoai: str | None = None
-    gioi_tinh: str | None = None
-
 @router.get(
     "/profiles",
     dependencies=[Depends(get_current_active_superuser)],
@@ -312,6 +245,80 @@ def read_user_profiles(
         
     paginated_data = data[skip : skip + limit]
     return {"data": paginated_data, "count": len(data)}
+
+
+@router.get("/{account_id}", response_model=TaiKhoanPublic)
+def read_account_by_id(
+    account_id: int, session: SessionDep, current_account: CurrentAccount
+) -> Any:
+    account = session.get(TaiKhoan, account_id)
+    if account == current_account:
+        return account
+    if current_account.vai_tro != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="The account doesn't have enough privileges",
+        )
+    if account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return account
+
+
+@router.patch(
+    "/{account_id}",
+    dependencies=[Depends(get_current_active_superuser)],
+    response_model=TaiKhoanPublic,
+)
+def update_account(
+    *,
+    session: SessionDep,
+    account_id: int,
+    account_in: TaiKhoanUpdate,
+) -> Any:
+    db_account = session.get(TaiKhoan, account_id)
+    if not db_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if account_in.ten_dang_nhap:
+        existing_account = crud.get_account_by_username(
+            session=session, ten_dang_nhap=account_in.ten_dang_nhap
+        )
+        if existing_account and existing_account.ma_tai_khoan != account_id:
+            raise HTTPException(status_code=409, detail="Username already exists")
+
+    return crud.update_account(
+        session=session, db_account=db_account, account_in=account_in
+    )
+
+
+@router.delete("/{account_id}", dependencies=[Depends(get_current_active_superuser)])
+def delete_account(
+    session: SessionDep, current_account: CurrentAccount, account_id: int
+) -> Message:
+    account = session.get(TaiKhoan, account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if account == current_account:
+        raise HTTPException(
+            status_code=403, detail="Admin accounts cannot delete themselves"
+        )
+    session.delete(account)
+    session.commit()
+    return Message(message="Account deleted successfully")
+
+
+from pydantic import BaseModel
+
+
+class UserWithProfileCreate(BaseModel):
+    ten_dang_nhap: str
+    password: str
+    vai_tro: str  # student, lecturer, admin
+    ho: str
+    ten: str
+    dien_thoai: str | None = None
+    gioi_tinh: str | None = None
+
+
 
 
 @router.post(

@@ -36,3 +36,40 @@ password
 gv001@university.edu.vn
 
 admin@university.edu.vn
+
+
+1. Tài khoản QUẢN TRỊ VIÊN (Admin)
+Tài khoản có quyền cao nhất để quản lý các lớp học, người dùng và xem thống kê toàn hệ thống.
+
+Tên đăng nhập (Email): admin@university.edu.vn (hoặc admin@example.com)
+Mật khẩu: admin123456 (hoặc password)
+2. Tài khoản GIẢNG VIÊN (Lecturer)
+Giảng viên phụ trách giảng dạy và mở phiên điểm danh cho lớp LHP 101.
+
+Họ và tên: Nguyễn Văn An
+Tên đăng nhập (Email): gv001@university.edu.vn
+Mật khẩu: password
+Môn phụ trách: Quản lý lớp LHP 101
+3. Tài khoản SINH VIÊN (Student)
+Sinh viên đã được đăng ký học phần lớp LHP 101 do giảng viên trên phụ trách.
+
+Họ và tên: Lê Minh Khang
+Tên đăng nhập (Email): sv001@student.edu.vn
+Mật khẩu: password
+Lớp tham gia: Được xếp lịch học và tham gia điểm danh lớp LHP 101
+Kịch bản thao tác gợi ý:
+Đăng nhập bằng Giảng viên (gv001@university.edu.vn / password):
+Vào màn hình Live Classroom (Buổi học trực tiếp) cho lớp 101.
+Bấm "Bắt đầu phiên điểm danh".
+Bật "Nguồn camera: Mô phỏng AI (Chọn ảnh)", tải lên ảnh khuôn mặt để giả lập luồng truyền WebRTC AI.
+Đăng nhập bằng Sinh viên (sv001@student.edu.vn / password):
+Truy cập trang chủ Dashboard sẽ ngay lập tức thấy thông báo lớp học của GV Nguyễn Văn An đang mở điểm danh trực tuyến.
+Bấm "Vào điểm danh: {Tên học phần}" để vào trang quét khuôn mặt tự xác minh.
+Run verify_admin_pw.py finished
+Tôi xin đính chính thông tin mật khẩu sau khi hệ thống đã xác thực thành công dữ liệu băm (hash) trong database:
+
+Mật khẩu của cả 3 tài khoản (Admin, Giảng viên, Sinh viên) đều là password:
+
+Quản trị viên: admin@university.edu.vn (Mật khẩu: password)
+Giảng viên: gv001@university.edu.vn (Mật khẩu: password)
+Sinh viên: sv001@student.edu.vn (Mật khẩu: password)

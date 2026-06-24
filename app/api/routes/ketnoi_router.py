@@ -1,16 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 import uuid
 import logging
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaRelay
-from fastapi.templating import Jinja2Templates
 from app.webrtc.webrtc import VideoTransformTrack
 
 
-templates = Jinja2Templates(directory="app/templates")
 # Global state
 pcs = set()
 dcs = set()
@@ -22,13 +20,7 @@ router = APIRouter(
     tags=["webrtc"]
 )
 
-@router.get("/offer", include_in_schema=False)
-async def offer(
-    request: Request,
-) -> HTMLResponse:
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@router.post("/offer", include_in_schema=False)
+@router.post("/offer")
 async def offer(request: Request):
     pc: Optional[RTCPeerConnection] = None
     try:

@@ -129,6 +129,7 @@ def get_my_lich_hoc(session: SessionDep, current_account: CurrentAccount) -> Any
     lich_hoc = []
     for lhp, bh, hp in results:
         lich_hoc.append({
+            "ma_buoi_hoc": bh.ma_buoi_hoc,
             "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
             "ma_hoc_phan": lhp.ma_hoc_phan,
             "ten_hoc_phan": hp.ten_hoc_phan,
@@ -316,7 +317,12 @@ def delete_sinh_vien(
     "/me/lop-hoc-phan-available",
     dependencies=[Depends(get_current_active_sinhvien)],
 )
-def get_available_lop_hoc_phan(session: SessionDep, current_account: CurrentAccount) -> Any:
+def get_available_lop_hoc_phan(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    hoc_ky: int = 1,
+    nam_hoc: str = "2025-2026",
+) -> Any:
     """Lấy danh sách lớp học phần có sẵn và đánh dấu xem sinh viên hiện tại đã đăng ký chưa."""
     sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
     if not sinh_vien:
@@ -329,6 +335,11 @@ def get_available_lop_hoc_phan(session: SessionDep, current_account: CurrentAcco
         select(LopHocPhan, HocPhan, CanBo)
         .join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan)
         .join(CanBo, CanBo.ma_can_bo == LopHocPhan.ma_can_bo)
+        .where(
+            LopHocPhan.trang_thai == True,
+            LopHocPhan.hoc_ky == hoc_ky,
+            LopHocPhan.nam_hoc == nam_hoc,
+        )
     )
     results = session.exec(statement).all()
     

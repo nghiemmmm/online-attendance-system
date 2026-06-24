@@ -8,47 +8,48 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CourseClass } from "@/types/class"
-import { AdminService } from "@/services/admin.service"
-import { Loader2, AlertCircle, Plus, Search, Edit, Trash2, Users, BookOpen } from "lucide-react"
+import { AdminClassPayload, AdminService, CanBoOption, HocPhanOption } from "@/services/admin.service"
+import { AlertCircle, BookOpen, Edit, Loader2, Plus, Search, Trash2, Users } from "lucide-react"
+
+type AdminClass = Awaited<ReturnType<typeof AdminService.getClasses>>[number]
+
+const defaultForm = {
+  ma_hoc_phan: "",
+  ma_can_bo: "",
+  hoc_ky: "1",
+  nam_hoc: "2025-2026",
+  ty_le_chuyen_can_toi_thieu: "0.8",
+  trang_thai: "true",
+}
 
 export default function AdminClassesPage() {
-  const [adminUser, setAdminUser] = useState({
-    name: "Admin",
-    email: "admin@university.edu.vn",
-    avatar: ""
-  })
-  const [classes, setClasses] = useState<CourseClass[]>([])
+  const [adminUser, setAdminUser] = useState({ name: "Admin", email: "admin@university.edu.vn", avatar: "" })
+  const [classes, setClasses] = useState<AdminClass[]>([])
+  const [subjects, setSubjects] = useState<HocPhanOption[]>([])
+  const [lecturers, setLecturers] = useState<CanBoOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Search
   const [searchQuery, setSearchQuery] = useState("")
-
-  // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  
-  // Form State
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [formData, setFormData] = useState({
-    maLop: '',
-    tenHocPhan: '',
-    giangVien: '',
-    hocKy: '',
-    siSo: 50,
-    trangThai: 'Đang học' as CourseClass['trangThai']
-  })
+  const [formData, setFormData] = useState(defaultForm)
 
-  const fetchClasses = async () => {
+  const fetchData = async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await AdminService.getClasses()
-      setClasses(data)
+      const [classData, subjectData, lecturerData] = await Promise.all([
+        AdminService.getClasses(),
+        AdminService.getSubjects(),
+        AdminService.getLecturers(),
+      ])
+      setClasses(classData)
+      setSubjects(subjectData)
+      setLecturers(lecturerData)
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi khi tải danh sách lớp học.")
+      setError(err.message || "Khong the tai du lieu lop hoc phan.")
     } finally {
       setLoading(false)
     }
@@ -56,59 +57,58 @@ export default function AdminClassesPage() {
 
   useEffect(() => {
     AdminService.getProfile()
-      .then(p => setAdminUser({ ...p, avatar: "" }))
-      .catch(err => console.error("Lỗi tải profile admin:", err))
-  }, [])
-
-  useEffect(() => {
-    fetchClasses()
+      .then((profile) => setAdminUser({ ...profile, avatar: "" }))
+      .catch((err) => console.error("Loi tai profile admin:", err))
+    fetchData()
   }, [])
 
   const openCreateDialog = () => {
     setEditingId(null)
     setFormData({
-      maLop: '',
-      tenHocPhan: '',
-      giangVien: '',
-      hocKy: 'HK1-2026',
-      siSo: 50,
-      trangThai: 'Sắp mở'
+      ...defaultForm,
+      ma_hoc_phan: subjects[0]?.ma_hoc_phan?.toString() || "",
+      ma_can_bo: lecturers[0]?.ma_can_bo?.toString() || "",
     })
     setIsDialogOpen(true)
   }
 
-  const openEditDialog = (c: CourseClass) => {
-    setEditingId(c.id)
+  const openEditDialog = (item: AdminClass) => {
+    setEditingId(item.id)
     setFormData({
-      maLop: c.maLop,
-      tenHocPhan: c.tenHocPhan,
-      giangVien: c.giangVien,
-      hocKy: c.hocKy,
-      siSo: c.siSo,
-      trangThai: c.trangThai
+      ma_hoc_phan: item.maHocPhan?.toString() || "",
+      ma_can_bo: item.maCanBo?.toString() || "",
+      hoc_ky: item.hocKyNumber?.toString() || "1",
+      nam_hoc: item.namHoc || "2025-2026",
+      ty_le_chuyen_can_toi_thieu: item.tyLeChuyenCanToiThieu?.toString() || "0.8",
+      trang_thai: item.trangThai === "Đang học" ? "true" : "false",
     })
     setIsDialogOpen(true)
   }
 
-  const openDeleteDialog = (id: number) => {
-    setEditingId(id)
-    setIsDeleteDialogOpen(true)
-  }
+  const buildPayload = (): AdminClassPayload => ({
+    ma_hoc_phan: Number(formData.ma_hoc_phan),
+    ma_can_bo: Number(formData.ma_can_bo),
+    hoc_ky: Number(formData.hoc_ky),
+    nam_hoc: formData.nam_hoc.trim(),
+    ty_le_chuyen_can_toi_thieu: Number(formData.ty_le_chuyen_can_toi_thieu),
+    trang_thai: formData.trang_thai === "true",
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     setSubmitting(true)
     try {
+      const payload = buildPayload()
       if (editingId) {
-        const updated = await AdminService.updateClass(editingId, formData)
-        setClasses(classes.map(c => c.id === editingId ? updated : c))
+        const updated = await AdminService.updateClass(editingId, payload)
+        setClasses((prev) => prev.map((item) => (item.id === editingId ? updated : item)))
       } else {
-        const created = await AdminService.createClass(formData)
-        setClasses([created, ...classes])
+        const created = await AdminService.createClass(payload)
+        setClasses((prev) => [created, ...prev])
       }
       setIsDialogOpen(false)
-    } catch (err) {
-      alert("Đã xảy ra lỗi khi lưu thông tin.")
+    } catch (err: any) {
+      alert(err.message || "Khong the luu lop hoc phan.")
     } finally {
       setSubmitting(false)
     }
@@ -119,56 +119,52 @@ export default function AdminClassesPage() {
     setSubmitting(true)
     try {
       await AdminService.deleteClass(editingId)
-      setClasses(classes.filter(c => c.id !== editingId))
+      setClasses((prev) => prev.filter((item) => item.id !== editingId))
       setIsDeleteDialogOpen(false)
-    } catch (err) {
-      alert("Đã xảy ra lỗi khi xóa lớp học.")
+    } catch {
+      alert("Khong the xoa lop hoc phan.")
     } finally {
       setSubmitting(false)
     }
   }
 
-  const filteredClasses = classes.filter(c => 
-    c.maLop.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.tenHocPhan.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.giangVien.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredClasses = classes.filter((item) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      item.maLop.toLowerCase().includes(query) ||
+      item.tenHocPhan.toLowerCase().includes(query) ||
+      item.giangVien.toLowerCase().includes(query) ||
+      item.namHoc.toLowerCase().includes(query)
+    )
+  })
 
   return (
-    <AppShell
-      role="admin"
-      user={adminUser}
-      breadcrumb="Quản lý lớp học phần"
-    >
+    <AppShell role="admin" user={adminUser} breadcrumb="Quan ly lop hoc phan">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Danh sách lớp học phần</h1>
-            <p className="text-[#64748B] mt-1">Thêm mới, cập nhật và quản lý toàn bộ các lớp đang hoạt động</p>
+            <h1 className="text-2xl font-bold text-[#0F172A]">Danh sach lop hoc phan</h1>
+            <p className="text-[#64748B] mt-1">Tao lop theo hoc phan, phan cong giang vien va quan ly trang thai.</p>
           </div>
-          
           <Button onClick={openCreateDialog} className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white shrink-0">
             <Plus className="w-4 h-4 mr-2" />
-            Thêm lớp mới
+            Them lop moi
           </Button>
         </div>
 
-        {/* Data / Error Loading States */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0]">
             <Loader2 className="w-10 h-10 text-[#0EA5E9] animate-spin mb-4" />
-            <p className="text-[#64748B] font-medium">Đang đồng bộ dữ liệu lớp học...</p>
+            <p className="text-[#64748B] font-medium">Dang dong bo du lieu lop hoc...</p>
           </div>
         ) : error ? (
           <Card className="border-[#EF4444] bg-[#FEF2F2]">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#FEE2E2] flex items-center justify-center mb-4">
-                <AlertCircle className="w-8 h-8 text-[#EF4444]" />
-              </div>
-              <h3 className="text-xl font-semibold text-[#991B1B] mb-2">Lỗi truy xuất hệ thống</h3>
+              <AlertCircle className="w-12 h-12 text-[#EF4444] mb-4" />
+              <h3 className="text-xl font-semibold text-[#991B1B] mb-2">Loi truy xuat he thong</h3>
               <p className="text-[#DC2626] mb-6 max-w-md">{error}</p>
-              <Button onClick={fetchClasses} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
-                Thử lại ngay
+              <Button onClick={fetchData} variant="outline" className="border-[#EF4444] text-[#EF4444]">
+                Thu lai
               </Button>
             </CardContent>
           </Card>
@@ -176,10 +172,10 @@ export default function AdminClassesPage() {
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-              <Input 
-                placeholder="Tìm kiếm theo mã lớp, tên môn học hoặc giảng viên..." 
+              <Input
+                placeholder="Tim theo ma lop, hoc phan, giang vien, nam hoc..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={(event) => setSearchQuery(event.target.value)}
                 className="pl-9 border-[#E2E8F0] focus-visible:ring-[#0EA5E9]"
               />
             </div>
@@ -187,13 +183,9 @@ export default function AdminClassesPage() {
             {filteredClasses.length === 0 ? (
               <Card className="border-dashed border-2 border-[#E2E8F0] bg-[#F8FAFC]">
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#E2E8F0] flex items-center justify-center mb-4">
-                    <BookOpen className="w-8 h-8 text-[#64748B]" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Không tìm thấy lớp học</h3>
-                  <p className="text-[#64748B] max-w-sm">
-                    {searchQuery ? 'Không có dữ liệu phù hợp với từ khóa tìm kiếm.' : 'Hệ thống chưa có dữ liệu lớp học phần nào.'}
-                  </p>
+                  <BookOpen className="w-12 h-12 text-[#64748B] mb-3" />
+                  <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Khong tim thay lop hoc</h3>
+                  <p className="text-[#64748B] max-w-sm">Chua co du lieu phu hop voi bo loc hien tai.</p>
                 </CardContent>
               </Card>
             ) : (
@@ -202,43 +194,51 @@ export default function AdminClassesPage() {
                   <table className="w-full text-sm text-left">
                     <thead className="bg-[#F8FAFC] text-[#475569] font-medium border-b border-[#E2E8F0]">
                       <tr>
-                        <th className="px-6 py-4 whitespace-nowrap">Mã Lớp</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Tên Học Phần</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Giảng Viên</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Học Kỳ</th>
-                        <th className="px-6 py-4 whitespace-nowrap text-center">Sĩ số</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Trạng Thái</th>
-                        <th className="px-6 py-4 whitespace-nowrap text-right">Thao Tác</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Ma lop</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Hoc phan</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Giang vien</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Hoc ky</th>
+                        <th className="px-6 py-4 whitespace-nowrap text-center">Chuyen can toi thieu</th>
+                        <th className="px-6 py-4 whitespace-nowrap">Trang thai</th>
+                        <th className="px-6 py-4 whitespace-nowrap text-right">Thao tac</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E2E8F0]">
-                      {filteredClasses.map((c) => (
-                        <tr key={c.id} className="hover:bg-[#F1F5F9] transition-colors">
-                          <td className="px-6 py-4 font-semibold text-[#0F172A]">{c.maLop}</td>
-                          <td className="px-6 py-4 text-[#334155]">{c.tenHocPhan}</td>
-                          <td className="px-6 py-4 text-[#334155]">{c.giangVien}</td>
-                          <td className="px-6 py-4 text-[#64748B]">{c.hocKy}</td>
+                      {filteredClasses.map((item) => (
+                        <tr key={item.id} className="hover:bg-[#F1F5F9] transition-colors">
+                          <td className="px-6 py-4 font-semibold text-[#0F172A]">LHP{item.id}</td>
+                          <td className="px-6 py-4 text-[#334155]">{item.tenHocPhan}</td>
+                          <td className="px-6 py-4 text-[#334155]">{item.giangVien}</td>
+                          <td className="px-6 py-4 text-[#64748B]">{item.hocKy}</td>
                           <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center text-[#334155]">
-                              <Users className="w-3 h-3 mr-1 text-[#64748B]"/>
-                              {c.siSoHienTai}/{c.siSo}
-                            </div>
+                            <span className="inline-flex items-center justify-center gap-1">
+                              <Users className="w-3 h-3 text-[#64748B]" />
+                              {Math.round(item.tyLeChuyenCanToiThieu * 100)}%
+                            </span>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                              c.trangThai === 'Đang học' ? 'bg-[#DCFCE7] text-[#166534]' :
-                              c.trangThai === 'Đã kết thúc' ? 'bg-[#F1F5F9] text-[#475569]' :
-                              'bg-[#FEF9C3] text-[#92400E]'
+                              item.trangThai === "Đang học"
+                                ? "bg-[#DCFCE7] text-[#166534]"
+                                : "bg-[#F1F5F9] text-[#475569]"
                             }`}>
-                              {c.trangThai}
+                              {item.trangThai}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button size="icon" variant="ghost" onClick={() => openEditDialog(c)} className="h-8 w-8 text-[#0EA5E9] hover:text-[#0284C7] hover:bg-[#E0F2FE]">
+                              <Button size="icon" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 w-8 text-[#0EA5E9]">
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" onClick={() => openDeleteDialog(c.id)} className="h-8 w-8 text-[#EF4444] hover:text-[#DC2626] hover:bg-[#FEE2E2]">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingId(item.id)
+                                  setIsDeleteDialogOpen(true)
+                                }}
+                                className="h-8 w-8 text-[#EF4444]"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -253,81 +253,105 @@ export default function AdminClassesPage() {
           </div>
         )}
 
-        {/* Modal Thêm/Sửa */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[560px]">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Cập nhật Lớp học' : 'Thêm Lớp học mới'}</DialogTitle>
-              <DialogDescription>Điền thông tin chi tiết của lớp học phần vào biểu mẫu dưới đây.</DialogDescription>
+              <DialogTitle>{editingId ? "Cap nhat lop hoc phan" : "Them lop hoc phan moi"}</DialogTitle>
+              <DialogDescription>Chon hoc phan, giang vien va thong tin hoc ky dung voi du lieu backend.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maLop">Mã lớp</Label>
-                  <Input id="maLop" value={formData.maLop} onChange={e => setFormData({...formData, maLop: e.target.value})} required placeholder="VD: CS101_HK1"/>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="hocKy">Học kỳ</Label>
-                  <Input id="hocKy" value={formData.hocKy} onChange={e => setFormData({...formData, hocKy: e.target.value})} required placeholder="VD: HK1-2026"/>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tenHocPhan">Tên học phần</Label>
-                <Input id="tenHocPhan" value={formData.tenHocPhan} onChange={e => setFormData({...formData, tenHocPhan: e.target.value})} required placeholder="VD: Lập trình Web"/>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="giangVien">Giảng viên phụ trách</Label>
-                <Input id="giangVien" value={formData.giangVien} onChange={e => setFormData({...formData, giangVien: e.target.value})} required placeholder="VD: Nguyễn Văn B"/>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="siSo">Sĩ số tối đa</Label>
-                  <Input id="siSo" type="number" min="1" max="200" value={formData.siSo} onChange={e => setFormData({...formData, siSo: parseInt(e.target.value) || 0})} required/>
-                </div>
-                <div className="space-y-2">
-                  <Label>Trạng thái</Label>
-                  <Select value={formData.trangThai} onValueChange={(v: any) => setFormData({...formData, trangThai: v})}>
+                  <Label>Hoc phan</Label>
+                  <Select value={formData.ma_hoc_phan} onValueChange={(value) => setFormData({ ...formData, ma_hoc_phan: value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn trạng thái" />
+                      <SelectValue placeholder="Chon hoc phan" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Sắp mở">Sắp mở</SelectItem>
-                      <SelectItem value="Đang học">Đang học</SelectItem>
-                      <SelectItem value="Đã kết thúc">Đã kết thúc</SelectItem>
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject.ma_hoc_phan} value={subject.ma_hoc_phan.toString()}>
+                          {subject.ten_hoc_phan} ({subject.ma_hoc_phan})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Giang vien</Label>
+                  <Select value={formData.ma_can_bo} onValueChange={(value) => setFormData({ ...formData, ma_can_bo: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chon giang vien" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lecturers.map((lecturer) => (
+                        <SelectItem key={lecturer.ma_can_bo} value={lecturer.ma_can_bo.toString()}>
+                          {lecturer.ho} {lecturer.ten}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hocKy">Hoc ky</Label>
+                  <Input id="hocKy" type="number" min="1" max="3" value={formData.hoc_ky} onChange={(event) => setFormData({ ...formData, hoc_ky: event.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="namHoc">Nam hoc</Label>
+                  <Input id="namHoc" value={formData.nam_hoc} onChange={(event) => setFormData({ ...formData, nam_hoc: event.target.value })} required placeholder="2025-2026" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tyLe">Ty le chuyen can toi thieu</Label>
+                  <Input id="tyLe" type="number" min="0" max="1" step="0.05" value={formData.ty_le_chuyen_can_toi_thieu} onChange={(event) => setFormData({ ...formData, ty_le_chuyen_can_toi_thieu: event.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Trang thai</Label>
+                  <Select value={formData.trang_thai} onValueChange={(value) => setFormData({ ...formData, trang_thai: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chon trang thai" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Dang hoc</SelectItem>
+                      <SelectItem value="false">Da ket thuc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Hủy</Button>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Huy</Button>
                 <Button type="submit" disabled={submitting} className="bg-[#0A2540] hover:bg-[#1A3A5C]">
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2"/>}
-                  {editingId ? 'Lưu thay đổi' : 'Tạo lớp học'}
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  {editingId ? "Luu thay doi" : "Tao lop hoc"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* Modal Xác nhận xóa */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle className="text-[#EF4444] flex items-center"><AlertCircle className="w-5 h-5 mr-2"/> Cảnh báo xóa lớp học</DialogTitle>
-              <DialogDescription className="pt-2">
-                Hành động này không thể hoàn tác. Mọi dữ liệu về điểm danh và sinh viên của lớp học này sẽ bị xóa vĩnh viễn khỏi hệ thống. Bạn có chắc chắn muốn tiếp tục?
-              </DialogDescription>
+              <DialogTitle className="text-[#EF4444] flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2" />
+                Xoa lop hoc phan
+              </DialogTitle>
+              <DialogDescription className="pt-2">Hanh dong nay co the bi chan neu lop da co du lieu lien quan.</DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Huy</Button>
               <Button onClick={handleDelete} disabled={submitting} className="bg-[#EF4444] hover:bg-[#DC2626] text-white">
-                {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2"/>}
-                Xác nhận xóa
+                {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Xac nhan xoa
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
       </div>
     </AppShell>
   )

@@ -71,9 +71,31 @@ def get_system_stats(session: SessionDep) -> Any:
 
     total_classes = session.exec(select(func.count(LopHocPhan.ma_lop_hoc_phan))).first() or 0
 
-    total_dd = session.exec(select(func.count(DiemDanh.ma_diem_danh))).first() or 0
-    present_dd = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "CO_MAT")).first() or 0
-    avg_rate = (present_dd / total_dd) if total_dd > 0 else 0.0
+    # Calculate true average attendance rate: total present/late vs expected enrollments of active/completed sessions
+    buoi_hocs = session.exec(
+        select(BuoiHoc).where(BuoiHoc.trang_thai.in_(["DANG_DIEN_RA", "DA_KET_THUC"]))
+    ).all()
+    
+    total_expected = 0
+    for bh in buoi_hocs:
+        reg_count = session.exec(
+            select(func.count(DangKyHocPhan.ma_sinh_vien))
+            .where(DangKyHocPhan.ma_lop_hoc_phan == bh.ma_lop_hoc_phan)
+        ).first() or 0
+        total_expected += reg_count
+        
+    bh_ids = [bh.ma_buoi_hoc for bh in buoi_hocs]
+    if bh_ids and total_expected > 0:
+        total_present = session.exec(
+            select(func.count(DiemDanh.ma_diem_danh))
+            .where(
+                DiemDanh.trang_thai.in_(["CO_MAT", "DI_MUON", "MUON"]),
+                DiemDanh.ma_buoi_hoc.in_(bh_ids)
+            )
+        ).first() or 0
+        avg_rate = total_present / total_expected
+    else:
+        avg_rate = 0.0
 
     subquery = select(AnhKhuonMat.ma_sinh_vien).distinct()
     stmt = select(func.count(SinhVien.ma_sinh_vien)).where(SinhVien.ma_sinh_vien.not_in(subquery))
@@ -190,10 +212,31 @@ def get_system_reports(session: SessionDep) -> Any:
     """Lấy dữ liệu thống kê báo cáo chi tiết cho Admin."""
     # 1. Summary Metrics
     total_students = session.exec(select(func.count(SinhVien.ma_sinh_vien))).first() or 0
-    total_dd = session.exec(select(func.count(DiemDanh.ma_diem_danh))).first() or 0
-    present_dd = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "CO_MAT")).first() or 0
-    late_dd = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(["DI_MUON", "MUON"]))).first() or 0
-    avg_rate = round(((present_dd + late_dd) / total_dd * 100), 1) if total_dd > 0 else 0.0
+    # Calculate true average attendance rate: total present/late vs expected enrollments of active/completed sessions
+    buoi_hocs = session.exec(
+        select(BuoiHoc).where(BuoiHoc.trang_thai.in_(["DANG_DIEN_RA", "DA_KET_THUC"]))
+    ).all()
+    
+    total_expected = 0
+    for bh in buoi_hocs:
+        reg_count = session.exec(
+            select(func.count(DangKyHocPhan.ma_sinh_vien))
+            .where(DangKyHocPhan.ma_lop_hoc_phan == bh.ma_lop_hoc_phan)
+        ).first() or 0
+        total_expected += reg_count
+        
+    bh_ids = [bh.ma_buoi_hoc for bh in buoi_hocs]
+    if bh_ids and total_expected > 0:
+        total_present = session.exec(
+            select(func.count(DiemDanh.ma_diem_danh))
+            .where(
+                DiemDanh.trang_thai.in_(["CO_MAT", "DI_MUON", "MUON"]),
+                DiemDanh.ma_buoi_hoc.in_(bh_ids)
+            )
+        ).first() or 0
+        avg_rate = round((total_present / total_expected * 100), 1)
+    else:
+        avg_rate = 0.0
     
     total_sessions = session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.trang_thai == "DA_KET_THUC")).first() or 0
     
@@ -245,9 +288,9 @@ def get_system_reports(session: SessionDep) -> Any:
         ]
         
     # 3. statusDistribution
-    present_count = present_dd
+    present_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "CO_MAT")).first() or 0
     absent_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "VANG")).first() or 0
-    late_count = late_dd
+    late_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(["DI_MUON", "MUON"]))).first() or 0
     leave_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "XIN_PHEP")).first() or 0
     
     statusDistribution = [

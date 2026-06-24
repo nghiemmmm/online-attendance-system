@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 import { RoleBadge } from "@/components/status-badge"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   History,
@@ -18,15 +18,18 @@ import {
   GraduationCap,
   ScanFace,
   FileText,
+  Building2,
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Bell
+  Bell,
+  AlertTriangle
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AuthService } from "@/services/auth.service"
 
 type UserRole = "student" | "lecturer" | "admin"
 
@@ -54,9 +57,11 @@ const navConfig: Record<UserRole, NavItem[]> = {
   admin: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
     { icon: Users, label: "Người dùng", href: "/admin/users" },
+    { icon: BookOpen, label: "Học phần", href: "/admin/subjects" },
+    { icon: Building2, label: "Ngành đào tạo", href: "/admin/departments" },
     { icon: GraduationCap, label: "Lớp học phần", href: "/admin/classes" },
     { icon: ScanFace, label: "Dữ liệu khuôn mặt", href: "/admin/faces" },
-    { icon: FileText, label: "Nhật ký hệ thống", href: "/admin/logs" },
+    { icon: FileText, label: "Nhật ký hệ thống", href: "/admin/audit" },
     { icon: BarChart3, label: "Báo cáo tổng hợp", href: "/admin/reports" }
   ]
 }
@@ -73,9 +78,12 @@ interface SidebarProps {
 
 export function Sidebar({ role, user, className }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const navItems = navConfig[role]
+
+  const handleLogout = () => {
+    void AuthService.logout()
+  }
 
   return (
     <aside
@@ -133,7 +141,7 @@ export function Sidebar({ role, user, className }: SidebarProps) {
             </div>
           )}
         </div>
-        <div className={cn("flex gap-2 mt-4", collapsed && "flex-col")}>
+        <div className={cn("flex gap-2 mt-4", collapsed ? "flex-col" : "items-center")}>
           <Button
             variant="ghost"
             size="icon"
@@ -144,12 +152,16 @@ export function Sidebar({ role, user, className }: SidebarProps) {
           </Button>
           <Button
             variant="ghost"
-            size="icon"
-            className="text-white/80 hover:text-white hover:bg-[#1A3A5C]"
+            size={collapsed ? "icon" : "default"}
+            className={cn(
+              "text-white/80 hover:text-white hover:bg-[#1A3A5C]",
+              !collapsed && "flex-1 justify-start"
+            )}
             title="Đăng xuất"
-            onClick={() => router.push('/auth/login')}
+            onClick={handleLogout}
           >
             <LogOut className="w-5 h-5" />
+            {!collapsed && <span>Đăng xuất</span>}
           </Button>
         </div>
       </div>
@@ -165,6 +177,14 @@ export function Sidebar({ role, user, className }: SidebarProps) {
   )
 }
 
+export interface NotificationItem {
+  id: string
+  title: string
+  description: string
+  type: "warning" | "info" | "success"
+  time?: string
+}
+
 interface TopNavbarProps {
   breadcrumb: string
   user: {
@@ -172,21 +192,124 @@ interface TopNavbarProps {
     avatar?: string
   }
   notificationCount?: number
+  notifications?: NotificationItem[]
 }
 
-export function TopNavbar({ breadcrumb, user, notificationCount = 0 }: TopNavbarProps) {
+export function TopNavbar({ breadcrumb, user, notificationCount = 0, notifications = [] }: TopNavbarProps) {
+  const [showNotifications, setShowNotifications] = useState(false)
+  const pathname = usePathname()
+
+  // Generate fallback notifications if only notificationCount is provided
+  let displayNotifications = [...notifications]
+  if (displayNotifications.length === 0 && notificationCount > 0) {
+    if (pathname.startsWith("/student")) {
+      displayNotifications = [
+        {
+          id: "student-warning-fallback",
+          title: "Cảnh báo cấm thi",
+          description: `Bạn có môn học phần vắng quá 20% giới hạn số buổi. Hãy kiểm tra dashboard.`,
+          type: "warning",
+        }
+      ]
+    } else if (pathname.startsWith("/lecturer")) {
+      displayNotifications = [
+        {
+          id: "lecturer-warning-fallback",
+          title: "Yêu cầu khiếu nại mới",
+          description: `Bạn đang có ${notificationCount} khiếu nại điểm danh chờ xử lý từ sinh viên.`,
+          type: "warning",
+        }
+      ]
+    } else if (pathname.startsWith("/admin")) {
+      displayNotifications = [
+        {
+          id: "admin-warning-fallback",
+          title: "Đăng ký khuôn mặt",
+          description: `Có ${notificationCount} sinh viên chưa đăng ký nhận diện khuôn mặt trong hệ thống.`,
+          type: "info",
+        }
+      ]
+    } else {
+      displayNotifications = [
+        {
+          id: "default-warning-fallback",
+          title: "Thông báo hệ thống",
+          description: `Bạn có ${notificationCount} thông báo mới cần kiểm tra.`,
+          type: "info",
+        }
+      ]
+    }
+  }
+
+  const displayCount = displayNotifications.length
+
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-[#E2E8F0] flex items-center justify-between px-6">
       <h1 className="text-lg font-semibold text-[#0F172A]">{breadcrumb}</h1>
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5 text-[#64748B]" />
-          {notificationCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#EF4444] text-white text-xs rounded-full flex items-center justify-center">
-              {notificationCount > 9 ? "9+" : notificationCount}
-            </span>
+      <div className="flex items-center gap-4 relative">
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
+            <Bell className="w-5 h-5 text-[#64748B]" />
+            {displayCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#EF4444] text-white text-xs rounded-full flex items-center justify-center">
+                {displayCount > 9 ? "9+" : displayCount}
+              </span>
+            )}
+          </Button>
+
+          {showNotifications && (
+            <>
+              {/* Click outside overlay to close */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowNotifications(false)}
+              />
+
+              {/* Notifications Dropdown Panel */}
+              <div className="absolute right-0 top-12 w-80 bg-white/95 backdrop-blur-md border border-[#E2E8F0] shadow-xl rounded-xl z-50 overflow-hidden flex flex-col max-h-96">
+                <div className="p-3 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center justify-between">
+                  <span className="font-semibold text-sm text-[#0F172A]">Thông báo mới</span>
+                  {displayCount > 0 && (
+                    <span className="text-xs bg-[#EFF6FF] text-[#0EA5E9] px-2 py-0.5 rounded-full font-medium">
+                      {displayCount} tin
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto divide-y divide-[#E2E8F0]">
+                  {displayCount > 0 ? (
+                    displayNotifications.map((item) => (
+                      <div key={item.id} className="p-3 hover:bg-[#F8FAFC] transition-colors flex gap-2.5 items-start">
+                        {item.type === "warning" ? (
+                          <div className="w-7 h-7 rounded-full bg-[#FEF9C3] flex items-center justify-center text-[#F59E0B] shrink-0">
+                            <AlertTriangle className="w-4 h-4" />
+                          </div>
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#0EA5E9] shrink-0">
+                            <Bell className="w-4 h-4" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-[#0F172A]">{item.title}</p>
+                          <p className="text-xs text-[#64748B] mt-0.5 leading-relaxed">{item.description}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-[#64748B] text-xs">
+                      Không có thông báo nào.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
-        </Button>
+        </div>
+
         <Avatar className="w-9 h-9 cursor-pointer">
           <AvatarImage src={user.avatar} alt={user.name} />
           <AvatarFallback className="bg-[#0A2540] text-white text-sm">
@@ -207,15 +330,21 @@ interface AppShellProps {
   }
   breadcrumb: string
   notificationCount?: number
+  notifications?: NotificationItem[]
   children: React.ReactNode
 }
 
-export function AppShell({ role, user, breadcrumb, notificationCount, children }: AppShellProps) {
+export function AppShell({ role, user, breadcrumb, notificationCount, notifications, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <Sidebar role={role} user={user} />
       <div className="pl-60 transition-all duration-300">
-        <TopNavbar breadcrumb={breadcrumb} user={user} notificationCount={notificationCount} />
+        <TopNavbar
+          breadcrumb={breadcrumb}
+          user={user}
+          notificationCount={notificationCount}
+          notifications={notifications}
+        />
         <main className="p-6">
           <div className="max-w-[1280px] mx-auto">
             {children}

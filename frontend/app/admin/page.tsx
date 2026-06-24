@@ -17,21 +17,23 @@ import {
 import Link from "next/link"
 import { AdminService } from "@/services/admin.service"
 
+const defaultStats = {
+  total_users: 0,
+  total_students: 0,
+  total_lecturers: 0,
+  total_admins: 0,
+  total_classes: 0,
+  avg_attendance_rate: 0,
+  students_without_face: 0
+}
+
 export default function AdminDashboard() {
   const [adminUser, setAdminUser] = useState({
     name: "Admin",
     email: "admin@university.edu.vn",
     avatar: ""
   })
-  const [stats, setStats] = useState({
-    total_users: 0,
-    total_students: 0,
-    total_lecturers: 0,
-    total_admins: 0,
-    total_classes: 0,
-    avg_attendance_rate: 0,
-    students_without_face: 0
-  })
+  const [stats, setStats] = useState(defaultStats)
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -248,8 +250,8 @@ export default function AdminDashboard() {
                   <CardTitle className="text-lg font-semibold text-[#0F172A]">
                     Hoạt động gần đây
                   </CardTitle>
-                  <Link 
-                    href="/admin/logs" 
+                  <Link
+                    href="/admin/audit"
                     className="text-sm text-[#0EA5E9] hover:underline flex items-center gap-1"
                   >
                     Xem tất cả

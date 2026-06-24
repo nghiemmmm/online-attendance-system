@@ -5,7 +5,7 @@ import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
-import { 
+import {
   CalendarCheck, 
   AlertTriangle, 
   TrendingUp,
@@ -15,10 +15,12 @@ import {
   Loader2
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { StudentService } from "@/services/student.service"
 import { StudentProfile } from "@/types/student"
 
 export default function StudentDashboard() {
+  const router = useRouter()
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [schedule, setSchedule] = useState<any[]>([])
   const [attendance, setAttendance] = useState<any[]>([])
@@ -94,14 +96,51 @@ export default function StudentDashboard() {
     ? `${warningClasses.length} môn` 
     : "Không có"
 
+  // Find active session
+  const activeSession = schedule.find(item => item.trang_thai === "DANG_DIEN_RA")
+
   // Map schedule items
   const upcomingClasses = schedule.slice(0, 3).map((item, idx) => ({
-    id: item.ma_lop_hoc_phan || idx,
+    id: item.ma_buoi_hoc || item.ma_lop_hoc_phan || idx,
+    maBuoiHoc: item.ma_buoi_hoc,
     subject: item.ten_hoc_phan || `Lớp học phần ${item.ma_lop_hoc_phan}`,
+    date: item.ngay_hoc ? new Date(item.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
     time: `${item.gio_bat_dau?.substring(0, 5) || "08:00"} - ${item.gio_ket_thuc?.substring(0, 5) || "10:00"}`,
     room: "A" + (100 + (item.ma_lop_hoc_phan % 10)), // Simulated room code
-    session: item.ma_lop_hoc_phan
+    status: item.trang_thai || "CHUA_DIEM_DANH"
   }))
+
+  const getScheduleStatusText = (status: string) => {
+    if (status === "DANG_DIEN_RA") return "Dang mo diem danh"
+    if (status === "DA_KET_THUC") return "Da ket thuc"
+    if (status === "DA_HUY") return "Da huy"
+    return "Chua mo diem danh"
+  }
+
+  const handleOpenSchedule = (item: typeof upcomingClasses[number]) => {
+    if (!item.maBuoiHoc) {
+      alert("Buoi hoc nay chua co ma phien diem danh.")
+      return
+    }
+
+    if (item.status === "DANG_DIEN_RA") {
+      router.push(`/student/live?id=${item.maBuoiHoc}`)
+      return
+    }
+
+    if (item.status === "DA_KET_THUC") {
+      alert("Buoi hoc nay da ket thuc. Ban co the xem ket qua trong lich su diem danh.")
+      router.push("/student/history")
+      return
+    }
+
+    if (item.status === "DA_HUY") {
+      alert("Buoi hoc nay da bi huy.")
+      return
+    }
+
+    alert("Giang vien chua mo phien diem danh cho buoi hoc nay.")
+  }
 
   // Map attendance items (most recent first)
   const recentAttendance = [...attendance].reverse().slice(0, 5).map((item, idx) => ({
@@ -117,12 +156,20 @@ export default function StudentDashboard() {
     status: item.trang_thai === "CO_MAT" ? "present" : item.trang_thai === "DI_MUON" ? "late" : "absent"
   }))
 
+  // Map warning classes to detailed notification items
+  const studentNotifications = warningClasses.map((cls, idx) => ({
+    id: `warning-absent-${idx}`,
+    title: "Cảnh báo cấm thi",
+    description: `Môn học phần "${cls.name}" đã nghỉ ${cls.absent}/${cls.total} buổi (${((cls.absent / cls.total) * 100).toFixed(0)}%).`,
+    type: "warning" as const,
+  }))
+
   return (
     <AppShell 
       role="student" 
       user={{ name: userDisplayName, email: userEmail, avatar: "" }} 
       breadcrumb="Dashboard"
-      notificationCount={warningClasses.length}
+      notifications={studentNotifications}
     >
       <div className="space-y-6">
         {/* Welcome */}
@@ -201,9 +248,11 @@ export default function StudentDashboard() {
               {upcomingClasses.length > 0 ? (
                 <div className="space-y-3">
                   {upcomingClasses.map((cls) => (
-                    <div
+                    <button
                       key={cls.id}
-                      className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors"
+                      type="button"
+                      onClick={() => handleOpenSchedule(cls)}
+                      className="flex w-full items-center justify-between p-3 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-[#0A2540] flex items-center justify-center text-white font-semibold text-sm">
@@ -211,25 +260,41 @@ export default function StudentDashboard() {
                         </div>
                         <div>
                           <p className="font-medium text-[#0F172A]">{cls.subject}</p>
+                          <p className="text-sm text-[#64748B]">{cls.date}</p>
+                          <p className={cls.status === "DANG_DIEN_RA" ? "text-xs font-medium text-[#16A34A]" : "text-xs text-[#64748B]"}>
+                            {getScheduleStatusText(cls.status)}
+                          </p>
                           <p className="text-sm text-[#64748B]">Phòng {cls.room}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-[#64748B]">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">{cls.time}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 text-[#64748B]">
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm">{cls.time}</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-[#94A3B8]" />
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
                 <p className="text-sm text-[#64748B] text-center py-6">Không có lịch học nào được xếp.</p>
               )}
-              <Link href="/student/live">
-                <Button className="w-full mt-4 bg-[#0A2540] hover:bg-[#1A3A5C]">
-                  Vào phòng học trực tuyến
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
+              {activeSession ? (
+                <Link href={`/student/live?id=${activeSession.ma_buoi_hoc}`}>
+                  <Button className="w-full mt-4 bg-[#22C55E] hover:bg-[#16A34A] text-white font-semibold animate-pulse border border-[#22C55E]">
+                    Vào điểm danh: {activeSession.ten_hoc_phan}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/student/live">
+                  <Button className="w-full mt-4 bg-[#64748B] hover:bg-[#475569] text-white">
+                    Vào phòng học trực tuyến (Giả lập)
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 

@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 
 import { StudentService } from "@/services/student.service"
+import { apiClient } from "@/lib/api-client"
 
 type VerificationStatus = "verified" | "pending" | "failed"
 
@@ -35,6 +36,43 @@ export default function StudentLiveClassroom() {
   const router = useRouter()
 
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Real session states
+  const [maBuoiHoc, setMaBuoiHoc] = useState<number | null>(null)
+  const [subjectName, setSubjectName] = useState("CS101 - Lập trình Web")
+  const [sessionNum, setSessionNum] = useState(8)
+  const [lecturerName, setLecturerName] = useState("Nguyễn Văn B")
+  const [isSessionActive, setIsSessionActive] = useState(true)
+  const [apiError, setApiError] = useState<string | null>(null)
+  const [lastVerifiedTime, setLastVerifiedTime] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const idVal = params.get("id")
+    if (idVal) {
+      const idNum = parseInt(idVal)
+      setMaBuoiHoc(idNum)
+      
+      apiClient.get<any>(`/buoi-hoc/${idNum}`)
+        .then((buoiHoc) => {
+          setSessionNum(buoiHoc.so_buoi || 1)
+          const active = buoiHoc.trang_thai === "DANG_DIEN_RA"
+          setIsSessionActive(active)
+          setSubjectName(buoiHoc.ten_hoc_phan || "Lớp học phần")
+          setLecturerName(buoiHoc.ten_giang_vien || "Giảng viên")
+          
+          if (!active) {
+            setApiError("Phiên điểm danh chưa được mở hoặc đã kết thúc")
+            setVerificationStatus("failed")
+          }
+        })
+        .catch((err) => {
+          console.error("Lỗi tải thông tin buổi học:", err)
+          setApiError("Không thể tải thông tin buổi học thực tế")
+          setVerificationStatus("failed")
+        })
+    }
+  }, [])
 
   // Handle Camera Stream
   useEffect(() => {
@@ -92,18 +130,25 @@ export default function StudentLiveClassroom() {
       setVerificationStatus("pending");
       return;
     }
+    if (maBuoiHoc && !isSessionActive) {
+      setVerificationStatus("failed");
+      return;
+    }
 
     const verify = async () => {
       const blob = await captureFrame();
       if (!blob) return;
       
-      const result = await StudentService.verifyFace(blob);
+      const result = await StudentService.verifyFace(blob, maBuoiHoc || undefined);
       if (result.verified) {
         setConfidence(result.confidence);
         setVerificationStatus("verified");
+        setLastVerifiedTime(new Date().toLocaleTimeString("vi-VN"));
+        setApiError(result.message || null);
       } else {
         setConfidence(result.confidence || 0);
         setVerificationStatus("failed");
+        setApiError(result.message || "Xác minh thất bại");
       }
     };
 
@@ -117,7 +162,7 @@ export default function StudentLiveClassroom() {
       clearTimeout(initialTimer);
       clearInterval(intervalId);
     };
-  }, [cameraEnabled]);
+  }, [cameraEnabled, maBuoiHoc, isSessionActive]);
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
@@ -143,10 +188,10 @@ export default function StudentLiveClassroom() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-[#0EA5E9]" />
-                <span className="font-semibold">CS101 - Lập trình Web</span>
+                <span className="font-semibold">{subjectName}</span>
               </div>
               <span className="text-[#64748B]">|</span>
-              <span className="text-[#94A3B8]">Buổi 8</span>
+              <span className="text-[#94A3B8]">Buổi {sessionNum}</span>
             </div>
             <div className="flex items-center gap-2 text-[#0EA5E9]">
               <div className="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse" />
@@ -175,7 +220,7 @@ export default function StudentLiveClassroom() {
               <User className="w-8 h-8 text-white/50" />
             </div>
             <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
-              <p className="text-xs text-white truncate">GV: Nguyễn Văn B</p>
+              <p className="text-xs text-white truncate">GV: {lecturerName}</p>
             </div>
           </div>
         </div>
@@ -349,15 +394,15 @@ export default function StudentLiveClassroom() {
             {verificationStatus === "failed" && (
               <>
                 <AlertTriangle className="w-8 h-8 mx-auto text-[#EF4444] mb-2" />
-                <p className="font-medium text-[#EF4444]">Xác minh thất bại</p>
+                <p className="font-medium text-[#EF4444]">{apiError || "Xác minh thất bại"}</p>
               </>
             )}
           </div>
 
           {/* Last verified */}
-          {verificationStatus === "verified" && (
+          {verificationStatus === "verified" && lastVerifiedTime && (
             <p className="text-xs text-[#64748B] text-center">
-              Xác minh lần cuối: 10:32:15
+              Xác minh lần cuối: {lastVerifiedTime}
             </p>
           )}
         </div>
@@ -368,15 +413,15 @@ export default function StudentLiveClassroom() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-[#64748B]">Môn học:</span>
-              <span className="text-white">Lập trình Web</span>
+              <span className="text-white">{subjectName}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#64748B]">Buổi:</span>
-              <span className="text-white">Buổi 8</span>
+              <span className="text-white">Buổi {sessionNum}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#64748B]">Giảng viên:</span>
-              <span className="text-white">Nguyễn Văn B</span>
+              <span className="text-white">{lecturerName}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#64748B]">Còn lại:</span>

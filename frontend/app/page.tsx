@@ -12,7 +12,7 @@ export default function LoginPage() {
 
   const handleLogin = async (data: { email: string; password: string; role: string; remember: boolean }) => {
     try {
-      await AuthService.login(data.email, data.password);
+      await AuthService.login(data.email, data.password, data.remember);
       // Try to fetch profile to know exactly what the user is
       const user = await apiClient.get<any>("/users/me");
       if (user.vai_tro === "SINH_VIEN") {
