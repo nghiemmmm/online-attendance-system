@@ -9,24 +9,25 @@ import { Claim } from "@/types/lecturer"
 import { LecturerService } from "@/services/lecturer.service"
 import { Loader2, AlertCircle, Inbox, CheckCircle, XCircle } from "lucide-react"
 
-const mockUser = {
-  name: "Nguyễn Văn B",
-  email: "b.nguyen@lecturer.edu.vn",
-  avatar: ""
-}
-
 export default function LecturerClaimsPage() {
+  const [profile, setProfile] = useState<{ name: string; email: string; maCanBo: number } | null>(null)
   const [claims, setClaims] = useState<Claim[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
-  const fetchClaims = async () => {
+  const fetchProfileAndClaims = async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await LecturerService.getClaims()
-      setClaims(data)
+      const prof = await LecturerService.getProfile()
+      setProfile(prof)
+      if (prof.maCanBo) {
+        const data = await LecturerService.getClaims(prof.maCanBo)
+        setClaims(data)
+      } else {
+        setError("Không tìm thấy mã giảng viên.")
+      }
     } catch (err: any) {
       setError(err.message || "Đã xảy ra lỗi khi tải dữ liệu.")
     } finally {
@@ -35,14 +36,19 @@ export default function LecturerClaimsPage() {
   }
 
   useEffect(() => {
-    fetchClaims()
+    fetchProfileAndClaims()
   }, [])
 
   const handleUpdateStatus = async (id: string, newStatus: 'approved' | 'rejected') => {
+    if (!profile) return
     setProcessingId(id)
     try {
-      await LecturerService.updateClaimStatus(id, newStatus)
-      setClaims(claims.map(c => c.id === id ? { ...c, status: newStatus } : c))
+      const success = await LecturerService.updateClaimStatus(profile.maCanBo, id, newStatus)
+      if (success) {
+        setClaims(claims.map(c => c.id === id ? { ...c, status: newStatus } : c))
+      } else {
+        alert("Đã xảy ra lỗi khi cập nhật trạng thái.")
+      }
     } catch (err) {
       alert("Đã xảy ra lỗi khi cập nhật trạng thái.")
     } finally {
@@ -53,10 +59,13 @@ export default function LecturerClaimsPage() {
   const pendingClaims = claims.filter(c => c.status === 'pending')
   const processedClaims = claims.filter(c => c.status !== 'pending')
 
+  const userDisplayName = profile ? profile.name : "Giảng viên"
+  const userEmail = profile ? profile.email : "loading..."
+
   return (
     <AppShell
       role="lecturer"
-      user={mockUser}
+      user={{ name: userDisplayName, email: userEmail, avatar: "" }}
       breadcrumb="Duyệt khiếu nại"
       notificationCount={pendingClaims.length}
     >
@@ -81,7 +90,7 @@ export default function LecturerClaimsPage() {
               </div>
               <h3 className="text-xl font-semibold text-[#991B1B] mb-2">Không thể tải dữ liệu</h3>
               <p className="text-[#DC2626] mb-6 max-w-md">{error}</p>
-              <Button onClick={fetchClaims} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
+              <Button onClick={fetchProfileAndClaims} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
                 Thử lại ngay
               </Button>
             </CardContent>
@@ -123,8 +132,15 @@ export default function LecturerClaimsPage() {
                                 {claim.studentName.charAt(0)}
                               </div>
                               <div>
-                                <h3 className="font-semibold text-[#0F172A] text-lg">{claim.studentName} <span className="text-[#64748B] text-base font-normal">({claim.studentId})</span></h3>
-                                <p className="text-sm text-[#64748B]">{claim.subjectName} ({claim.subjectCode}) • Buổi {claim.sessionNumber} • {claim.date}</p>
+                                <h3 className="font-semibold text-[#0F172A] text-lg">
+                                  {claim.studentName}{" "}
+                                  <span className="text-[#64748B] text-base font-normal">
+                                    (Mã SV: {claim.studentId})
+                                  </span>
+                                </h3>
+                                <p className="text-sm text-[#64748B]">
+                                  {claim.subjectName} ({claim.subjectCode}) • Buổi {claim.sessionNumber} • {claim.date}
+                                </p>
                               </div>
                             </div>
                             <div className="bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
@@ -177,7 +193,7 @@ export default function LecturerClaimsPage() {
                       <CardContent className="p-4 flex items-center justify-between">
                         <div>
                           <p className="font-medium text-[#0F172A]">{claim.studentName} ({claim.studentId})</p>
-                          <p className="text-xs text-[#64748B] mt-1">{claim.subjectCode} • {claim.date}</p>
+                          <p className="text-xs text-[#64748B] mt-1">{claim.subjectName} ({claim.subjectCode}) • Buổi {claim.sessionNumber} • {claim.date}</p>
                         </div>
                         <div>
                           <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${

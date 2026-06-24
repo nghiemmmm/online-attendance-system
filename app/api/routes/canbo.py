@@ -158,13 +158,19 @@ def read_my_lop_hoc_phan(
     
     lop_hoc_phans = []
     for lhp, hp in results:
+        reg_count = session.exec(
+            select(func.count(DangKyHocPhan.ma_sinh_vien))
+            .where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
+        ).first() or 0
+        
         lop_hoc_phans.append({
             "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
             "ma_hoc_phan": lhp.ma_hoc_phan,
             "ten_hoc_phan": hp.ten_hoc_phan,
             "hoc_ky": lhp.hoc_ky,
             "nam_hoc": lhp.nam_hoc,
-            "trang_thai": lhp.trang_thai
+            "trang_thai": lhp.trang_thai,
+            "si_so_hien_tai": reg_count
         })
     return {"data": lop_hoc_phans, "count": len(lop_hoc_phans)}
 

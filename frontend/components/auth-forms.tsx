@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api";
+
 type UserRole = "student" | "lecturer" | "admin"
 
 interface LoginFormProps {
@@ -97,12 +99,12 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email */}
+        {/* Username/Email */}
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
           <Input
-            type="email"
-            placeholder="Email trường học của bạn"
+            type="text"
+            placeholder="Tên đăng nhập hoặc Email trường học"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
@@ -165,6 +167,37 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
         <div className="flex-1 h-px bg-[#E2E8F0]" />
       </div>
 
+      {/* Google Login Button */}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          window.location.href = `${API_BASE_URL}/auth/google/login?remember_me=${remember}`;
+        }}
+        className="w-full h-11 bg-white hover:bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] font-medium flex items-center justify-center gap-3 mb-6"
+        disabled={isLocked}
+      >
+        <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <path
+            fill="#EA4335"
+            d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.336 0 3.336 2.673 1.336 6.573L5.266 9.765z"
+          />
+          <path
+            fill="#4285F4"
+            d="M23.491 12.273c0-.818-.073-1.609-.209-2.373H12v4.509h6.445c-.277 1.482-1.118 2.74-2.377 3.582l3.873 3c2.264-2.09 3.55-5.173 3.55-8.718z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.266 14.235A7.025 7.025 0 0 1 4.909 12c0-.79.136-1.545.357-2.235L1.336 6.573A11.934 11.934 0 0 0 0 12c0 1.927.455 3.745 1.255 5.373l4.01-3.138z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 24c3.245 0 5.973-1.073 7.964-2.909l-3.873-3c-1.073.718-2.445 1.145-4.09 1.145-3.155 0-5.827-2.127-6.782-5.027L1.255 17.345A11.954 11.954 0 0 0 12 24z"
+          />
+        </svg>
+        Đăng nhập với Google
+      </Button>
+
       {/* Register Link */}
       <p className="text-center text-sm text-[#64748B]">
         Chưa có tài khoản?{" "}
@@ -178,22 +211,44 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 }
 
 interface RegisterFormProps {
-  onSubmit?: (data: { name: string; studentId: string; email: string; password: string }) => void
+  onSubmit?: (data: {
+    ten_dang_nhap: string
+    email: string
+    password: string
+    ho: string
+    ten: string
+    dien_thoai: string
+    gioi_tinh: string
+  }) => void
   onLoginClick?: () => void
 }
 
 export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
-  const [name, setName] = useState("")
-  const [studentId, setStudentId] = useState("")
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [gender, setGender] = useState("Nam")
   const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (password !== confirmPassword) return
-    onSubmit?.({ name, studentId, email, password })
+    if (password !== confirmPassword) {
+      alert("Mật khẩu xác nhận không khớp")
+      return
+    }
+    onSubmit?.({
+      ten_dang_nhap: username,
+      email,
+      password,
+      ho: lastName,
+      ten: firstName,
+      dien_thoai: phone,
+      gioi_tinh: gender
+    })
   }
 
   return (
@@ -218,20 +273,30 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          type="text"
-          placeholder="Họ và tên"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
-          required
-        />
+        <div className="flex gap-4">
+          <Input
+            type="text"
+            placeholder="Họ và tên đệm"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            required
+          />
+          <Input
+            type="text"
+            placeholder="Tên"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            required
+          />
+        </div>
 
         <Input
           type="text"
-          placeholder="Mã sinh viên"
-          value={studentId}
-          onChange={(e) => setStudentId(e.target.value)}
+          placeholder="Tên đăng nhập"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
           required
         />
@@ -246,6 +311,28 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
             className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
             required
           />
+        </div>
+
+        <Input
+          type="text"
+          placeholder="Số điện thoại"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+          required
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-[#64748B] pl-1">Giới tính</label>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="flex h-11 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[#0F172A]"
+          >
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+            <option value="Khác">Khác</option>
+          </select>
         </div>
 
         <div className="relative">
@@ -285,8 +372,45 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
         </Button>
       </form>
 
+      {/* Divider */}
+      <div className="flex items-center gap-4 my-6">
+        <div className="flex-1 h-px bg-[#E2E8F0]" />
+        <span className="text-sm text-[#64748B]">hoặc</span>
+        <div className="flex-1 h-px bg-[#E2E8F0]" />
+      </div>
+
+      {/* Google Register Button */}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          window.location.href = `${API_BASE_URL}/auth/google/login?mode=auto_register`;
+        }}
+        className="w-full h-11 bg-white hover:bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] font-medium flex items-center justify-center gap-3 mb-6"
+      >
+        <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <path
+            fill="#EA4335"
+            d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.336 0 3.336 2.673 1.336 6.573L5.266 9.765z"
+          />
+          <path
+            fill="#4285F4"
+            d="M23.491 12.273c0-.818-.073-1.609-.209-2.373H12v4.509h6.445c-.277 1.482-1.118 2.74-2.377 3.582l3.873 3c2.264-2.09 3.55-5.173 3.55-8.718z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.266 14.235A7.025 7.025 0 0 1 4.909 12c0-.79.136-1.545.357-2.235L1.336 6.573A11.934 11.934 0 0 0 0 12c0 1.927.455 3.745 1.255 5.373l4.01-3.138z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 24c3.245 0 5.973-1.073 7.964-2.909l-3.873-3c-1.073.718-2.445 1.145-4.09 1.145-3.155 0-5.827-2.127-6.782-5.027L1.255 17.345A11.954 11.954 0 0 0 12 24z"
+          />
+        </svg>
+        Đăng ký với Google
+      </Button>
+
       {/* Login Link */}
-      <p className="text-center text-sm text-[#64748B] mt-6">
+      <p className="text-center text-sm text-[#64748B]">
         Đã có tài khoản?{" "}
         <button onClick={onLoginClick} className="text-[#0EA5E9] hover:underline font-medium">
           Đăng nhập

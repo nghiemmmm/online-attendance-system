@@ -96,6 +96,7 @@ def build_lich_day_item(
         trang_thai_lop=lop_hoc_phan.trang_thai,
         trang_thai_buoi_hoc=buoi_hoc.trang_thai if buoi_hoc else None,
         ghi_chu=buoi_hoc.ghi_chu if buoi_hoc else None,
+        so_buoi=buoi_hoc.so_buoi if buoi_hoc else None,
     )
 
 

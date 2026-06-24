@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
 
@@ -21,6 +22,11 @@ class TaiKhoanRegister(SQLModel):
     ten_dang_nhap: str = Field(max_length=50)
     password: str = Field(min_length=5, max_length=128)
     vai_tro: str = Field(default="SINH_VIEN", max_length=20)
+    email: EmailStr | None = Field(default=None, max_length=100)
+    ho: str | None = Field(default=None, max_length=50)
+    ten: str | None = Field(default=None, max_length=50)
+    dien_thoai: str | None = Field(default=None, max_length=15)
+    gioi_tinh: str | None = Field(default=None, max_length=10)
 
 
 class TaiKhoanUpdate(SQLModel):

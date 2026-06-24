@@ -6,25 +6,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CourseClass } from "@/types/class"
 import { ClassService } from "@/services/class.service"
+import { LecturerService } from "@/services/lecturer.service"
 import { Loader2, AlertCircle, BookOpen, Users, PlayCircle, Plus } from "lucide-react"
 
-const mockUser = {
-  name: "Nguyễn Văn B",
-  email: "b.nguyen@lecturer.edu.vn",
-  avatar: ""
-}
-
 export default function LecturerClassesPage() {
+  const [profile, setProfile] = useState<{ name: string; email: string; maCanBo: number } | null>(null)
   const [classes, setClasses] = useState<CourseClass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendingClaimsCount, setPendingClaimsCount] = useState(0)
 
-  const fetchClasses = async () => {
+  const fetchProfileAndClasses = async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await ClassService.getClasses()
-      setClasses(data)
+      const prof = await LecturerService.getProfile()
+      setProfile(prof)
+      
+      const [classData, claimsCount] = await Promise.all([
+        ClassService.getClasses(),
+        prof.maCanBo ? LecturerService.getPendingClaimsCount(prof.maCanBo) : Promise.resolve(0)
+      ])
+      
+      setClasses(classData)
+      setPendingClaimsCount(claimsCount)
     } catch (err: any) {
       setError(err.message || "Đã xảy ra lỗi.")
     } finally {
@@ -33,15 +38,18 @@ export default function LecturerClassesPage() {
   }
 
   useEffect(() => {
-    fetchClasses()
+    fetchProfileAndClasses()
   }, [])
+
+  const userDisplayName = profile ? profile.name : "Giảng viên"
+  const userEmail = profile ? profile.email : "loading..."
 
   return (
     <AppShell
       role="lecturer"
-      user={mockUser}
+      user={{ name: userDisplayName, email: userEmail, avatar: "" }}
       breadcrumb="Quản lý lớp học phần"
-      notificationCount={2}
+      notificationCount={pendingClaimsCount}
     >
       <div className="space-y-6">
         {/* Header */}
@@ -73,7 +81,7 @@ export default function LecturerClassesPage() {
               </div>
               <h3 className="text-xl font-semibold text-[#991B1B] mb-2">Đã xảy ra lỗi</h3>
               <p className="text-[#DC2626] mb-6 max-w-md">{error}</p>
-              <Button onClick={fetchClasses} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
+              <Button onClick={fetchProfileAndClasses} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
                 Thử lại ngay
               </Button>
             </CardContent>
@@ -109,7 +117,7 @@ export default function LecturerClassesPage() {
                       <CardTitle className="text-lg font-semibold text-[#0F172A] line-clamp-1" title={cls.tenHocPhan}>
                         {cls.tenHocPhan}
                       </CardTitle>
-                      <p className="text-sm text-[#64748B] mt-1">{cls.maLop} • {cls.hocKy}</p>
+                      <p className="text-sm text-[#64748B] mt-1">Mã lớp: {cls.maLop} • {cls.hocKy}</p>
                     </div>
                     <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
                       cls.trangThai === 'Đang học' 

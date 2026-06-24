@@ -23,7 +23,7 @@ export const AuthService = {
     return data;
   },
 
-  register: async (data: { ten_dang_nhap: string; password: string; vai_tro: string }) => {
+  register: async (data: any) => {
     return apiClient.post("/users/signup", data, { requiresAuth: false });
   },
 

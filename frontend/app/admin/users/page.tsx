@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RoleBadge } from "@/components/status-badge"
@@ -35,13 +35,15 @@ import {
   Download,
   Search,
   Eye,
-  Pencil,
   Lock,
   Unlock,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Loader2,
+  AlertTriangle
 } from "lucide-react"
+import { AdminService } from "@/services/admin.service"
 
 const mockUser = {
   name: "Admin System",
@@ -65,30 +67,111 @@ interface UserData {
   classes?: string[]
 }
 
-const users: UserData[] = [
-  { id: "1", name: "Nguyễn Văn A", email: "a.nguyen@student.edu.vn", role: "student", status: "active", createdAt: "01/09/2024", lastLogin: "26/05/2026", studentId: "SV001", faceDataStatus: "approved", classes: ["CS101", "CS201"] },
-  { id: "2", name: "Trần Thị B", email: "b.tran@student.edu.vn", role: "student", status: "active", createdAt: "01/09/2024", lastLogin: "25/05/2026", studentId: "SV002", faceDataStatus: "pending", classes: ["CS101"] },
-  { id: "3", name: "Lê Văn C", email: "c.le@student.edu.vn", role: "student", status: "locked", createdAt: "15/09/2024", lastLogin: "20/05/2026", studentId: "SV003", faceDataStatus: "approved", classes: ["CS201", "CS301"] },
-  { id: "4", name: "Nguyễn Văn B", email: "b.nguyen@lecturer.edu.vn", role: "lecturer", status: "active", createdAt: "01/08/2024", lastLogin: "26/05/2026", classes: ["CS101", "CS201", "CS301"] },
-  { id: "5", name: "Lê Thị M", email: "m.le@lecturer.edu.vn", role: "lecturer", status: "active", createdAt: "01/08/2024", lastLogin: "26/05/2026", classes: ["CS102", "CS202"] },
-  { id: "6", name: "Admin System", email: "admin@university.edu.vn", role: "admin", status: "active", createdAt: "01/01/2024", lastLogin: "26/05/2026" },
-]
-
 export default function AdminUserManagement() {
+  const [users, setUsers] = useState<UserData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  const filteredUsers = users.filter((user) => {
-    if (roleFilter !== "all" && user.role !== roleFilter) return false
-    if (statusFilter !== "all" && user.status !== statusFilter) return false
-    if (searchTerm && !user.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-        !user.email.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !(user.studentId && user.studentId.toLowerCase().includes(searchTerm.toLowerCase()))) return false
-    return true
-  })
+  // Form states
+  const [formName, setFormName] = useState("")
+  const [formEmail, setFormEmail] = useState("")
+  const [formRole, setFormRole] = useState("student")
+  const [formGender, setFormGender] = useState("Nam")
+  const [formPhone, setFormPhone] = useState("")
+  const [formPassword, setFormPassword] = useState("password")
+
+  const fetchUsers = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await AdminService.getUsers(roleFilter, statusFilter, searchTerm)
+      setUsers(response.data || [])
+    } catch (err: any) {
+      console.error(err)
+      setError("Không thể tải danh sách người dùng từ hệ thống.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsers()
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [roleFilter, statusFilter, searchTerm])
+
+  const handleToggleStatus = async (accountId: number) => {
+    try {
+      const res = await AdminService.toggleUserStatus(accountId)
+      if (res) {
+        setUsers(prev => prev.map(u => u.id === accountId.toString() ? {
+          ...u,
+          status: u.status === "active" ? "locked" : "active"
+        } : u))
+      }
+    } catch (err) {
+      alert("Không thể cập nhật trạng thái tài khoản.")
+    }
+  }
+
+  const handleDeleteUser = async (accountId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa tài khoản này và hồ sơ liên quan? Hành động này không thể hoàn tác.")) return
+    try {
+      const success = await AdminService.deleteUser(accountId)
+      if (success) {
+        setUsers(prev => prev.filter(u => u.id !== accountId.toString()))
+      }
+    } catch (err) {
+      alert("Lỗi khi xóa người dùng.")
+    }
+  }
+
+  const handleCreateUser = async () => {
+    if (!formName.trim() || !formEmail.trim() || !formPassword.trim()) {
+      alert("Vui lòng điền đầy đủ các thông tin bắt buộc.")
+      return
+    }
+    setSubmitting(true)
+    try {
+      const nameParts = formName.trim().split(" ")
+      const ho = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : ""
+      const ten = nameParts.length > 0 ? nameParts[nameParts.length - 1] : ""
+
+      const payload = {
+        ten_dang_nhap: formEmail.trim(),
+        password: formPassword,
+        vai_tro: formRole,
+        ho,
+        ten,
+        dien_thoai: formPhone.trim() || null,
+        gioi_tinh: formGender
+      }
+
+      const res = await AdminService.createUser(payload)
+      if (res) {
+        alert("Tạo người dùng thành công!")
+        setCreateUserOpen(false)
+        // Reset form
+        setFormName("")
+        setFormEmail("")
+        setFormPhone("")
+        setFormPassword("password")
+        // Reload list
+        fetchUsers()
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Lỗi khi tạo tài khoản người dùng.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <AppShell 
@@ -106,10 +189,6 @@ export default function AdminUserManagement() {
             </span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Import CSV
-            </Button>
             <Button 
               onClick={() => setCreateUserOpen(true)}
               className="bg-[#0A2540] hover:bg-[#1A3A5C]"
@@ -170,144 +249,167 @@ export default function AdminUserManagement() {
           </CardContent>
         </Card>
 
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
+            <Loader2 className="w-10 h-10 text-[#0EA5E9] animate-spin mb-4" />
+            <p className="text-[#64748B] font-medium">Đang tải danh sách người dùng...</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <Card className="border-[#EF4444] bg-[#FEF2F2]">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertTriangle className="w-12 h-12 text-[#EF4444] mb-3" />
+              <h3 className="text-lg font-semibold text-[#991B1B] mb-1">Đã xảy ra lỗi</h3>
+              <p className="text-[#DC2626] mb-4 max-w-md text-sm">{error}</p>
+              <Button onClick={fetchUsers} variant="outline" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white">
+                Tải lại
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Users Table */}
-        <Card className="border-[#E2E8F0] shadow-sm">
-          <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>Người dùng</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Vai trò</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Ngày tạo</TableHead>
-                  <TableHead>Hành động</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <>
-                    <TableRow 
-                      key={user.id}
-                      className={cn(
-                        "cursor-pointer hover:bg-[#F8FAFC]",
-                        expandedUser === user.id && "bg-[#F8FAFC]"
-                      )}
-                      onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
-                    >
-                      <TableCell>
-                        {expandedUser === user.id ? (
-                          <ChevronUp className="w-4 h-4 text-[#64748B]" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-[#64748B]" />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-9 h-9">
-                            <AvatarFallback className="bg-[#0A2540] text-white text-sm">
-                              {user.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{user.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-[#64748B]">{user.email}</TableCell>
-                      <TableCell>
-                        <RoleBadge role={user.role} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-2 h-2 rounded-full",
-                            user.status === "active" ? "bg-[#22C55E]" : "bg-[#EF4444]"
-                          )} />
-                          <span className={cn(
-                            "text-sm",
-                            user.status === "active" ? "text-[#22C55E]" : "text-[#EF4444]"
-                          )}>
-                            {user.status === "active" ? "Kích hoạt" : "Bị khóa"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-[#64748B]">{user.createdAt}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Eye className="w-4 h-4 text-[#64748B]" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Pencil className="w-4 h-4 text-[#64748B]" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            {user.status === "active" ? (
-                              <Lock className="w-4 h-4 text-[#F59E0B]" />
-                            ) : (
-                              <Unlock className="w-4 h-4 text-[#22C55E]" />
-                            )}
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                          </Button>
-                        </div>
+        {!loading && !error && (
+          <Card className="border-[#E2E8F0] shadow-sm">
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Người dùng</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Vai trò</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                    <TableHead>Hành động</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-[#64748B]">
+                        Không tìm thấy người dùng nào phù hợp.
                       </TableCell>
                     </TableRow>
-                    {expandedUser === user.id && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="bg-[#F8FAFC]">
-                          <div className="p-4 space-y-3">
-                            <div className="grid grid-cols-4 gap-4 text-sm">
-                              <div>
-                                <span className="text-[#64748B]">Đăng nhập gần nhất:</span>
-                                <p className="font-medium text-[#0F172A]">{user.lastLogin}</p>
-                              </div>
-                              {user.studentId && (
-                                <div>
-                                  <span className="text-[#64748B]">Mã sinh viên:</span>
-                                  <p className="font-medium text-[#0F172A]">{user.studentId}</p>
-                                </div>
-                              )}
-                              {user.faceDataStatus && (
-                                <div>
-                                  <span className="text-[#64748B]">Dữ liệu khuôn mặt:</span>
-                                  <p className={cn(
-                                    "font-medium",
-                                    user.faceDataStatus === "approved" ? "text-[#22C55E]" :
-                                    user.faceDataStatus === "pending" ? "text-[#F59E0B]" : "text-[#EF4444]"
-                                  )}>
-                                    {user.faceDataStatus === "approved" ? "Đã duyệt" :
-                                     user.faceDataStatus === "pending" ? "Chờ duyệt" : "Chưa đăng ký"}
-                                  </p>
-                                </div>
-                              )}
-                              {user.classes && user.classes.length > 0 && (
-                                <div>
-                                  <span className="text-[#64748B]">Lớp học phần:</span>
-                                  <p className="font-medium text-[#0F172A]">{user.classes.join(", ")}</p>
-                                </div>
-                              )}
+                  ) : (
+                    users.map((user) => (
+                      <>
+                        <TableRow 
+                          key={user.id}
+                          className={cn(
+                            "cursor-pointer hover:bg-[#F8FAFC]",
+                            expandedUser === user.id && "bg-[#F8FAFC]"
+                          )}
+                          onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
+                        >
+                          <TableCell>
+                            {expandedUser === user.id ? (
+                              <ChevronUp className="w-4 h-4 text-[#64748B]" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-[#64748B]" />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-9 h-9">
+                                <AvatarFallback className="bg-[#0A2540] text-white text-sm">
+                                  {user.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{user.name}</span>
                             </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                ))}
-              </TableBody>
-            </Table>
+                          </TableCell>
+                          <TableCell className="text-[#64748B]">{user.email}</TableCell>
+                          <TableCell>
+                            <RoleBadge role={user.role} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                user.status === "active" ? "bg-[#22C55E]" : "bg-[#EF4444]"
+                              )} />
+                              <span className={cn(
+                                "text-sm",
+                                user.status === "active" ? "text-[#22C55E]" : "text-[#EF4444]"
+                              )}>
+                                {user.status === "active" ? "Kích hoạt" : "Bị khóa"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-[#64748B]">{user.createdAt}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="w-8 h-8"
+                                onClick={() => handleToggleStatus(parseInt(user.id))}
+                              >
+                                {user.status === "active" ? (
+                                  <Lock className="w-4 h-4 text-[#F59E0B]" />
+                                ) : (
+                                  <Unlock className="w-4 h-4 text-[#22C55E]" />
+                                )}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="w-8 h-8 text-[#EF4444] hover:text-[#EF4444]"
+                                onClick={() => handleDeleteUser(parseInt(user.id))}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {expandedUser === user.id && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="bg-[#F8FAFC]">
+                              <div className="p-4 space-y-3">
+                                <div className="grid grid-cols-4 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-[#64748B]">Đăng nhập gần nhất:</span>
+                                    <p className="font-medium text-[#0F172A]">{user.lastLogin}</p>
+                                  </div>
+                                  {user.studentId && (
+                                    <div>
+                                      <span className="text-[#64748B]">Mã sinh viên (Hồ sơ):</span>
+                                      <p className="font-medium text-[#0F172A]">{user.studentId}</p>
+                                    </div>
+                                  )}
+                                  {user.faceDataStatus && (
+                                    <div>
+                                      <span className="text-[#64748B]">Dữ liệu khuôn mặt:</span>
+                                      <p className={cn(
+                                        "font-medium",
+                                        user.faceDataStatus === "approved" ? "text-[#22C55E]" :
+                                        user.faceDataStatus === "pending" ? "text-[#F59E0B]" : "text-[#EF4444]"
+                                      )}>
+                                        {user.faceDataStatus === "approved" ? "Đã đăng ký" : "Chưa đăng ký"}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
 
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E2E8F0]">
-              <p className="text-sm text-[#64748B]">
-                Hiển thị {filteredUsers.length} / {users.length} người dùng
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled>Trước</Button>
-                <Button variant="outline" size="sm" disabled>Sau</Button>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E2E8F0]">
+                <p className="text-sm text-[#64748B]">
+                  Hiển thị {users.length} người dùng
+                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Create User Modal */}
@@ -322,52 +424,94 @@ export default function AdminUserManagement() {
               <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Họ và tên <span className="text-red-500">*</span>
               </label>
-              <Input placeholder="Nhập họ và tên" />
+              <Input 
+                placeholder="VD: Nguyễn Văn C" 
+                value={formName} 
+                onChange={(e) => setFormName(e.target.value)}
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[#0F172A] mb-2">
-                Email <span className="text-red-500">*</span>
+                Email / Tên đăng nhập <span className="text-red-500">*</span>
               </label>
-              <Input type="email" placeholder="Nhập email" />
+              <Input 
+                type="email" 
+                placeholder="VD: c.nguyen@student.edu.vn" 
+                value={formEmail} 
+                onChange={(e) => setFormEmail(e.target.value)}
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-2">
-                Vai trò <span className="text-red-500">*</span>
-              </label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn vai trò" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Sinh viên</SelectItem>
-                  <SelectItem value="lecturer">Giảng viên</SelectItem>
-                  <SelectItem value="admin">Quản trị viên</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                  Giới tính
+                </label>
+                <Select value={formGender} onValueChange={setFormGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn giới tính" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Nam">Nam</SelectItem>
+                    <SelectItem value="Nữ">Nữ</SelectItem>
+                    <SelectItem value="Khác">Khác</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                  Số điện thoại
+                </label>
+                <Input 
+                  placeholder="VD: 0987654321" 
+                  value={formPhone} 
+                  onChange={(e) => setFormPhone(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-2">
-                Mã sinh viên (nếu là sinh viên)
-              </label>
-              <Input placeholder="VD: SV001" />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                  Vai trò <span className="text-red-500">*</span>
+                </label>
+                <Select value={formRole} onValueChange={setFormRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn vai trò" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Sinh viên</SelectItem>
+                    <SelectItem value="lecturer">Giảng viên</SelectItem>
+                    <SelectItem value="admin">Quản trị viên</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-2">
-                Mật khẩu <span className="text-red-500">*</span>
-              </label>
-              <Input type="password" placeholder="Nhập mật khẩu" />
+              <div>
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                  Mật khẩu <span className="text-red-500">*</span>
+                </label>
+                <Input 
+                  type="password" 
+                  placeholder="Mật khẩu" 
+                  value={formPassword} 
+                  onChange={(e) => setFormPassword(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateUserOpen(false)}>
+            <Button variant="outline" onClick={() => setCreateUserOpen(false)} disabled={submitting}>
               Hủy
             </Button>
-            <Button className="bg-[#0A2540] hover:bg-[#1A3A5C]">
+            <Button 
+              onClick={handleCreateUser}
+              className="bg-[#0A2540] hover:bg-[#1A3A5C]"
+              disabled={submitting}
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : null}
               Tạo người dùng
             </Button>
           </DialogFooter>

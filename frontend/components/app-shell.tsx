@@ -39,6 +39,7 @@ interface NavItem {
 const navConfig: Record<UserRole, NavItem[]> = {
   student: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/student" },
+    { icon: BookOpen, label: "Đăng ký học phần", href: "/student/registration" },
     { icon: History, label: "Lịch sử điểm danh", href: "/student/history" },
     { icon: MessageSquareWarning, label: "Khiếu nại", href: "/student/claims" },
     { icon: User, label: "Hồ sơ cá nhân", href: "/student/profile" }

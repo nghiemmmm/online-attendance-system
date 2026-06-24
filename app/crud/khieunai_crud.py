@@ -80,6 +80,7 @@ def build_khieu_nai_can_xu_ly_item(
         trang_thai_diem_danh=diem_danh.trang_thai,
         ly_do=khieu_nai.ly_do,
         ngay_gui=khieu_nai.ngay_gui,
+        so_buoi=buoi_hoc.so_buoi,
     )
 
 
@@ -106,6 +107,7 @@ def build_khieu_nai_can_xu_ly_detail(
         trang_thai=khieu_nai.trang_thai,
         ngay_gui=khieu_nai.ngay_gui,
         ghi_chu_xu_ly=khieu_nai.ghi_chu_xu_ly,
+        so_buoi=buoi_hoc.so_buoi,
     )
 
 

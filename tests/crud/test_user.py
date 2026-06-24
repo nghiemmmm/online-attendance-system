@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.security import verify_password
-from app.models import TaiKhoan, TaiKhoanCreate, UserUpdate
+from app.models import TaiKhoan, TaiKhoanCreate, TaiKhoanUpdate
 from tests.utils.utils import random_email, random_lower_string
 
 
@@ -12,17 +12,17 @@ def test_create_user(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
     user_in = TaiKhoanCreate(ten_dang_nhap=email, password=password)
-    user = crud.create_user(session=db, user_create=user_in)
+    user = crud.create_account(session=db, account_create=user_in)
     assert user.ten_dang_nhap == email
-    assert hasattr(user, "hashed_password")
+    assert hasattr(user, "mat_khau_hash")
 
 
 def test_authenticate_user(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
     user_in = TaiKhoanCreate(ten_dang_nhap=email, password=password)
-    user = crud.create_user(session=db, user_create=user_in)
-    authenticated_user = crud.authenticate(session=db, ten_dang_nhap=email, password=password)
+    user = crud.create_account(session=db, account_create=user_in)
+    authenticated_user = crud.authenticate_account(session=db, ten_dang_nhap=email, password=password)
     assert authenticated_user
     assert user.ten_dang_nhap == authenticated_user.ten_dang_nhap
 
@@ -30,7 +30,7 @@ def test_authenticate_user(db: Session) -> None:
 def test_not_authenticate_user(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
-    user = crud.authenticate(session=db, ten_dang_nhap=email, password=password)
+    user = crud.authenticate_account(session=db, ten_dang_nhap=email, password=password)
     assert user is None
 
 
@@ -38,7 +38,7 @@ def test_check_if_user_is_active(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
     user_in = TaiKhoanCreate(ten_dang_nhap=email, password=password)
-    user = crud.create_user(session=db, user_create=user_in)
+    user = crud.create_account(session=db, account_create=user_in)
     assert user.trang_thai is True
 
 
@@ -46,7 +46,7 @@ def test_check_if_user_is_active_inactive(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
     user_in = TaiKhoanCreate(ten_dang_nhap=email, password=password, trang_thai=False)
-    user = crud.create_user(session=db, user_create=user_in)
+    user = crud.create_account(session=db, account_create=user_in)
     assert user.trang_thai is False
 
 
@@ -54,24 +54,24 @@ def test_check_if_user_is_superuser(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
     user_in = TaiKhoanCreate(ten_dang_nhap=email, password=password, vai_tro="ADMIN")
-    user = crud.create_user(session=db, user_create=user_in)
-    assert uservai_tro == "ADMIN" is True
+    user = crud.create_account(session=db, account_create=user_in)
+    assert (user.vai_tro == "ADMIN") is True
 
 
 def test_check_if_user_is_superuser_normal_user(db: Session) -> None:
     username = random_email()
     password = random_lower_string()
     user_in = TaiKhoanCreate(ten_dang_nhap=username, password=password)
-    user = crud.create_user(session=db, user_create=user_in)
-    assert uservai_tro == "ADMIN" is False
+    user = crud.create_account(session=db, account_create=user_in)
+    assert (user.vai_tro == "ADMIN") is False
 
 
 def test_get_user(db: Session) -> None:
     password = random_lower_string()
     username = random_email()
     user_in = TaiKhoanCreate(ten_dang_nhap=username, password=password, vai_tro="ADMIN")
-    user = crud.create_user(session=db, user_create=user_in)
-    user_2 = db.get(TaiKhoan, user.id)
+    user = crud.create_account(session=db, account_create=user_in)
+    user_2 = db.get(TaiKhoan, user.ma_tai_khoan)
     assert user_2
     assert user.ten_dang_nhap == user_2.ten_dang_nhap
     assert jsonable_encoder(user) == jsonable_encoder(user_2)
@@ -81,15 +81,15 @@ def test_update_user(db: Session) -> None:
     password = random_lower_string()
     email = random_email()
     user_in = TaiKhoanCreate(ten_dang_nhap=email, password=password, vai_tro="ADMIN")
-    user = crud.create_user(session=db, user_create=user_in)
+    user = crud.create_account(session=db, account_create=user_in)
     new_password = random_lower_string()
     user_in_update = TaiKhoanUpdate(password=new_password, vai_tro="ADMIN")
-    if user.id is not None:
-        crud.update_user(session=db, db_user=user, user_in=user_in_update)
-    user_2 = db.get(TaiKhoan, user.id)
+    if user.ma_tai_khoan is not None:
+        crud.update_account(session=db, db_account=user, account_in=user_in_update)
+    user_2 = db.get(TaiKhoan, user.ma_tai_khoan)
     assert user_2
     assert user.ten_dang_nhap == user_2.ten_dang_nhap
-    verified, _ = verify_password(new_password, user_2.hashed_password)
+    verified, _ = verify_password(new_password, user_2.mat_khau_hash)
     assert verified
 
 
@@ -104,26 +104,26 @@ def test_authenticate_user_with_bcrypt_upgrades_to_argon2(db: Session) -> None:
     assert bcrypt_hash.startswith("$2")  # bcrypt hashes start with $2
 
     # Create user with bcrypt hash directly in the database
-    user = TaiKhoan(ten_dang_nhap=email, hashed_password=bcrypt_hash)
+    user = TaiKhoan(ten_dang_nhap=email, mat_khau_hash=bcrypt_hash)
     db.add(user)
     db.commit()
     db.refresh(user)
 
     # Verify the hash is bcrypt before authentication
-    assert user.hashed_password.startswith("$2")
+    assert user.mat_khau_hash.startswith("$2")
 
     # Authenticate - this should upgrade the hash to argon2
-    authenticated_user = crud.authenticate(session=db, ten_dang_nhap=email, password=password)
+    authenticated_user = crud.authenticate_account(session=db, ten_dang_nhap=email, password=password)
     assert authenticated_user
     assert authenticated_user.ten_dang_nhap == email
 
     db.refresh(authenticated_user)
 
     # Verify the hash was upgraded to argon2
-    assert authenticated_user.hashed_password.startswith("$argon2")
+    assert authenticated_user.mat_khau_hash.startswith("$argon2")
 
     verified, updated_hash = verify_password(
-        password, authenticated_user.hashed_password
+        password, authenticated_user.mat_khau_hash
     )
     assert verified
     # Should not need another update since it's already argon2

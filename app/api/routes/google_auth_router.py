@@ -4,6 +4,7 @@ import secrets
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
 from app import crud
@@ -59,54 +60,76 @@ async def google_login_register(request: Request, remember_me: bool = False):
 @router.get("/callback", name="google_callback")
 async def google_callback(
     request: Request, session: SessionDep
-) -> Token | GoogleAuthPending:
-    google_token = await oauth.google.authorize_access_token(request)
-    user_info = await oauth.google.userinfo(token=google_token)
-    provider_subject, email = validate_google_user_info(user_info)
-    mode: GoogleAuthMode = request.session.pop("google_auth_mode", "existing")
-    remember_me = request.session.pop("remember_me", False)
+) -> Any:
+    try:
+        google_token = await oauth.google.authorize_access_token(request)
+        user_info = await oauth.google.userinfo(token=google_token)
+        provider_subject, email = validate_google_user_info(user_info)
+        mode: GoogleAuthMode = request.session.pop("google_auth_mode", "existing")
+        remember_me = request.session.pop("remember_me", False)
 
-    identity = crud.get_oauth_identity_by_provider_subject(
-        session=session,
-        provider=GOOGLE_PROVIDER,
-        provider_subject=provider_subject,
-    )
-    if identity:
-        account = session.get(TaiKhoan, identity.ma_tai_khoan)
-        if not account:
-            raise HTTPException(status_code=404, detail="Account not found")
-
-        token = create_login_token_for_account(
+        identity = crud.get_oauth_identity_by_provider_subject(
             session=session,
-            account=account,
-            remember_me=remember_me,
-            request=request,
-        )
-        crud.update_oauth_identity_last_login(session=session, identity=identity)
-        logger.info(
-            "google_login_existing_identity account_id=%s identity_id=%s remember_me=%s",
-            account.ma_tai_khoan,
-            identity.ma_oauth_identity,
-            remember_me,
-        )
-        return token
-
-    if mode == "auto_register":
-        return handle_auto_register_login(
-            session=session,
+            provider=GOOGLE_PROVIDER,
             provider_subject=provider_subject,
-            email=email,
-            remember_me=remember_me,
-            request=request,
         )
+        if identity:
+            account = session.get(TaiKhoan, identity.ma_tai_khoan)
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
 
-    return handle_existing_account_login(
-        session=session,
-        provider_subject=provider_subject,
-        email=email,
-        remember_me=remember_me,
-        request=request,
-    )
+            token = create_login_token_for_account(
+                session=session,
+                account=account,
+                remember_me=remember_me,
+                request=request,
+            )
+            crud.update_oauth_identity_last_login(session=session, identity=identity)
+            logger.info(
+                "google_login_existing_identity account_id=%s identity_id=%s remember_me=%s",
+                account.ma_tai_khoan,
+                identity.ma_oauth_identity,
+                remember_me,
+            )
+            return RedirectResponse(
+                url=f"{settings.FRONTEND_HOST}/auth/callback?token={token.access_token}"
+            )
+
+        if mode == "auto_register":
+            result = handle_auto_register_login(
+                session=session,
+                provider_subject=provider_subject,
+                email=email,
+                remember_me=remember_me,
+                request=request,
+            )
+        else:
+            result = handle_existing_account_login(
+                session=session,
+                provider_subject=provider_subject,
+                email=email,
+                remember_me=remember_me,
+                request=request,
+            )
+
+        if isinstance(result, GoogleAuthPending):
+            return RedirectResponse(
+                url=f"{settings.FRONTEND_HOST}/auth/callback?status=pending&ma_tai_khoan={result.ma_tai_khoan}"
+            )
+        else:
+            return RedirectResponse(
+                url=f"{settings.FRONTEND_HOST}/auth/callback?token={result.access_token}"
+            )
+    except HTTPException as e:
+        logger.error("google_callback_error: %s", e.detail)
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_HOST}/auth/callback?error={e.detail}"
+        )
+    except Exception as e:
+        logger.error("google_callback_unexpected_error: %s", str(e))
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_HOST}/auth/callback?error=Unexpected error occurred"
+        )
 
 
 def validate_google_user_info(user_info: dict[str, Any]) -> tuple[str, str]:

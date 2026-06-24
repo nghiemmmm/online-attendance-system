@@ -41,6 +41,7 @@ class LichDayItem(SQLModel):
     trang_thai_lop: bool
     trang_thai_buoi_hoc: str | None = None
     ghi_chu: str | None = None
+    so_buoi: int | None = None
 
 
 class LichDaysPublic(SQLModel):

@@ -15,8 +15,8 @@ export const StudentService = {
         email: profile.google_email || "Not provided",
         phone: profile.dien_thoai || "Not provided",
         department: profile.ma_nganh?.toString() || "Unknown Department", // Ideally we'd map this to a string name
-        faceRegistered: false, // Backend model 'anhkhuonmat' would need to be checked
-        registeredFacesCount: 0,
+        faceRegistered: !!profile.face_registered,
+        registeredFacesCount: profile.registered_faces_count || 0,
       };
     } catch (error) {
       console.error("Error fetching student profile:", error);
@@ -119,6 +119,56 @@ export const StudentService = {
         confidence: 0,
         message: error?.response?.data?.detail || "Lỗi kết nối máy chủ"
       };
+    }
+  },
+
+  getSchedule: async (): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>("/sinh-vien/me/lich-hoc");
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+      return [];
+    }
+  },
+
+  getAttendance: async (): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>("/sinh-vien/me/diem-danh");
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      return [];
+    }
+  },
+
+  getAvailableClasses: async (): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>("/sinh-vien/me/lop-hoc-phan-available");
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching available classes:", error);
+      return [];
+    }
+  },
+
+  registerClass: async (maLopHocPhan: number): Promise<boolean> => {
+    try {
+      await apiClient.post(`/sinh-vien/me/dang-ky-hoc-phan?ma_lop_hoc_phan=${maLopHocPhan}`, {});
+      return true;
+    } catch (error) {
+      console.error("Error registering class:", error);
+      return false;
+    }
+  },
+
+  cancelClassRegistration: async (maLopHocPhan: number): Promise<boolean> => {
+    try {
+      await apiClient.delete(`/sinh-vien/me/huy-dang-ky-hoc-phan/${maLopHocPhan}`);
+      return true;
+    } catch (error) {
+      console.error("Error cancelling class registration:", error);
+      return false;
     }
   }
 };

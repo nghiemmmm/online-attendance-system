@@ -43,6 +43,7 @@ class KhieuNaiCanXuLyItem(SQLModel):
     trang_thai_diem_danh: str
     ly_do: str
     ngay_gui: datetime
+    so_buoi: int | None = None
 
 
 class KhieuNaiCanXuLysPublic(SQLModel):
@@ -67,6 +68,7 @@ class KhieuNaiCanXuLyDetail(SQLModel):
     trang_thai: str
     ngay_gui: datetime
     ghi_chu_xu_ly: str | None = None
+    so_buoi: int | None = None
 
 
 class KhieuNaiXuLyRequest(SQLModel):

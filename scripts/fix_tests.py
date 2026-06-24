@@ -36,4 +36,4 @@ def fix_tests(dir_path):
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
 
-fix_tests("c:/online-attendance-system/tests")
+fix_tests("d:/TTCS/tests")

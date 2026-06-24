@@ -42,6 +42,17 @@ def get_account_profile(*, session: Session, account: TaiKhoan) -> dict | None:
         profile = session.exec(
             select(SinhVien).where(SinhVien.ma_tai_khoan == account.ma_tai_khoan)
         ).first()
+        if profile:
+            profile_dict = profile.model_dump()
+            from app.models import AnhKhuonMat
+            from sqlalchemy import func
+            face_count = session.exec(
+                select(func.count(AnhKhuonMat.ma_anh)).where(AnhKhuonMat.ma_sinh_vien == profile.ma_sinh_vien)
+            ).first() or 0
+            profile_dict["face_registered"] = face_count > 0
+            profile_dict["registered_faces_count"] = face_count
+            return profile_dict
+        return None
     elif account.vai_tro in {"GIANG_VIEN", "CAN_BO"}:
         profile = session.exec(
             select(CanBo).where(CanBo.ma_tai_khoan == account.ma_tai_khoan)
@@ -88,7 +99,7 @@ from fastapi import HTTPException
 from datetime import datetime, timezone, timedelta
 
 def get_datetime_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 def authenticate_account(
     *, session: Session, ten_dang_nhap: str, password: str

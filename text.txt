@@ -29,3 +29,10 @@ test ham cu the :
 venv\Scripts\python.exe -m pytest --confcutdir=tests\register tests\register\test_google_register.py::test_auto_register_creates_pending_account_and_google_identity
 
 venv\Scripts\python.exe -m pytest --confcutdir=tests\register tests\register\test_google_register.py tests\login\test_google_login.py
+
+tue
+password
+
+gv001@university.edu.vn
+
+admin@university.edu.vn

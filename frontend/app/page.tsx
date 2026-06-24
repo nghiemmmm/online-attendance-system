@@ -27,9 +27,31 @@ export default function LoginPage() {
     }
   }
 
-  const handleRegister = (data: { name: string; studentId: string; email: string; password: string }) => {
-    console.log("Register:", data)
-    setView("login")
+  const handleRegister = async (data: {
+    ten_dang_nhap: string
+    email: string
+    password: string
+    ho: string
+    ten: string
+    dien_thoai: string
+    gioi_tinh: string
+  }) => {
+    try {
+      await AuthService.register({
+        ten_dang_nhap: data.ten_dang_nhap,
+        email: data.email,
+        password: data.password,
+        ho: data.ho,
+        ten: data.ten,
+        dien_thoai: data.dien_thoai,
+        gioi_tinh: data.gioi_tinh,
+        vai_tro: "SINH_VIEN",
+      });
+      alert("Đăng ký tài khoản thành công! Hãy đăng nhập.");
+      setView("login");
+    } catch (err: any) {
+      alert("Đăng ký thất bại: " + (err.message || "Lỗi không xác định"));
+    }
   }
 
   return (

@@ -5,7 +5,7 @@ Hệ thống điểm danh trực tuyến dựa trên công nghệ nhận diện 
 ## Kiến trúc Hệ thống
 Dự án được xây dựng trên nền tảng công nghệ hiện đại:
 - **Backend:** FastAPI (Python) + SQLModel.
-- **Database:** PostgreSQL (hoặc SQLite cho môi trường Dev).
+- **Database:** PostgreSQL (hoặc SQLite cho môi trường Dev). Chi tiết thiết kế xem tại [DATABASE.md](DATABASE.md).
 - **Trí tuệ nhân tạo (AI):** FaceNet (InceptionResnetV1) + MTCNN (Phát hiện khuôn mặt) + FAISS (Cơ sở dữ liệu Vector siêu tốc).
 - **Frontend:** Next.js (React) + Tailwind CSS + Shadcn UI.
 - **Giao thức Thời gian thực:** WebRTC (aiortc) truyền tải video và phân tích ảnh tự động.

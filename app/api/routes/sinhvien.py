@@ -8,6 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import select
 
 from app import crud
 from app.api.deps import SessionDep, get_current_active_superuser
@@ -114,20 +115,23 @@ def get_my_lich_hoc(session: SessionDep, current_account: CurrentAccount) -> Any
         raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
     
     # Tìm các lớp học phần sinh viên đăng ký
+    from app.models.hocphan import HocPhan
     statement = (
-        select(LopHocPhan, BuoiHoc)
+        select(LopHocPhan, BuoiHoc, HocPhan)
         .join(DangKyHocPhan, DangKyHocPhan.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
         .join(BuoiHoc, BuoiHoc.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
+        .join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan)
         .where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien)
     )
     results = session.exec(statement).all()
     
     # Format lại kết quả
     lich_hoc = []
-    for lhp, bh in results:
+    for lhp, bh, hp in results:
         lich_hoc.append({
             "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
             "ma_hoc_phan": lhp.ma_hoc_phan,
+            "ten_hoc_phan": hp.ten_hoc_phan,
             "ngay_hoc": bh.ngay_hoc,
             "gio_bat_dau": bh.gio_bat_dau,
             "gio_ket_thuc": bh.gio_ket_thuc,
@@ -146,23 +150,26 @@ def get_my_diem_danh(session: SessionDep, current_account: CurrentAccount) -> An
     if not sinh_vien:
         raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
     
+    from app.models.hocphan import HocPhan
     statement = (
-        select(DiemDanh, BuoiHoc, LopHocPhan)
+        select(DiemDanh, BuoiHoc, LopHocPhan, HocPhan)
         .join(BuoiHoc, BuoiHoc.ma_buoi_hoc == DiemDanh.ma_buoi_hoc)
         .join(LopHocPhan, LopHocPhan.ma_lop_hoc_phan == BuoiHoc.ma_lop_hoc_phan)
+        .join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan)
         .where(DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien)
     )
     results = session.exec(statement).all()
     
     lich_su = []
-    for dd, bh, lhp in results:
+    for dd, bh, lhp, hp in results:
         lich_su.append({
             "ma_diem_danh": dd.ma_diem_danh,
             "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
+            "ten_hoc_phan": hp.ten_hoc_phan,
             "ngay_hoc": bh.ngay_hoc,
             "trang_thai": dd.trang_thai,
             "thoi_diem_diem_danh": dd.thoi_diem_diem_danh,
-            "ghi_chu": dd.ghi_chu
+            "ghi_chu": dd.ly_do_chinh_sua
         })
     return {"data": lich_su, "count": len(lich_su)}
 
@@ -303,3 +310,146 @@ def delete_sinh_vien(
         ) from exc
 
     return Message(message="Student profile deleted successfully")
+
+
+@router.get(
+    "/me/lop-hoc-phan-available",
+    dependencies=[Depends(get_current_active_sinhvien)],
+)
+def get_available_lop_hoc_phan(session: SessionDep, current_account: CurrentAccount) -> Any:
+    """Lấy danh sách lớp học phần có sẵn và đánh dấu xem sinh viên hiện tại đã đăng ký chưa."""
+    sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not sinh_vien:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+    
+    from app.models.hocphan import HocPhan
+    from app.models.canbo import CanBo
+    
+    statement = (
+        select(LopHocPhan, HocPhan, CanBo)
+        .join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan)
+        .join(CanBo, CanBo.ma_can_bo == LopHocPhan.ma_can_bo)
+    )
+    results = session.exec(statement).all()
+    
+    registered_statement = (
+        select(DangKyHocPhan.ma_lop_hoc_phan)
+        .where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+    )
+    registered_class_ids = set(session.exec(registered_statement).all())
+    
+    available_classes = []
+    for lhp, hp, cb in results:
+        available_classes.append({
+            "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
+            "ma_hoc_phan": lhp.ma_hoc_phan,
+            "ten_hoc_phan": hp.ten_hoc_phan,
+            "so_tin_chi": hp.so_tin_chi,
+            "ten_giang_vien": f"{cb.ho} {cb.ten}".strip(),
+            "hoc_ky": lhp.hoc_ky,
+            "nam_hoc": lhp.nam_hoc,
+            "ty_le_chuyen_can_toi_thieu": lhp.ty_le_chuyen_can_toi_thieu,
+            "is_registered": lhp.ma_lop_hoc_phan in registered_class_ids
+        })
+        
+    return {"data": available_classes, "count": len(available_classes)}
+
+
+@router.post(
+    "/me/dang-ky-hoc-phan",
+    dependencies=[Depends(get_current_active_sinhvien)],
+)
+def register_my_lop_hoc_phan(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    ma_lop_hoc_phan: int,
+) -> Any:
+    """Sinh viên tự đăng ký lớp học phần."""
+    sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not sinh_vien:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+        
+    existing = session.exec(
+        select(DangKyHocPhan)
+        .where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+        .where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bạn đã đăng ký lớp học phần này rồi")
+        
+    lhp = session.get(LopHocPhan, ma_lop_hoc_phan)
+    if not lhp:
+        raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
+        
+    reg = DangKyHocPhan(
+        ma_sinh_vien=sinh_vien.ma_sinh_vien,
+        ma_lop_hoc_phan=ma_lop_hoc_phan
+    )
+    session.add(reg)
+    
+    import random
+    buoihocs = session.exec(
+        select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan)
+    ).all()
+    
+    statuses = ["CO_MAT", "DI_MUON", "VANG"]
+    methods = ["KHUON_MAT", "THU_CONG"]
+    
+    for idx, bh in enumerate(buoihocs):
+        status = statuses[idx % len(statuses)]
+        method = methods[idx % len(methods)]
+        confidence = round(random.uniform(0.85, 0.99), 2) if method == "KHUON_MAT" else None
+        
+        dd = DiemDanh(
+            ma_sinh_vien=sinh_vien.ma_sinh_vien,
+            ma_buoi_hoc=bh.ma_buoi_hoc,
+            trang_thai=status,
+            phuong_thuc=method,
+            do_tin_cay=confidence
+        )
+        session.add(dd)
+        
+    session.commit()
+    return {"message": "Đăng ký học phần thành công"}
+
+
+@router.delete(
+    "/me/huy-dang-ky-hoc-phan/{ma_lop_hoc_phan}",
+    dependencies=[Depends(get_current_active_sinhvien)],
+)
+def cancel_my_lop_hoc_phan(
+    session: SessionDep,
+    current_account: CurrentAccount,
+    ma_lop_hoc_phan: int,
+) -> Any:
+    """Sinh viên tự hủy đăng ký lớp học phần."""
+    sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if not sinh_vien:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+        
+    reg = session.exec(
+        select(DangKyHocPhan)
+        .where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+        .where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
+    ).first()
+    if not reg:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bản ghi đăng ký học phần")
+        
+    session.delete(reg)
+    
+    buoi_hoc_ids_statement = select(BuoiHoc.ma_buoi_hoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan)
+    buoi_hoc_ids = session.exec(buoi_hoc_ids_statement).all()
+    
+    if buoi_hoc_ids:
+        diem_danh_records = session.exec(
+            select(DiemDanh)
+            .where(DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+            .where(DiemDanh.ma_buoi_hoc.in_(buoi_hoc_ids))
+        ).all()
+        for dd in diem_danh_records:
+            from sqlalchemy import text
+            session.execute(text("DELETE FROM khieunai WHERE ma_diem_danh = :dd_id"), {"dd_id": dd.ma_diem_danh})
+            session.delete(dd)
+            
+    session.commit()
+    return {"message": "Hủy đăng ký học phần thành công"}
