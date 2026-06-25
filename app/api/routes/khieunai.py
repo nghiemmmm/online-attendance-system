@@ -26,6 +26,10 @@ from app.models import (
     KhieuNaiXuLyResult,
     SinhVien,
     CanBo,
+    DiemDanh,
+    BuoiHoc,
+    LopHocPhan,
+    HocPhan,
 )
 from app.services.khieunai_service import (
     chap_thuan_khieu_nai,
@@ -115,13 +119,29 @@ def read_my_khieu_nai(
     count = session.exec(count_statement).one()
 
     statement = (
-        select(KhieuNai)
+        select(KhieuNai, DiemDanh, BuoiHoc, LopHocPhan, HocPhan)
+        .join(DiemDanh, KhieuNai.ma_diem_danh == DiemDanh.ma_diem_danh)
+        .join(BuoiHoc, DiemDanh.ma_buoi_hoc == BuoiHoc.ma_buoi_hoc)
+        .join(LopHocPhan, BuoiHoc.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
+        .join(HocPhan, LopHocPhan.ma_hoc_phan == HocPhan.ma_hoc_phan)
         .where(KhieuNai.ma_sinh_vien == sinh_vien.ma_sinh_vien)
         .order_by(col(KhieuNai.ngay_gui).desc())
         .offset(skip)
         .limit(limit)
     )
-    khieu_nais = session.exec(statement).all()
+    rows = session.exec(statement).all()
+    khieu_nais = [
+        KhieuNaiPublic(
+            **khieu_nai.model_dump(),
+            ma_lop_hoc_phan=lop_hoc_phan.ma_lop_hoc_phan,
+            ma_hoc_phan=hoc_phan.ma_hoc_phan,
+            ten_hoc_phan=hoc_phan.ten_hoc_phan,
+            ngay_hoc=buoi_hoc.ngay_hoc,
+            so_buoi=buoi_hoc.so_buoi,
+            trang_thai_diem_danh=diem_danh.trang_thai,
+        )
+        for khieu_nai, diem_danh, buoi_hoc, lop_hoc_phan, hoc_phan in rows
+    ]
     return KhieuNaisPublic(data=khieu_nais, count=count)
 
 

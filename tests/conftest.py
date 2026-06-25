@@ -17,8 +17,6 @@ def db() -> Generator[Session, None, None]:
     with Session(engine) as session:
         init_db(session)
         yield session
-        statement = delete(Item)
-        session.execute(statement)
         statement = delete(TaiKhoan)
         session.execute(statement)
         session.commit()

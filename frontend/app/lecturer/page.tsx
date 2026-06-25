@@ -64,10 +64,10 @@ export default function LecturerDashboard() {
 
         // Parse attendance stats
         const currentRate = monthlySummary?.current_month_attendance_rate
-          ? Math.round(monthlySummary.current_month_attendance_rate * 1000) / 10
+          ? Math.round(monthlySummary.current_month_attendance_rate * 10) / 10
           : 0
         const changeVal = monthlySummary?.change_percentage
-          ? Math.round(monthlySummary.change_percentage * 1000) / 10
+          ? Math.round(monthlySummary.change_percentage * 10) / 10
           : 0
 
         // Parse student count: sum of current students in recent sessions or class lists

@@ -107,6 +107,12 @@ class KhieuNai(KhieuNaiBase, table=True):
 class KhieuNaiPublic(KhieuNaiBase):
     ma_khieu_nai: int
     ngay_gui: datetime
+    ma_lop_hoc_phan: int | None = None
+    ma_hoc_phan: int | None = None
+    ten_hoc_phan: str | None = None
+    ngay_hoc: date | None = None
+    so_buoi: int | None = None
+    trang_thai_diem_danh: str | None = None
 
 
 class KhieuNaisPublic(SQLModel):

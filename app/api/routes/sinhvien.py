@@ -331,13 +331,20 @@ def delete_sinh_vien(
 def get_available_lop_hoc_phan(
     session: SessionDep,
     current_account: CurrentAccount,
-    hoc_ky: int = 1,
-    nam_hoc: str = "2025-2026",
+    hoc_ky: int | None = None,
+    nam_hoc: str | None = None,
 ) -> Any:
     """Lấy danh sách lớp học phần có sẵn và đánh dấu xem sinh viên hiện tại đã đăng ký chưa."""
     sinh_vien = crud.get_sinh_vien_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
     if not sinh_vien:
         raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
+    
+    from app.crud.lichday_crud import infer_current_semester
+    from datetime import date
+    
+    current_hk, current_nh = infer_current_semester(date.today())
+    target_hk = hoc_ky if hoc_ky is not None else current_hk
+    target_nh = nam_hoc if nam_hoc is not None else current_nh
     
     from app.models.hocphan import HocPhan
     from app.models.canbo import CanBo
@@ -348,8 +355,8 @@ def get_available_lop_hoc_phan(
         .join(CanBo, CanBo.ma_can_bo == LopHocPhan.ma_can_bo)
         .where(
             LopHocPhan.trang_thai == True,
-            LopHocPhan.hoc_ky == hoc_ky,
-            LopHocPhan.nam_hoc == nam_hoc,
+            LopHocPhan.hoc_ky == target_hk,
+            LopHocPhan.nam_hoc == target_nh,
         )
     )
     results = session.exec(statement).all()

@@ -53,14 +53,14 @@ export const StudentService = {
       
       return claims.map((claim: any) => ({
         id: claim.ma_khieu_nai?.toString() || `CLM-${Math.random().toString(36).substring(7)}`,
-        subjectCode: claim.ma_lop_hoc_phan?.toString() || "Unknown",
-        subjectName: "Lớp học phần " + (claim.ma_lop_hoc_phan || "Unknown"), // Needs join with lophocphan
-        date: claim.ngay_khieu_nai ? new Date(claim.ngay_khieu_nai).toLocaleDateString("vi-VN") : "N/A",
-        sessionNumber: 1, // Add if available in backend
-        currentStatus: "absent", // Derive from attendance status
+        subjectCode: claim.ma_hoc_phan?.toString() || claim.ma_lop_hoc_phan?.toString() || "N/A",
+        subjectName: claim.ten_hoc_phan || `Lớp học phần ${claim.ma_lop_hoc_phan || "N/A"}`,
+        date: claim.ngay_hoc ? new Date(claim.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
+        sessionNumber: claim.so_buoi || 1,
+        currentStatus: claim.trang_thai_diem_danh === "DI_MUON" || claim.trang_thai_diem_danh === "MUON" ? "late" : "absent",
         reason: claim.ly_do || "No reason",
         status: claim.trang_thai === "DA_XU_LY" ? "approved" : claim.trang_thai === "TU_CHOI" ? "rejected" : "pending",
-        submittedAt: claim.ngay_khieu_nai ? new Date(claim.ngay_khieu_nai).toLocaleString("vi-VN") : "N/A"
+        submittedAt: claim.ngay_gui ? new Date(claim.ngay_gui).toLocaleString("vi-VN") : "N/A"
       }));
     } catch (error) {
       console.error("Error fetching claims:", error);
