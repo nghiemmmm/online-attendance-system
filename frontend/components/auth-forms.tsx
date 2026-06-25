@@ -12,13 +12,11 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
-  GraduationCap, 
-  User, 
-  Shield,
   AlertTriangle,
   ShieldCheck,
   Zap,
-  Target
+  Target,
+  User
 } from "lucide-react"
 import Link from "next/link"
 
@@ -45,11 +43,7 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
     onSubmit?.({ email, password, role, remember })
   }
 
-  const roleOptions: { value: UserRole; icon: React.ElementType; label: string }[] = [
-    { value: "student", icon: GraduationCap, label: "Sinh viên" },
-    { value: "lecturer", icon: User, label: "Giảng viên" },
-    { value: "admin", icon: Shield, label: "Quản trị viên" }
-  ]
+
 
   return (
     <div className="w-full max-w-[420px]">
@@ -64,25 +58,7 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
         <p className="text-[#64748B]">Đăng nhập để tiếp tục</p>
       </div>
 
-      {/* Role Selector */}
-      <div className="flex bg-[#F1F5F9] rounded-lg p-1 mb-6">
-        {roleOptions.map(({ value, icon: Icon, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setRole(value)}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-md text-sm font-medium transition-all",
-              role === value
-                ? "bg-[#0A2540] text-white shadow-sm"
-                : "text-[#64748B] hover:text-[#0F172A]"
-            )}
-          >
-            <Icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
-      </div>
+
 
       {/* Lock Alert */}
       {isLocked && (
@@ -99,12 +75,12 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Username/Email */}
+        {/* Username */}
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
           <Input
             type="text"
-            placeholder="Tên đăng nhập hoặc Email trường học"
+            placeholder="Tên đăng nhập"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
@@ -160,43 +136,7 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
         </Button>
       </form>
 
-      {/* Divider */}
-      <div className="flex items-center gap-4 my-6">
-        <div className="flex-1 h-px bg-[#E2E8F0]" />
-        <span className="text-sm text-[#64748B]">hoặc</span>
-        <div className="flex-1 h-px bg-[#E2E8F0]" />
-      </div>
 
-      {/* Google Login Button */}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          window.location.href = `${API_BASE_URL}/auth/google/login?remember_me=${remember}`;
-        }}
-        className="w-full h-11 bg-white hover:bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] font-medium flex items-center justify-center gap-3 mb-6"
-        disabled={isLocked}
-      >
-        <svg className="w-5 h-5" viewBox="0 0 24 24">
-          <path
-            fill="#EA4335"
-            d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.336 0 3.336 2.673 1.336 6.573L5.266 9.765z"
-          />
-          <path
-            fill="#4285F4"
-            d="M23.491 12.273c0-.818-.073-1.609-.209-2.373H12v4.509h6.445c-.277 1.482-1.118 2.74-2.377 3.582l3.873 3c2.264-2.09 3.55-5.173 3.55-8.718z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M5.266 14.235A7.025 7.025 0 0 1 4.909 12c0-.79.136-1.545.357-2.235L1.336 6.573A11.934 11.934 0 0 0 0 12c0 1.927.455 3.745 1.255 5.373l4.01-3.138z"
-          />
-          <path
-            fill="#34A853"
-            d="M12 24c3.245 0 5.973-1.073 7.964-2.909l-3.873-3c-1.073.718-2.445 1.145-4.09 1.145-3.155 0-5.827-2.127-6.782-5.027L1.255 17.345A11.954 11.954 0 0 0 12 24z"
-          />
-        </svg>
-        Đăng nhập với Google
-      </Button>
 
       {/* Register Link */}
       <p className="text-center text-sm text-[#64748B]">

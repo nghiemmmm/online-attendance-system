@@ -70,6 +70,6 @@ Tôi xin đính chính thông tin mật khẩu sau khi hệ thống đã xác th
 
 Mật khẩu của cả 3 tài khoản (Admin, Giảng viên, Sinh viên) đều là password:
 
-Quản trị viên: admin@university.edu.vn (Mật khẩu: password)
-Giảng viên: gv001@university.edu.vn (Mật khẩu: password)
+Quản trị viên: admin@university.edu.vn/thanh (Mật khẩu: password)
+Giảng viên: gv001@university.edu.vn/nam (Mật khẩu: password)
 Sinh viên: sv001@student.edu.vn (Mật khẩu: password)

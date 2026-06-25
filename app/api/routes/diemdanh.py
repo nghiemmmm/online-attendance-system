@@ -6,13 +6,14 @@ Defines APIs for attendance statistics.
 
 from typing import Annotated, Any, List
 
-from fastapi import APIRouter, Depends, Path, Query, HTTPException
+from fastapi import APIRouter, Depends, Path, Query, HTTPException, Request
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_giangvien, CurrentAccount
 from app.models import TongBuoiCoMatHocKyPublic, DiemDanhPublic
 from app.services.diemdanh_summary_service import get_tong_buoi_co_mat_hoc_ky
 from app.crud import diemdanh_crud, buoihoc_crud, canbo_crud
+from app.services.audit_log_service import write_audit_log
 
 class AutoAttendanceRequest(BaseModel):
     ma_buoi_hoc: int
@@ -50,6 +51,7 @@ def read_tong_buoi_co_mat_hoc_ky_sinh_vien(
 
 @router.post("/tu-dong", response_model=dict)
 def diem_danh_tu_dong(
+    request_context: Request,
     request: AutoAttendanceRequest,
     session: SessionDep,
 ) -> Any:
@@ -64,10 +66,23 @@ def diem_danh_tu_dong(
     )
     if not result.get("success"):
         raise HTTPException(status_code=400, detail=result.get("message"))
+    write_audit_log(
+        session=session,
+        hanh_dong="DIEM_DANH_TU_DONG",
+        doi_tuong="BuoiHoc",
+        doi_tuong_id=request.ma_buoi_hoc,
+        du_lieu_sau={
+            "danh_sach_ma_sinh_vien": request.danh_sach_ma_sinh_vien,
+            "do_tin_cay_trung_binh": request.do_tin_cay_trung_binh,
+            "diem_danh_ids": result.get("diem_danh_ids", []),
+        },
+        request=request_context,
+    )
     return result
 
 @router.post("/thu-cong", response_model=DiemDanhPublic, dependencies=[Depends(get_current_active_giangvien)])
 def diem_danh_thu_cong(
+    request_context: Request,
     request: ManualAttendanceRequest,
     session: SessionDep,
     current_account: CurrentAccount,
@@ -91,5 +106,14 @@ def diem_danh_thu_cong(
         ma_sinh_vien=request.ma_sinh_vien,
         trang_thai=request.trang_thai,
         ghi_chu=request.ghi_chu
+    )
+    write_audit_log(
+        session=session,
+        account=current_account,
+        hanh_dong="DIEM_DANH_THU_CONG",
+        doi_tuong="DiemDanh",
+        doi_tuong_id=diem_danh.ma_diem_danh,
+        du_lieu_sau=diem_danh.model_dump(mode="json"),
+        request=request_context,
     )
     return diem_danh

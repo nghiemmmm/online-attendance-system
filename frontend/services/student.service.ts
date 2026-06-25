@@ -48,9 +48,7 @@ export const StudentService = {
 
   getClaims: async (): Promise<StudentClaim[]> => {
     try {
-      // Fetch claims from backend
-      // Temporarily use a mock or try/catch if the endpoint is missing
-      const response = await apiClient.get<any>("/khieu-nai/").catch(e => ({ data: [] }));
+      const response = await apiClient.get<any>("/khieu-nai");
       const claims = response?.data || [];
       
       return claims.map((claim: any) => ({

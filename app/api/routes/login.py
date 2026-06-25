@@ -22,6 +22,7 @@ from app.services.auth_token_service import (
     logout_refresh_token,
     refresh_access_token,
 )
+from app.services.audit_log_service import write_audit_log
 from app.utils import verify_password_reset_token
 
 router = APIRouter(tags=["login"])
@@ -30,7 +31,9 @@ logger = logging.getLogger("app.auth")
 
 @router.post("/login/access-token")
 def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    request: Request,
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
     account = crud.authenticate_account(
         session=session,
@@ -39,7 +42,24 @@ def login_access_token(
     )
     if not account:
         logger.warning("password_login_failed username=%s", form_data.username)
+        write_audit_log(
+            session=session,
+            hanh_dong="DANG_NHAP",
+            doi_tuong="TaiKhoan",
+            doi_tuong_id=form_data.username,
+            request=request,
+            trang_thai="FAILED",
+            chi_tiet="Sai ten dang nhap hoac mat khau",
+        )
         raise HTTPException(status_code=400, detail="Incorrect username or password")
+    write_audit_log(
+        session=session,
+        account=account,
+        hanh_dong="DANG_NHAP",
+        doi_tuong="TaiKhoan",
+        doi_tuong_id=account.ma_tai_khoan,
+        request=request,
+    )
     token = issue_login_tokens(session=session, account=account, remember_me=False)
     token.refresh_token = None
     return token
@@ -65,7 +85,25 @@ def login_json(
     )
     if not account:
         logger.warning("json_login_failed username=%s", body.username)
+        write_audit_log(
+            session=session,
+            hanh_dong="DANG_NHAP",
+            doi_tuong="TaiKhoan",
+            doi_tuong_id=body.username,
+            request=request,
+            trang_thai="FAILED",
+            chi_tiet="Sai ten dang nhap hoac mat khau",
+        )
         raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    write_audit_log(
+        session=session,
+        account=account,
+        hanh_dong="DANG_NHAP",
+        doi_tuong="TaiKhoan",
+        doi_tuong_id=account.ma_tai_khoan,
+        request=request,
+    )
 
     return issue_login_tokens(
         session=session,

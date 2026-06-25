@@ -8,6 +8,7 @@ export interface StudentProfile {
   faceRegistered: boolean;
   avatarUrl?: string;
   registeredFacesCount: number;
+  role?: string;
 }
 
 export interface StudentClaim {

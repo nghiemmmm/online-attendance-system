@@ -26,6 +26,7 @@ from app.models import (
 )
 
 from app.api.deps import get_current_active_sinhvien, CurrentAccount
+from app.services.canhbaohoc_tap_service import get_canh_bao_vang_by_sinh_vien
 
 
 router = APIRouter(prefix="/sinh-vien", tags=["sinh-vien"])
@@ -116,12 +117,17 @@ def get_my_lich_hoc(session: SessionDep, current_account: CurrentAccount) -> Any
     
     # Tìm các lớp học phần sinh viên đăng ký
     from app.models.hocphan import HocPhan
+    from datetime import date
     statement = (
         select(LopHocPhan, BuoiHoc, HocPhan)
         .join(DangKyHocPhan, DangKyHocPhan.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
         .join(BuoiHoc, BuoiHoc.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
         .join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan)
         .where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien)
+        .where(BuoiHoc.ngay_hoc >= date.today())
+        .where(BuoiHoc.trang_thai != "DA_KET_THUC")
+        .where(BuoiHoc.trang_thai != "DA_HUY")
+        .order_by(BuoiHoc.ngay_hoc.asc(), BuoiHoc.gio_bat_dau.asc())
     )
     results = session.exec(statement).all()
     
@@ -185,8 +191,13 @@ def get_my_canh_bao(session: SessionDep, current_account: CurrentAccount) -> Any
     if not sinh_vien:
         raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ sinh viên")
     
-    # TODO: Implement real warning logic based on CanhBaoHocTap
-    return {"data": [], "count": 0}
+    return get_canh_bao_vang_by_sinh_vien(
+        session=session,
+        ma_sinh_vien=sinh_vien.ma_sinh_vien,
+        warning_threshold=15.0,
+        absence_limit=20.0,
+        include_safe=True,
+    )
 
 
 @router.get(

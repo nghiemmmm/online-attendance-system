@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import get_current_active_superuser
 from app.core.config import settings
+from app.services.audit_log_service import read_audit_logs
 
 router = APIRouter(prefix="/he-thong", tags=["he-thong"])
 
@@ -113,7 +114,22 @@ def get_system_stats(session: SessionDep) -> Any:
 
 
 @router.get("/logs", dependencies=[Depends(get_current_active_superuser)])
-def get_system_logs(session: SessionDep) -> Any:
+def get_system_logs(
+    session: SessionDep,
+    skip: int = 0,
+    limit: int = 100,
+    hanh_dong: str | None = None,
+    doi_tuong: str | None = None,
+    ma_tai_khoan: int | None = None,
+) -> Any:
+    return read_audit_logs(
+        session=session,
+        skip=skip,
+        limit=limit,
+        hanh_dong=hanh_dong,
+        doi_tuong=doi_tuong,
+        ma_tai_khoan=ma_tai_khoan,
+    )
     """Lấy danh sách nhật ký hoạt động hệ thống chi tiết từ dữ liệu thực tế."""
     logs = []
     

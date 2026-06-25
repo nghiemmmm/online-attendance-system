@@ -16,6 +16,15 @@ os.makedirs(DB_DIR, exist_ok=True)
 INDEX_PATH = os.path.join(DB_DIR, "faiss_index.bin")
 META_PATH = os.path.join(DB_DIR, "names.pkl")
 
+
+def normalize_embedding(embedding) -> list[float]:
+    if embedding is None:
+        return []
+    if isinstance(embedding, np.ndarray):
+        return embedding.astype("float32").tolist()
+    return list(embedding)
+
+
 class FaceRecognitionService:
     _instance = None
     
@@ -58,14 +67,18 @@ class FaceRecognitionService:
                 from app.models import AnhKhuonMat
                 
                 with Session(engine) as session:
-                    statement = select(AnhKhuonMat).where(AnhKhuonMat.embedding_vector != None)
+                    statement = select(AnhKhuonMat).where(
+                        AnhKhuonMat.embedding_vector != None,
+                        AnhKhuonMat.trang_thai_duyet == "DA_DUYET",
+                    )
                     records = session.exec(statement).all()
                     if records:
                         vectors = []
                         names = []
                         for r in records:
-                            if r.embedding_vector and len(r.embedding_vector) == 512:
-                                vectors.append(r.embedding_vector)
+                            embedding = normalize_embedding(r.embedding_vector)
+                            if len(embedding) == 512:
+                                vectors.append(embedding)
                                 names.append(r.ma_sinh_vien)
                         
                         if vectors:
@@ -109,6 +122,47 @@ class FaceRecognitionService:
         except Exception as e:
             print(f"Error extracting embeddings: {e}")
             return []
+
+    def assess_face_image(self, image_bytes: bytes) -> tuple[bool, str, float, list[float]]:
+        """Validate one enrollment image and return quality score plus embedding."""
+        try:
+            img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+            boxes, probs = self.mtcnn.detect(img)
+            if boxes is None or probs is None or len(boxes) == 0:
+                return False, "Khong tim thay khuon mat trong anh", 0.0, []
+            if len(boxes) > 1:
+                return False, "Anh co nhieu hon 1 khuon mat, vui long chup lai", 0.0, []
+
+            faces = self.mtcnn(img)
+            if faces is None:
+                return False, "Khong cat duoc khuon mat hop le", 0.0, []
+            if faces.dim() == 3:
+                faces = faces.unsqueeze(0)
+
+            with torch.no_grad():
+                embedding = self.model(faces.to(self.device))[0].cpu().numpy().astype('float32')
+
+            quality_score = float(round(max(0.0, min(1.0, float(probs[0]))), 4))
+            if quality_score < 0.75:
+                return (
+                    False,
+                    "Chat luong anh chua dat, vui long chup lai ro mat va du sang",
+                    quality_score,
+                    embedding.tolist(),
+                )
+            return True, "Anh khuon mat hop le", quality_score, embedding.tolist()
+        except Exception as e:
+            print(f"Error assessing face image: {e}")
+            return False, "Khong the kiem tra chat luong anh", 0.0, []
+
+    def add_face_embedding(self, ma_sinh_vien: int, embedding: list[float]) -> None:
+        embedding = normalize_embedding(embedding)
+        if len(embedding) != 512:
+            return
+        emb = np.array(embedding, dtype='float32')
+        self.index.add(emb.reshape(1, -1))
+        self.names.append(ma_sinh_vien)
+        self._save_faiss_index()
 
     def register_face(self, ma_sinh_vien: int, image_bytes: bytes) -> tuple[bool, str, list[float]]:
         embeddings = self.extract_embeddings(image_bytes)

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
@@ -197,49 +197,7 @@ interface TopNavbarProps {
 
 export function TopNavbar({ breadcrumb, user, notificationCount = 0, notifications = [] }: TopNavbarProps) {
   const [showNotifications, setShowNotifications] = useState(false)
-  const pathname = usePathname()
-
-  // Generate fallback notifications if only notificationCount is provided
-  let displayNotifications = [...notifications]
-  if (displayNotifications.length === 0 && notificationCount > 0) {
-    if (pathname.startsWith("/student")) {
-      displayNotifications = [
-        {
-          id: "student-warning-fallback",
-          title: "Cảnh báo cấm thi",
-          description: `Bạn có môn học phần vắng quá 20% giới hạn số buổi. Hãy kiểm tra dashboard.`,
-          type: "warning",
-        }
-      ]
-    } else if (pathname.startsWith("/lecturer")) {
-      displayNotifications = [
-        {
-          id: "lecturer-warning-fallback",
-          title: "Yêu cầu khiếu nại mới",
-          description: `Bạn đang có ${notificationCount} khiếu nại điểm danh chờ xử lý từ sinh viên.`,
-          type: "warning",
-        }
-      ]
-    } else if (pathname.startsWith("/admin")) {
-      displayNotifications = [
-        {
-          id: "admin-warning-fallback",
-          title: "Đăng ký khuôn mặt",
-          description: `Có ${notificationCount} sinh viên chưa đăng ký nhận diện khuôn mặt trong hệ thống.`,
-          type: "info",
-        }
-      ]
-    } else {
-      displayNotifications = [
-        {
-          id: "default-warning-fallback",
-          title: "Thông báo hệ thống",
-          description: `Bạn có ${notificationCount} thông báo mới cần kiểm tra.`,
-          type: "info",
-        }
-      ]
-    }
-  }
+  const displayNotifications = [...notifications]
 
   const displayCount = displayNotifications.length
 
@@ -354,3 +312,5 @@ export function AppShell({ role, user, breadcrumb, notificationCount, notificati
     </div>
   )
 }
+
+

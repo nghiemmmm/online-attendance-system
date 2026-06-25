@@ -157,6 +157,27 @@ export const AdminService = {
     });
   },
 
+  getFaceRecords: async (status?: "CHO_DUYET" | "DA_DUYET" | "TU_CHOI"): Promise<any[]> => {
+    try {
+      const query = status ? `?trang_thai_duyet=${status}` : "";
+      const response = await apiClient.get<any>(`/anh-khuon-mat/admin${query}`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Lỗi tải dữ liệu khuôn mặt:", error);
+      return [];
+    }
+  },
+
+  approveFace: async (faceId: number): Promise<any> => {
+    return apiClient.patch<any>(`/anh-khuon-mat/admin/${faceId}/duyet`, {});
+  },
+
+  rejectFace: async (faceId: number, reason: string): Promise<any> => {
+    return apiClient.patch<any>(`/anh-khuon-mat/admin/${faceId}/tu-choi`, {
+      ly_do_tu_choi: reason,
+    });
+  },
+
   getStats: async (): Promise<any> => {
     try {
       return await apiClient.get<any>("/he-thong/stats");
@@ -169,7 +190,27 @@ export const AdminService = {
   getLogs: async (): Promise<any[]> => {
     try {
       const response = await apiClient.get<any>("/he-thong/logs");
-      return response || [];
+      const rows = Array.isArray(response) ? response : response?.data || [];
+      return rows.map((log: any) => ({
+        id: log.ma_audit_log?.toString() || log.id || `${log.hanh_dong}-${log.thoi_gian}`,
+        user: log.ma_tai_khoan ? `TK #${log.ma_tai_khoan}` : "Hệ thống",
+        action: log.hanh_dong || log.action || "Hoạt động",
+        target: log.doi_tuong_id
+          ? `${log.doi_tuong || "Đối tượng"} #${log.doi_tuong_id}`
+          : log.doi_tuong || log.target || "",
+        time: log.thoi_gian ? new Date(log.thoi_gian).toLocaleString("vi-VN") : log.time || "",
+        type:
+          log.trang_thai === "FAILED"
+            ? "edit"
+            : log.hanh_dong?.includes("DUYET")
+              ? "approve"
+              : log.hanh_dong?.includes("DANG_NHAP")
+                ? "login"
+                : "edit",
+        status: log.trang_thai === "FAILED" ? "error" : "success",
+        details: log.chi_tiet || "",
+        raw: log,
+      }));
     } catch (error) {
       console.error("Loi khi lay nhat ky hoat dong:", error);
       return [];

@@ -67,23 +67,47 @@ CurrentAccount = Annotated[TaiKhoan, Depends(get_current_account)]
 CurrentUser = CurrentAccount
 
 
+def normalize_role(role: str | None) -> str:
+    normalized = (role or "").strip().upper().replace("-", "_").replace(" ", "_")
+    role_aliases = {
+        "ADMIN": "ADMIN",
+        "QUAN_TRI_VIEN": "ADMIN",
+        "QTV": "ADMIN",
+        "SINH_VIEN": "SINH_VIEN",
+        "SINHVIEN": "SINH_VIEN",
+        "STUDENT": "SINH_VIEN",
+        "SV": "SINH_VIEN",
+        "GIANG_VIEN": "GIANG_VIEN",
+        "GIANGVIEN": "GIANG_VIEN",
+        "CAN_BO": "GIANG_VIEN",
+        "CANBO": "GIANG_VIEN",
+        "LECTURER": "GIANG_VIEN",
+        "TEACHER": "GIANG_VIEN",
+        "GV": "GIANG_VIEN",
+    }
+    return role_aliases.get(normalized, normalized)
+
+
 def get_current_active_superuser(current_account: CurrentAccount) -> TaiKhoan:
-    if current_account.vai_tro != "ADMIN":
+    if normalize_role(current_account.vai_tro) != "ADMIN":
         raise HTTPException(
-            status_code=403, detail="The account doesn't have enough privileges"
+            status_code=403,
+            detail=f"Yeu cau vai tro ADMIN, tai khoan hien tai la {current_account.vai_tro}",
         )
     return current_account
 
 def get_current_active_sinhvien(current_account: CurrentAccount) -> TaiKhoan:
-    if current_account.vai_tro != "SINH_VIEN":
+    if normalize_role(current_account.vai_tro) != "SINH_VIEN":
         raise HTTPException(
-            status_code=403, detail="The account doesn't have enough privileges"
+            status_code=403,
+            detail=f"Yeu cau vai tro SINH_VIEN, tai khoan hien tai la {current_account.vai_tro}",
         )
     return current_account
 
 def get_current_active_giangvien(current_account: CurrentAccount) -> TaiKhoan:
-    if current_account.vai_tro != "GIANG_VIEN":
+    if normalize_role(current_account.vai_tro) != "GIANG_VIEN":
         raise HTTPException(
-            status_code=403, detail="The account doesn't have enough privileges"
+            status_code=403,
+            detail=f"Yeu cau vai tro GIANG_VIEN, tai khoan hien tai la {current_account.vai_tro}",
         )
     return current_account

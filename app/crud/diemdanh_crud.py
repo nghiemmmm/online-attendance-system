@@ -40,10 +40,12 @@ def diem_danh_tu_dong_lo(
     existing_map = {record.ma_sinh_vien: record for record in existing_records}
 
     new_records = []
-    updated_records = []
+    diem_danh_ids = []
 
     for ma_sv in danh_sach_ma_sinh_vien:
         if ma_sv in existing_map:
+            if existing_map[ma_sv].ma_diem_danh is not None:
+                diem_danh_ids.append(existing_map[ma_sv].ma_diem_danh)
             # Nếu đã điểm danh rồi thì có thể không ghi đè, hoặc chỉ cập nhật nếu trạng thái hiện tại tốt hơn
             # Ví dụ: nếu đã là MUON, giờ lại quét được thì vẫn là MUON hoặc CO_MAT?
             # Thường thì lấy lần quét đầu tiên làm chuẩn. Hoặc nếu muốn cập nhật thì làm như sau:
@@ -62,6 +64,18 @@ def diem_danh_tu_dong_lo(
     if new_records:
         session.add_all(new_records)
         session.commit()
+        for record in new_records:
+            session.refresh(record)
+            if record.ma_diem_danh is not None:
+                diem_danh_ids.append(record.ma_diem_danh)
+
+    return {
+        "success": True,
+        "message": f"Da diem danh cho {len(new_records)} sinh vien",
+        "trang_thai": trang_thai_hien_tai,
+        "ma_diem_danh": diem_danh_ids[0] if diem_danh_ids else None,
+        "diem_danh_ids": diem_danh_ids,
+    }
     
     return {"success": True, "message": f"Đã điểm danh cho {len(new_records)} sinh viên", "trang_thai": trang_thai_hien_tai}
 

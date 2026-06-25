@@ -17,6 +17,13 @@ from app.models.anhkhuonmat import (
     AnhKhuonMatUpdate,
 )
 from app.models.attendance_summary import MonthlyAttendanceSummary
+from app.models.audit_log import (
+    AuditLog,
+    AuditLogBase,
+    AuditLogCreate,
+    AuditLogPublic,
+    AuditLogsPublic,
+)
 from app.models.auth import (
     GoogleAuthPending,
     LoginRequest,

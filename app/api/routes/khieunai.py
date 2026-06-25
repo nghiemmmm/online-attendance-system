@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 
 from app.api.deps import SessionDep, get_current_active_superuser, CurrentAccount, get_current_active_sinhvien
-from fastapi import APIRouter, Depends, Path, Query, HTTPException
+from fastapi import APIRouter, Depends, Path, Query, HTTPException, Request
 from sqlmodel import select, func, col
 from datetime import datetime, timedelta
 
@@ -33,6 +33,7 @@ from app.services.khieunai_service import (
     list_khieu_nai_can_xu_ly,
     tu_choi_khieu_nai,
 )
+from app.services.audit_log_service import write_audit_log
 
 router = APIRouter(prefix="/khieu-nai", tags=["khieu-nai"])
 
@@ -42,6 +43,7 @@ router = APIRouter(prefix="/khieu-nai", tags=["khieu-nai"])
     response_model=KhieuNaiPublic,
 )
 def create_khieu_nai(
+    request: Request,
     session: SessionDep,
     payload: KhieuNaiCreate,
     current_account: CurrentAccount,
@@ -82,6 +84,15 @@ def create_khieu_nai(
     session.add(db_khieu_nai)
     session.commit()
     session.refresh(db_khieu_nai)
+    write_audit_log(
+        session=session,
+        account=current_account,
+        hanh_dong="GUI_KHIEU_NAI",
+        doi_tuong="KhieuNai",
+        doi_tuong_id=db_khieu_nai.ma_khieu_nai,
+        du_lieu_sau=db_khieu_nai.model_dump(mode="json"),
+        request=request,
+    )
     return db_khieu_nai
 
 
@@ -172,6 +183,7 @@ def read_khieu_nai_can_xu_ly_detail(
     response_model=KhieuNaiXuLyResult,
 )
 def approve_khieu_nai(
+    request: Request,
     session: SessionDep,
     current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
@@ -182,12 +194,22 @@ def approve_khieu_nai(
     can_bo = session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
     if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
         raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
-    return chap_thuan_khieu_nai(
+    result = chap_thuan_khieu_nai(
         session=session,
         ma_can_bo=ma_can_bo,
         ma_khieu_nai=ma_khieu_nai,
         payload=payload,
     )
+    write_audit_log(
+        session=session,
+        account=current_account,
+        hanh_dong="DUYET_KHIEU_NAI",
+        doi_tuong="KhieuNai",
+        doi_tuong_id=ma_khieu_nai,
+        du_lieu_sau=result.model_dump(mode="json") if hasattr(result, "model_dump") else None,
+        request=request,
+    )
+    return result
 
 
 @router.patch(
@@ -196,6 +218,7 @@ def approve_khieu_nai(
     response_model=KhieuNaiXuLyResult,
 )
 def reject_khieu_nai(
+    request: Request,
     session: SessionDep,
     current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
@@ -207,9 +230,19 @@ def reject_khieu_nai(
     if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
         raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
 
-    return tu_choi_khieu_nai(
+    result = tu_choi_khieu_nai(
         session=session,
         ma_can_bo=ma_can_bo,
         ma_khieu_nai=ma_khieu_nai,
         payload=payload,
     )
+    write_audit_log(
+        session=session,
+        account=current_account,
+        hanh_dong="TU_CHOI_KHIEU_NAI",
+        doi_tuong="KhieuNai",
+        doi_tuong_id=ma_khieu_nai,
+        du_lieu_sau=result.model_dump(mode="json") if hasattr(result, "model_dump") else None,
+        request=request,
+    )
+    return result

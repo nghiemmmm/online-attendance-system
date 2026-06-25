@@ -19,6 +19,7 @@ from app.models import (
     CanBo,
     DangKyHocPhan,
     DiemDanh,
+    AnhDiemDanh,
     HocPhan,
     LopHocPhan,
     SinhVien,
@@ -332,6 +333,14 @@ def read_buoihoc_diem_danh_list(
                 if diem_danh.thoi_diem_diem_danh
                 else None
             )
+            evidence = session.exec(
+                select(AnhDiemDanh)
+                .where(AnhDiemDanh.ma_diem_danh == diem_danh.ma_diem_danh)
+                .order_by(AnhDiemDanh.ngay_tao.desc())
+            ).first()
+            evidence_image = evidence.duong_dan_anh if evidence else None
+        else:
+            evidence_image = None
 
         result.append(
             {
@@ -342,6 +351,7 @@ def read_buoihoc_diem_danh_list(
                 "confidence": confidence,
                 "hasCamera": status != "absent",
                 "verifiedAt": verified_at,
+                "evidenceImage": evidence_image,
             }
         )
 

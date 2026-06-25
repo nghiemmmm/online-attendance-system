@@ -24,6 +24,7 @@ setup_logging()
 
 # Create uploads and dataset directory if it doesn't exist
 os.makedirs("uploads/faces", exist_ok=True)
+os.makedirs("uploads/attendance", exist_ok=True)
 os.makedirs("dataset", exist_ok=True)
 os.makedirs("vector_db/embeddings_db", exist_ok=True)
 

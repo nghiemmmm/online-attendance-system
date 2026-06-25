@@ -10,6 +10,7 @@ def get_datetime_utc() -> datetime:
 class AnhDiemDanhBase(SQLModel):
     ma_diem_danh: int
     duong_dan_anh: str | None = Field(default=None, max_length=255)
+    do_tin_cay: float | None = None
 
 
 class AnhDiemDanhCreate(AnhDiemDanhBase):
@@ -18,6 +19,7 @@ class AnhDiemDanhCreate(AnhDiemDanhBase):
 
 class AnhDiemDanhUpdate(SQLModel):
     duong_dan_anh: str | None = Field(default=None, max_length=255)
+    do_tin_cay: float | None = None
 
 
 class AnhDiemDanh(AnhDiemDanhBase, table=True):
