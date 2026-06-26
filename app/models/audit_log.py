@@ -1,3 +1,5 @@
+"""Define audit log database and response models."""
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Column, JSON
@@ -5,17 +7,26 @@ from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
 
 
 class AuditLogBase(SQLModel):
+    """Represent shared audit log fields."""
+
     ma_tai_khoan: int | None = Field(default=None, foreign_key="taikhoan.ma_tai_khoan")
     vai_tro: str | None = Field(default=None, max_length=20)
     hanh_dong: str = Field(max_length=100)
     doi_tuong: str | None = Field(default=None, max_length=100)
     doi_tuong_id: str | None = Field(default=None, max_length=100)
-    du_lieu_truoc: dict | None = Field(default=None, sa_column=Column(JSON, nullable=True))
-    du_lieu_sau: dict | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    du_lieu_truoc: dict | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
+    du_lieu_sau: dict | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
     ip: str | None = Field(default=None, max_length=45)
     user_agent: str | None = Field(default=None, max_length=255)
     trang_thai: str = Field(default="SUCCESS", max_length=30)
@@ -23,10 +34,14 @@ class AuditLogBase(SQLModel):
 
 
 class AuditLogCreate(AuditLogBase):
+    """Represent data required to create an audit log entry."""
+
     pass
 
 
 class AuditLog(AuditLogBase, table=True):
+    """Represent the audit log database table."""
+
     __tablename__ = "auditlog"
 
     ma_audit_log: int | None = Field(default=None, primary_key=True)
@@ -34,10 +49,14 @@ class AuditLog(AuditLogBase, table=True):
 
 
 class AuditLogPublic(AuditLogBase):
+    """Represent audit log data returned by the API."""
+
     ma_audit_log: int
     thoi_gian: datetime
 
 
 class AuditLogsPublic(SQLModel):
+    """Represent a paginated list of audit log entries."""
+
     data: list[AuditLogPublic]
     count: int

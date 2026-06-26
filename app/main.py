@@ -1,21 +1,17 @@
-from datetime import timedelta
+import os
 
 import torch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from app import exception_handler
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
-from app.core.security import create_access_token
 from app.middleware.logging_middleware import RequestLoggingMiddleware
-from app.services.models import load_model
 from app.utils.logger import logger
-import os
-
-from starlette.middleware.sessions import SessionMiddleware
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -40,16 +36,16 @@ app = FastAPI(
 app.add_middleware(RequestLoggingMiddleware)
 # Add SessionMiddleware to enable session support
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
-access_token = create_access_token(
-    data={"sub": "test_user"},
-    expires_delta=timedelta(minutes=30000),
-)
-print(f"Generated test token: {access_token}")
 
 if settings.all_cors_origins:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

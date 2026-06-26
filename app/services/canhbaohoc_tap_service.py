@@ -7,8 +7,8 @@ Contains business logic for student academic warnings.
 from fastapi import HTTPException, status
 from sqlmodel import Session
 
-from app.crud.canhbaohoc_tap_crud import get_absence_warning_sources_by_sinh_vien
-from app.crud.sinhvien_crud import get_sinh_vien
+from app.crud.canhbaohoc_tap_crud import get_absence_warning_sources_by_student
+from app.crud.sinhvien_crud import get_student
 from app.models import CanhBaoVangItem, CanhBaoVangPublic
 
 TRANG_THAI_AN_TOAN = "AN_TOAN"
@@ -41,7 +41,7 @@ def classify_absence_warning(
     return TRANG_THAI_AN_TOAN
 
 
-def get_canh_bao_vang_by_sinh_vien(
+def get_absence_warnings_by_student(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -54,14 +54,14 @@ def get_canh_bao_vang_by_sinh_vien(
         warning_threshold=warning_threshold,
         absence_limit=absence_limit,
     )
-    if not get_sinh_vien(session=session, ma_sinh_vien=ma_sinh_vien):
+    if not get_student(session=session, ma_sinh_vien=ma_sinh_vien):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Student profile not found",
         )
 
     items: list[CanhBaoVangItem] = []
-    for source in get_absence_warning_sources_by_sinh_vien(
+    for source in get_absence_warning_sources_by_student(
         session=session,
         ma_sinh_vien=ma_sinh_vien,
     ):

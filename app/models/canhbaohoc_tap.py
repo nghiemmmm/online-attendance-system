@@ -1,14 +1,10 @@
-"""
-Canh bao hoc tap schemas.
-
-Defines response schemas for student academic warnings.
-"""
+"""Define academic warning response models."""
 
 from sqlmodel import SQLModel
 
 
 class CanhBaoVangItem(SQLModel):
-    """Mot mon hoc co canh bao vang cua sinh vien."""
+    """Represent one course with an absence warning."""
 
     ma_lop_hoc_phan: int
     ten_hoc_phan: str | None = None
@@ -20,7 +16,7 @@ class CanhBaoVangItem(SQLModel):
 
 
 class CanhBaoVangPublic(SQLModel):
-    """Danh sach mon hoc co canh bao vang cua sinh vien."""
+    """Represent absence warning data for one student."""
 
     ma_sinh_vien: int
     data: list[CanhBaoVangItem]

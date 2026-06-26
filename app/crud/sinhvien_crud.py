@@ -10,12 +10,12 @@ from sqlmodel import Session, col, func, select
 from app.models import SinhVien, SinhVienCreate, SinhVienUpdate
 
 
-def get_sinh_vien(*, session: Session, ma_sinh_vien: int) -> SinhVien | None:
+def get_student(*, session: Session, ma_sinh_vien: int) -> SinhVien | None:
     """Lay thong tin mot sinh vien theo ma sinh vien."""
     return session.get(SinhVien, ma_sinh_vien)
 
 
-def get_sinh_vien_by_google_email(
+def get_student_by_google_email(
     *, session: Session, google_email: str
 ) -> SinhVien | None:
     """Tim sinh vien theo Google email de kiem tra trung du lieu."""
@@ -23,7 +23,7 @@ def get_sinh_vien_by_google_email(
     return session.exec(statement).first()
 
 
-def get_sinh_vien_by_account_id(
+def get_student_by_account_id(
     *, session: Session, ma_tai_khoan: int
 ) -> SinhVien | None:
     """Tim sinh vien theo tai khoan lien ket."""
@@ -31,7 +31,7 @@ def get_sinh_vien_by_account_id(
     return session.exec(statement).first()
 
 
-def get_sinh_viens(
+def get_students(
     *,
     session: Session,
     skip: int = 0,
@@ -68,7 +68,7 @@ def get_sinh_viens(
     return list(sinh_viens), count
 
 
-def create_sinh_vien(
+def create_student(
     *, session: Session, sinh_vien_create: SinhVienCreate
 ) -> SinhVien:
     """Tao ho so sinh vien moi."""
@@ -79,7 +79,7 @@ def create_sinh_vien(
     return db_sinh_vien
 
 
-def update_sinh_vien(
+def update_student(
     *,
     session: Session,
     db_sinh_vien: SinhVien,
@@ -96,7 +96,7 @@ def update_sinh_vien(
     return db_sinh_vien
 
 
-def delete_sinh_vien(*, session: Session, db_sinh_vien: SinhVien) -> None:
+def delete_student(*, session: Session, db_sinh_vien: SinhVien) -> None:
     """Xoa ho so sinh vien khoi database."""
     session.delete(db_sinh_vien)
     session.commit()

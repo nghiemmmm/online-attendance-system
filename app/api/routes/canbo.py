@@ -1,11 +1,15 @@
+"""
+Can bo router.
+
+Defines APIs for managing staff members and lecturer dashboards.
+"""
+
 from datetime import date
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, Path, Query, status
 
-from app import crud
-from app.api.deps import SessionDep, get_current_active_superuser
+from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_lecturer, CurrentAccount
 from app.models import (
     BuoiHocGanDaysPublic,
     CanBoCreate,
@@ -17,52 +21,12 @@ from app.models import (
     MonthlyAttendanceSummary,
     KhieuNaiChoXuLyMetric,
     SoLuongLopHocPhanDangDayPublic,
+    StaffClassSectionsPublic,
+    StaffAttendanceReportItem,
 )
-from app.services.attendance_summary_service import get_monthly_attendance_summary
-from app.services.khieunai_service import get_khieu_nai_cho_xu_ly_metric
+from app.services import staff_service
 
 router = APIRouter(prefix="/canbo", tags=["canbo"])
-
-
-def ensure_unique_can_bo_fields(
-    *,
-    session: SessionDep,
-    google_email: str | None = None,
-    ma_tai_khoan: int | None = None,
-    current_ma_can_bo: int | None = None,
-) -> None:
-    """
-    Kiểm tra Google email và tài khoản liên kết không bị trùng với cán bộ khác.
-
-    Hàm dùng cho cả tạo mới và cập nhật để tránh lỗi unique constraint từ database.
-    """
-    if google_email:
-        existing_can_bo = crud.get_can_bo_by_google_email(
-            session=session,
-            google_email=google_email,
-        )
-        if (
-            existing_can_bo
-            and existing_can_bo.ma_can_bo != current_ma_can_bo
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Google email already exists",
-            )
-
-    if ma_tai_khoan:
-        existing_can_bo = crud.get_can_bo_by_account_id(
-            session=session,
-            ma_tai_khoan=ma_tai_khoan,
-        )
-        if (
-            existing_can_bo
-            and existing_can_bo.ma_can_bo != current_ma_can_bo
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Account is already linked to another staff profile",
-            )
 
 
 @router.get(
@@ -70,7 +34,7 @@ def ensure_unique_can_bo_fields(
     dependencies=[Depends(get_current_active_superuser)],
     response_model=CanBosPublic,
 )
-def read_can_bos(
+def read_staff_members(
     session: SessionDep,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
@@ -82,7 +46,7 @@ def read_can_bos(
 
     Hỗ trợ phân trang, tìm kiếm theo họ/tên/email/chức vụ và lọc theo trạng thái.
     """
-    can_bos, count = crud.get_can_bos(
+    can_bos, count = staff_service.list_staff_members(
         session=session,
         skip=skip,
         limit=limit,
@@ -93,34 +57,11 @@ def read_can_bos(
 
 
 @router.get(
-    "/{ma_can_bo}",
-    dependencies=[Depends(get_current_active_superuser)],
-    response_model=CanBoPublic,
-)
-def read_can_bo(
-    session: SessionDep,
-    ma_can_bo: Annotated[int, Path(ge=1)],
-) -> CanBoPublic:
-    """Lấy chi tiết một cán bộ theo mã cán bộ."""
-    can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-    return can_bo
-
-
-from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_giangvien, CurrentAccount
-from sqlmodel import select, func
-from app.models import LopHocPhan, HocPhan, DangKyHocPhan
-
-
-@router.get(
     "/me/lich-day",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
+    response_model=LichDaysPublic,
 )
-def read_my_lich_day(
+def read_my_teaching_schedule(
     session: SessionDep,
     current_account: CurrentAccount,
     from_date: date | None = None,
@@ -132,56 +73,41 @@ def read_my_lich_day(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> Any:
     """Lấy lịch dạy của cán bộ đang đăng nhập."""
-    can_bo = crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
-    if not can_bo:
-        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ cán bộ")
-    
-    lich_day, count = crud.get_lich_day_by_can_bo(
-        session=session, ma_can_bo=can_bo.ma_can_bo, from_date=from_date, to_date=to_date, hoc_ky=hoc_ky, nam_hoc=nam_hoc, trang_thai=trang_thai, skip=skip, limit=limit,
+    return staff_service.read_my_teaching_schedule(
+        session=session,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+        from_date=from_date,
+        to_date=to_date,
+        hoc_ky=hoc_ky,
+        nam_hoc=nam_hoc,
+        trang_thai=trang_thai,
+        skip=skip,
+        limit=limit,
     )
-    return {"data": lich_day, "count": count}
+
 
 @router.get(
     "/me/lop-hoc-phan",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
+    response_model=StaffClassSectionsPublic,
 )
-def read_my_lop_hoc_phan(
+def read_my_class_sections(
     session: SessionDep,
     current_account: CurrentAccount,
 ) -> Any:
     """Lấy danh sách các lớp học phần cán bộ đang giảng dạy."""
-    can_bo = crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
-    if not can_bo:
-        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ cán bộ")
-    
-    statement = select(LopHocPhan, HocPhan).join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan).where(LopHocPhan.ma_can_bo == can_bo.ma_can_bo)
-    results = session.exec(statement).all()
-    
-    lop_hoc_phans = []
-    for lhp, hp in results:
-        reg_count = session.exec(
-            select(func.count(DangKyHocPhan.ma_sinh_vien))
-            .where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
-        ).first() or 0
-        
-        lop_hoc_phans.append({
-            "ma_lop_hoc_phan": lhp.ma_lop_hoc_phan,
-            "ma_hoc_phan": lhp.ma_hoc_phan,
-            "ten_hoc_phan": hp.ten_hoc_phan,
-            "hoc_ky": lhp.hoc_ky,
-            "nam_hoc": lhp.nam_hoc,
-            "trang_thai": lhp.trang_thai,
-            "si_so_hien_tai": reg_count
-        })
-    return {"data": lop_hoc_phans, "count": len(lop_hoc_phans)}
+    return staff_service.read_my_class_sections(
+        session=session,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
 
 
 @router.get(
     "/{ma_can_bo}/lich-day",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=LichDaysPublic,
 )
-def read_lich_day_can_bo(
+def read_staff_teaching_schedule(
     session: SessionDep,
     current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
@@ -194,55 +120,71 @@ def read_lich_day_can_bo(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> LichDaysPublic:
     """Lấy lịch dạy của một cán bộ/giảng viên."""
-    if from_date and to_date and from_date > to_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="from_date must be before or equal to to_date")
-    can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
-    lich_day, count = crud.get_lich_day_by_can_bo(
-        session=session, ma_can_bo=ma_can_bo, from_date=from_date, to_date=to_date, hoc_ky=hoc_ky, nam_hoc=nam_hoc, trang_thai=trang_thai, skip=skip, limit=limit,
+    lich_day, count = staff_service.read_staff_teaching_schedule(
+        session=session,
+        current_account_id=current_account.ma_tai_khoan,
+        ma_can_bo=ma_can_bo,
+        from_date=from_date,
+        to_date=to_date,
+        hoc_ky=hoc_ky,
+        nam_hoc=nam_hoc,
+        trang_thai=trang_thai,
+        skip=skip,
+        limit=limit,
     )
     return LichDaysPublic(data=lich_day, count=count)
 
+
 @router.get(
     "/{ma_can_bo}/buoi-hoc/gan-day",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=BuoiHocGanDaysPublic,
 )
-def read_buoi_hoc_gan_day_can_bo(
+def read_staff_recent_lessons(
     session: SessionDep,
     current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
     limit: Annotated[int, Query(ge=1, le=20)] = 5,
 ) -> BuoiHocGanDaysPublic:
     """Lay danh sach buoi hoc gan day cua can bo kem thong ke diem danh."""
-    can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
-    buoi_hocs, count = crud.get_buoi_hoc_gan_day_by_can_bo(session=session, ma_can_bo=ma_can_bo, limit=limit)
+    buoi_hocs, count = staff_service.read_staff_recent_lessons(
+        session=session,
+        current_account_id=current_account.ma_tai_khoan,
+        ma_can_bo=ma_can_bo,
+        limit=limit,
+    )
     return BuoiHocGanDaysPublic(data=buoi_hocs, count=count)
+
 
 @router.get(
     "/{ma_can_bo}/lop-hoc-phan/dang-day/count",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=SoLuongLopHocPhanDangDayPublic,
 )
-def count_lop_hoc_phan_dang_day(
+def count_current_teaching_class_sections(
     session: SessionDep,
     current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
     as_of_date: date | None = None,
 ) -> SoLuongLopHocPhanDangDayPublic:
-    can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
-    target_date = as_of_date or date.today()
-    count, hoc_ky, nam_hoc = crud.count_lop_hoc_phan_dang_day_by_can_bo(session=session, ma_can_bo=ma_can_bo, as_of_date=target_date)
-    return SoLuongLopHocPhanDangDayPublic(ma_can_bo=ma_can_bo, hoc_ky=hoc_ky, nam_hoc=nam_hoc, as_of_date=target_date, count=count)
+    count, hoc_ky, nam_hoc, target_date = staff_service.count_current_teaching_class_sections(
+        session=session,
+        current_account_id=current_account.ma_tai_khoan,
+        ma_can_bo=ma_can_bo,
+        as_of_date=as_of_date,
+    )
+    return SoLuongLopHocPhanDangDayPublic(
+        ma_can_bo=ma_can_bo,
+        hoc_ky=hoc_ky,
+        nam_hoc=nam_hoc,
+        as_of_date=target_date,
+        count=count,
+    )
+
 
 @router.get(
     "/{ma_can_bo}/attendance/monthly-summary",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=MonthlyAttendanceSummary,
 )
 def read_monthly_attendance_summary(
@@ -251,25 +193,30 @@ def read_monthly_attendance_summary(
     ma_can_bo: Annotated[int, Path(ge=1)],
     reference_date: date | None = None,
 ) -> MonthlyAttendanceSummary:
-    can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
-    return get_monthly_attendance_summary(session=session, ma_can_bo=ma_can_bo, reference_date=reference_date or date.today())
+    return staff_service.read_monthly_attendance_summary(
+        session=session,
+        current_account_id=current_account.ma_tai_khoan,
+        ma_can_bo=ma_can_bo,
+        reference_date=reference_date,
+    )
+
 
 @router.get(
     "/{ma_can_bo}/khieu-nai/cho-xu-ly/count",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=KhieuNaiChoXuLyMetric,
 )
-def read_khieu_nai_cho_xu_ly_count(
+def read_pending_appeal_count(
     session: SessionDep,
     current_account: CurrentAccount,
     ma_can_bo: Annotated[int, Path(ge=1)],
 ) -> KhieuNaiChoXuLyMetric:
-    can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
-    return get_khieu_nai_cho_xu_ly_metric(session=session, ma_can_bo=ma_can_bo)
+    return staff_service.read_pending_appeal_count(
+        session=session,
+        current_account_id=current_account.ma_tai_khoan,
+        ma_can_bo=ma_can_bo,
+    )
+
 
 @router.post(
     "/",
@@ -277,25 +224,16 @@ def read_khieu_nai_cho_xu_ly_count(
     response_model=CanBoPublic,
     status_code=status.HTTP_201_CREATED,
 )
-def create_can_bo(
+def create_staff_member(
     *,
     session: SessionDep,
     can_bo_in: CanBoCreate,
 ) -> CanBoPublic:
     """Tạo hồ sơ cán bộ mới."""
-    ensure_unique_can_bo_fields(
+    return staff_service.create_staff_member(
         session=session,
-        google_email=can_bo_in.google_email,
-        ma_tai_khoan=can_bo_in.ma_tai_khoan,
+        item_in=can_bo_in,
     )
-    try:
-        return crud.create_can_bo(session=session, can_bo_create=can_bo_in)
-    except IntegrityError as exc:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Staff profile violates a unique or foreign key constraint",
-        ) from exc
 
 
 @router.patch(
@@ -303,38 +241,18 @@ def create_can_bo(
     dependencies=[Depends(get_current_active_superuser)],
     response_model=CanBoPublic,
 )
-def update_can_bo(
+def update_staff_member(
     *,
     session: SessionDep,
     ma_can_bo: Annotated[int, Path(ge=1)],
     can_bo_in: CanBoUpdate,
 ) -> CanBoPublic:
     """Cập nhật một phần thông tin cán bộ."""
-    db_can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not db_can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-
-    ensure_unique_can_bo_fields(
+    return staff_service.update_staff_member(
         session=session,
-        google_email=can_bo_in.google_email,
-        ma_tai_khoan=can_bo_in.ma_tai_khoan,
-        current_ma_can_bo=ma_can_bo,
+        ma_can_bo=ma_can_bo,
+        item_in=can_bo_in,
     )
-    try:
-        return crud.update_can_bo(
-            session=session,
-            db_can_bo=db_can_bo,
-            can_bo_update=can_bo_in,
-        )
-    except IntegrityError as exc:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Staff profile violates a unique or foreign key constraint",
-        ) from exc
 
 
 @router.delete(
@@ -342,102 +260,44 @@ def update_can_bo(
     dependencies=[Depends(get_current_active_superuser)],
     response_model=Message,
 )
-def delete_can_bo(
+def delete_staff_member(
     session: SessionDep,
     ma_can_bo: Annotated[int, Path(ge=1)],
 ) -> Message:
     """Xóa hồ sơ cán bộ theo mã cán bộ."""
-    db_can_bo = crud.get_can_bo(session=session, ma_can_bo=ma_can_bo)
-    if not db_can_bo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Staff profile not found",
-        )
-    try:
-        crud.delete_can_bo(session=session, db_can_bo=db_can_bo)
-    except IntegrityError as exc:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Staff profile is referenced by other records",
-        ) from exc
-
-    return Message(message="Staff profile deleted successfully")
+    return staff_service.delete_staff_member(
+        session=session,
+        ma_can_bo=ma_can_bo,
+    )
 
 
 @router.get(
     "/me/reports",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
+    response_model=list[StaffAttendanceReportItem],
 )
 def read_my_reports(
     session: SessionDep,
     current_account: CurrentAccount,
 ) -> Any:
     """Lấy danh sách báo cáo chuyên cần các lớp học giảng viên đang dạy."""
-    from app.models import LopHocPhan, HocPhan, BuoiHoc, DiemDanh, DangKyHocPhan
-    from sqlmodel import select, func
-    
-    can_bo = crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
-    if not can_bo:
-        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ cán bộ")
-        
-    statement = select(LopHocPhan, HocPhan).join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan).where(LopHocPhan.ma_can_bo == can_bo.ma_can_bo)
-    results = session.exec(statement).all()
-    
-    reports = []
-    for lhp, hp in results:
-        # Tổng số sinh viên đăng ký
-        stud_count = session.exec(
-            select(func.count(DangKyHocPhan.ma_sinh_vien))
-            .where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
-        ).first() or 0
-        
-        # Số buổi học tổng cộng và số buổi học đã kết thúc
-        total_sessions = session.exec(
-            select(func.count(BuoiHoc.ma_buoi_hoc))
-            .where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
-        ).first() or 0
-        
-        completed_sessions = session.exec(
-            select(BuoiHoc)
-            .where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan, BuoiHoc.trang_thai == "DA_KET_THUC")
-            .order_by(BuoiHoc.so_buoi)
-        ).all()
-        
-        # Thống kê điểm danh
-        statement_dd = select(DiemDanh).join(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)
-        diem_danhs = session.exec(statement_dd).all()
-        
-        present_cnt = len([dd for dd in diem_danhs if dd.trang_thai == "CO_MAT"])
-        late_cnt = len([dd for dd in diem_danhs if dd.trang_thai in ["DI_MUON", "MUON"]])
-        total_dd_cnt = len(diem_danhs)
-        
-        avg_rate = round(((present_cnt + late_cnt) / total_dd_cnt * 100), 1) if total_dd_cnt > 0 else 0.0
-        
-        # Biểu đồ theo từng buổi học đã kết thúc
-        data_points = []
-        for bh in completed_sessions:
-            dd_buoi = [dd for dd in diem_danhs if dd.ma_buoi_hoc == bh.ma_buoi_hoc]
-            bh_present = len([dd for dd in dd_buoi if dd.trang_thai == "CO_MAT"])
-            bh_late = len([dd for dd in dd_buoi if dd.trang_thai in ["DI_MUON", "MUON"]])
-            bh_absent = len([dd for dd in dd_buoi if dd.trang_thai == "VANG"])
-            
-            data_points.append({
-                "date": bh.ngay_hoc.strftime("%d/%m") + f" (Buổi {bh.so_buoi or 1})",
-                "present": bh_present,
-                "late": bh_late,
-                "absent": bh_absent
-            })
-            
-        reports.append({
-            "id": str(lhp.ma_lop_hoc_phan),
-            "subjectCode": f"HP{lhp.ma_hoc_phan}",
-            "subjectName": hp.ten_hoc_phan,
-            "totalStudents": stud_count,
-            "completedSessions": len(completed_sessions),
-            "totalSessions": total_sessions,
-            "averageAttendanceRate": avg_rate,
-            "dataPoints": data_points
-        })
-        
-    return reports
+    return staff_service.read_my_reports(
+        session=session,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
+
+
+@router.get(
+    "/{ma_can_bo}",
+    dependencies=[Depends(get_current_active_superuser)],
+    response_model=CanBoPublic,
+)
+def read_staff_member(
+    session: SessionDep,
+    ma_can_bo: Annotated[int, Path(ge=1)],
+) -> CanBoPublic:
+    """Lấy chi tiết một cán bộ theo mã cán bộ."""
+    return staff_service.get_staff_member_or_404(
+        session=session,
+        ma_can_bo=ma_can_bo,
+    )

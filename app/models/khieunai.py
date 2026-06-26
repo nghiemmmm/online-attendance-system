@@ -1,13 +1,18 @@
+"""Define complaint database and response models."""
+
 from datetime import date, datetime, timezone
 
 from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
 
 
 class KhieuNaiBase(SQLModel):
+    """Represent shared complaint fields."""
+
     ma_diem_danh: int
     ma_sinh_vien: int
     ly_do: str = Field(max_length=500)
@@ -18,12 +23,16 @@ class KhieuNaiBase(SQLModel):
 
 
 class KhieuNaiCreate(SQLModel):
+    """Represent data required to create a complaint."""
+
     ma_diem_danh: int
     ma_sinh_vien: int
     ly_do: str = Field(max_length=500)
 
 
 class KhieuNaiUpdate(SQLModel):
+    """Represent fields that can update a complaint."""
+
     trang_thai: str | None = Field(default=None, max_length=30)
     ma_can_bo_xu_ly: int | None = None
     ghi_chu_xu_ly: str | None = Field(default=None, max_length=255)
@@ -31,7 +40,7 @@ class KhieuNaiUpdate(SQLModel):
 
 
 class KhieuNaiCanXuLyItem(SQLModel):
-    """Thong tin rut gon cua khieu nai can xu ly."""
+    """Represent a summary of a complaint pending staff review."""
 
     ma_khieu_nai: int
     ma_diem_danh: int
@@ -47,14 +56,14 @@ class KhieuNaiCanXuLyItem(SQLModel):
 
 
 class KhieuNaiCanXuLysPublic(SQLModel):
-    """Danh sach khieu nai can xu ly cua can bo."""
+    """Represent complaints pending review for one staff member."""
 
     data: list[KhieuNaiCanXuLyItem]
     count: int
 
 
 class KhieuNaiCanXuLyDetail(SQLModel):
-    """Chi tiet khieu nai can xu ly cua can bo."""
+    """Represent complaint details for staff review."""
 
     ma_khieu_nai: int
     ma_diem_danh: int
@@ -72,19 +81,19 @@ class KhieuNaiCanXuLyDetail(SQLModel):
 
 
 class KhieuNaiXuLyRequest(SQLModel):
-    """Du lieu can bo gui len khi xu ly khieu nai."""
+    """Represent staff-provided complaint review data."""
 
     ghi_chu_xu_ly: str | None = Field(default=None, max_length=255)
 
 
 class KhieuNaiChapThuanRequest(KhieuNaiXuLyRequest):
-    """Du lieu chap thuan khieu nai va cap nhat diem danh neu can."""
+    """Represent data used to approve a complaint."""
 
     trang_thai_diem_danh_moi: str | None = Field(default=None, max_length=30)
 
 
 class KhieuNaiXuLyResult(SQLModel):
-    """Ket qua sau khi can bo xu ly khieu nai."""
+    """Represent the result after staff review a complaint."""
 
     ma_khieu_nai: int
     trang_thai: str
@@ -95,6 +104,8 @@ class KhieuNaiXuLyResult(SQLModel):
 
 
 class KhieuNai(KhieuNaiBase, table=True):
+    """Represent the complaint database table."""
+
     __tablename__ = "khieunai"
 
     ma_khieu_nai: int | None = Field(default=None, primary_key=True)
@@ -105,6 +116,8 @@ class KhieuNai(KhieuNaiBase, table=True):
 
 
 class KhieuNaiPublic(KhieuNaiBase):
+    """Represent complaint data returned by the API."""
+
     ma_khieu_nai: int
     ngay_gui: datetime
     ma_lop_hoc_phan: int | None = None
@@ -116,12 +129,14 @@ class KhieuNaiPublic(KhieuNaiBase):
 
 
 class KhieuNaisPublic(SQLModel):
+    """Represent a paginated list of complaints."""
+
     data: list[KhieuNaiPublic]
     count: int
 
 
 class KhieuNaiChoXuLyMetric(SQLModel):
-    """Chỉ số dashboard cho số lượng khiếu nại đang chờ xử lý."""
+    """Represent a dashboard metric for pending complaints."""
 
     so_luong_cho_xu_ly: int
     thoi_diem_thong_ke: datetime

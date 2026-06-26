@@ -1,12 +1,19 @@
+"""Define authentication request and response models."""
+
 from sqlmodel import Field, SQLModel
 
+
 class GoogleAuthPending(SQLModel):
+    """Represent a Google authentication request pending approval."""
+
     message: str
     status: str = "pending_approval"
     ma_tai_khoan: int
 
-#Response dùng schema Token trong
+
 class Token(SQLModel):
+    """Represent access and optional refresh token data."""
+
     access_token: str
     token_type: str = "bearer"
     refresh_token: str | None = None
@@ -14,7 +21,7 @@ class Token(SQLModel):
 
 
 class LoginRequest(SQLModel):
-    """Dữ liệu đăng nhập JSON, có hỗ trợ tùy chọn ghi nhớ đăng nhập."""
+    """Represent JSON login credentials."""
 
     username: str = Field(max_length=50)
     password: str = Field(min_length=5, max_length=128)
@@ -22,27 +29,33 @@ class LoginRequest(SQLModel):
 
 
 class RefreshTokenRequest(SQLModel):
-    """Request dùng refresh token để xin access token mới."""
+    """Represent a request to refresh an access token."""
 
     refresh_token: str = Field(min_length=20)
 
 
 class LogoutRequest(SQLModel):
-    """Request đăng xuất một phiên bằng refresh token."""
+    """Represent a request to log out one refresh-token session."""
 
     refresh_token: str = Field(min_length=20)
 
 
 class TokenPayload(SQLModel):
+    """Represent JWT token payload claims."""
+
     sub: str | None = None
     role: str | None = None
 
 
 class NewPassword(SQLModel):
+    """Represent data required to reset a password."""
+
     token: str
     new_password: str = Field(min_length=8, max_length=128)
 
 
 class UpdatePassword(SQLModel):
+    """Represent data required to update a password."""
+
     current_password: str = Field(min_length=8, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)

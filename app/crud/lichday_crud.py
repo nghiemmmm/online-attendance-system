@@ -31,7 +31,7 @@ def infer_current_semester(value: date) -> tuple[int, str]:
     return 3, f"{value.year - 1}-{value.year}"
 
 
-def thoi_khoa_bieu_matches_buoi_hoc(
+def timetable_matches_lesson(
     *, thoi_khoa_bieu: ThoiKhoaBieu, buoi_hoc: BuoiHoc
 ) -> bool:
     """Kiểm tra thời khóa biểu mẫu có khớp với ngày của buổi học thực tế không."""
@@ -42,7 +42,7 @@ def thoi_khoa_bieu_matches_buoi_hoc(
     return thoi_khoa_bieu.thu in {buoi_hoc_thu, buoi_hoc.ngay_hoc.isoweekday()}
 
 
-def thoi_khoa_bieu_overlaps_date_range(
+def timetable_overlaps_date_range(
     *,
     thoi_khoa_bieu: ThoiKhoaBieu,
     from_date: date | None = None,
@@ -56,7 +56,7 @@ def thoi_khoa_bieu_overlaps_date_range(
     return True
 
 
-def build_lich_day_item(
+def build_teaching_schedule_item(
     *,
     lop_hoc_phan: LopHocPhan,
     hoc_phan: HocPhan | None,
@@ -100,7 +100,7 @@ def build_lich_day_item(
     )
 
 
-def count_diem_danh_by_status(
+def count_attendance_by_status(
     *,
     session: Session,
     ma_buoi_hoc: int,
@@ -116,7 +116,7 @@ def count_diem_danh_by_status(
     return so_co_mat, so_di_muon, so_vang_mat
 
 
-def get_buoi_hoc_gan_day_by_can_bo(
+def get_recent_lessons_by_staff_member(
     *,
     session: Session,
     ma_can_bo: int,
@@ -140,7 +140,7 @@ def get_buoi_hoc_gan_day_by_can_bo(
             if lop_hoc_phan
             else None
         )
-        so_co_mat, so_di_muon, so_vang_mat = count_diem_danh_by_status(
+        so_co_mat, so_di_muon, so_vang_mat = count_attendance_by_status(
             session=session,
             ma_buoi_hoc=buoi_hoc.ma_buoi_hoc,
         )
@@ -158,7 +158,7 @@ def get_buoi_hoc_gan_day_by_can_bo(
     return items, len(items)
 
 
-def get_lich_day_by_can_bo(
+def get_teaching_schedule_by_staff_member(
     *,
     session: Session,
     ma_can_bo: int,
@@ -196,7 +196,7 @@ def get_lich_day_by_can_bo(
         thoi_khoa_bieus = [
             tkb
             for tkb in session.exec(tkb_statement).all()
-            if thoi_khoa_bieu_overlaps_date_range(
+            if timetable_overlaps_date_range(
                 thoi_khoa_bieu=tkb,
                 from_date=from_date,
                 to_date=to_date,
@@ -218,7 +218,7 @@ def get_lich_day_by_can_bo(
                     (
                         tkb
                         for tkb in thoi_khoa_bieus
-                        if thoi_khoa_bieu_matches_buoi_hoc(
+                        if timetable_matches_lesson(
                             thoi_khoa_bieu=tkb,
                             buoi_hoc=buoi_hoc,
                         )
@@ -226,7 +226,7 @@ def get_lich_day_by_can_bo(
                     None,
                 )
                 items.append(
-                    build_lich_day_item(
+                    build_teaching_schedule_item(
                         lop_hoc_phan=lop_hoc_phan,
                         hoc_phan=hoc_phan,
                         thoi_khoa_bieu=matched_tkb,
@@ -236,7 +236,7 @@ def get_lich_day_by_can_bo(
         else:
             for thoi_khoa_bieu in thoi_khoa_bieus:
                 items.append(
-                    build_lich_day_item(
+                    build_teaching_schedule_item(
                         lop_hoc_phan=lop_hoc_phan,
                         hoc_phan=hoc_phan,
                         thoi_khoa_bieu=thoi_khoa_bieu,
@@ -254,7 +254,7 @@ def get_lich_day_by_can_bo(
     return items[skip : skip + limit], count
 
 
-def count_lop_hoc_phan_dang_day_by_can_bo(
+def count_current_teaching_class_sections_by_staff_member(
     *,
     session: Session,
     ma_can_bo: int,
@@ -271,7 +271,7 @@ def count_lop_hoc_phan_dang_day_by_can_bo(
         LopHocPhan.ma_can_bo == ma_can_bo,
         LopHocPhan.hoc_ky == hoc_ky,
         LopHocPhan.nam_hoc == nam_hoc,
-        LopHocPhan.trang_thai == True,
+        LopHocPhan.trang_thai.is_(True),
     )
     lop_hoc_phans = session.exec(lop_statement).all()
     active_class_ids: set[int] = set()

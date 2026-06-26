@@ -1,8 +1,4 @@
-"""
-Lich hoc schemas.
-
-Defines response schemas for student study schedules.
-"""
+"""Define student study schedule response models."""
 
 from datetime import date, time
 
@@ -10,7 +6,7 @@ from sqlmodel import SQLModel
 
 
 class LichHocHomNayItem(SQLModel):
-    """Mot buoi hoc trong ngay cua sinh vien."""
+    """Represent one lesson in a student's daily schedule."""
 
     ma_lop_hoc_phan: int
     ten_hoc_phan: str | None = None
@@ -20,7 +16,7 @@ class LichHocHomNayItem(SQLModel):
 
 
 class LichHocHomNayPublic(SQLModel):
-    """Danh sach buoi hoc trong ngay cua sinh vien."""
+    """Represent a student's daily schedule."""
 
     ma_sinh_vien: int
     ngay_hoc: date

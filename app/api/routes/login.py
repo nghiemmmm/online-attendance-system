@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud
-from app.api.deps import CurrentAccount, SessionDep
+from app.api.deps import CurrentAccount, SessionDep, login_rate_limiter
 from app.models import (
     LoginRequest,
     LogoutRequest,
@@ -29,7 +29,7 @@ router = APIRouter(tags=["login"])
 logger = logging.getLogger("app.auth")
 
 
-@router.post("/login/access-token")
+@router.post("/login/access-token", dependencies=[Depends(login_rate_limiter)])
 def login_access_token(
     request: Request,
     session: SessionDep,
@@ -65,7 +65,7 @@ def login_access_token(
     return token
 
 
-@router.post("/login/json")
+@router.post("/login/json", dependencies=[Depends(login_rate_limiter)])
 def login_json(
     *,
     request: Request,

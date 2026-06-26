@@ -4,12 +4,12 @@ from sqlmodel import Session, col, func, select
 from app.models import CanBo, CanBoCreate, CanBoUpdate
 
 
-def get_can_bo(*, session: Session, ma_can_bo: int) -> CanBo | None:
+def get_staff_member(*, session: Session, ma_can_bo: int) -> CanBo | None:
     """Lấy thông tin một cán bộ theo mã cán bộ."""
     return session.get(CanBo, ma_can_bo)
 
 
-def get_can_bo_by_google_email(
+def get_staff_member_by_google_email(
     *, session: Session, google_email: str
 ) -> CanBo | None:
     """Tìm cán bộ theo Google email để kiểm tra trùng dữ liệu."""
@@ -17,7 +17,7 @@ def get_can_bo_by_google_email(
     return session.exec(statement).first()
 
 
-def get_can_bo_by_account_id(
+def get_staff_member_by_account_id(
     *, session: Session, ma_tai_khoan: int
 ) -> CanBo | None:
     """Tìm cán bộ theo tài khoản liên kết để kiểm tra mỗi tài khoản chỉ gắn một hồ sơ."""
@@ -25,7 +25,7 @@ def get_can_bo_by_account_id(
     return session.exec(statement).first()
 
 
-def get_can_bos(
+def get_staff_members(
     *,
     session: Session,
     skip: int = 0,
@@ -59,7 +59,7 @@ def get_can_bos(
     return list(can_bos), count
 
 
-def create_can_bo(*, session: Session, can_bo_create: CanBoCreate) -> CanBo:
+def create_staff_member(*, session: Session, can_bo_create: CanBoCreate) -> CanBo:
     """Tạo hồ sơ cán bộ mới."""
     db_can_bo = CanBo.model_validate(can_bo_create)
     session.add(db_can_bo)
@@ -68,7 +68,7 @@ def create_can_bo(*, session: Session, can_bo_create: CanBoCreate) -> CanBo:
     return db_can_bo
 
 
-def update_can_bo(
+def update_staff_member(
     *, session: Session, db_can_bo: CanBo, can_bo_update: CanBoUpdate
 ) -> CanBo:
     """Cập nhật một phần thông tin cán bộ."""
@@ -82,7 +82,7 @@ def update_can_bo(
     return db_can_bo
 
 
-def delete_can_bo(*, session: Session, db_can_bo: CanBo) -> None:
+def delete_staff_member(*, session: Session, db_can_bo: CanBo) -> None:
     """Xóa hồ sơ cán bộ khỏi database."""
     session.delete(db_can_bo)
     session.commit()

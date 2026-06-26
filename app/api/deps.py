@@ -2,7 +2,7 @@ from collections.abc import Generator
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -96,7 +96,7 @@ def get_current_active_superuser(current_account: CurrentAccount) -> TaiKhoan:
         )
     return current_account
 
-def get_current_active_sinhvien(current_account: CurrentAccount) -> TaiKhoan:
+def get_current_active_student(current_account: CurrentAccount) -> TaiKhoan:
     if normalize_role(current_account.vai_tro) != "SINH_VIEN":
         raise HTTPException(
             status_code=403,
@@ -104,10 +104,42 @@ def get_current_active_sinhvien(current_account: CurrentAccount) -> TaiKhoan:
         )
     return current_account
 
-def get_current_active_giangvien(current_account: CurrentAccount) -> TaiKhoan:
+def get_current_active_lecturer(current_account: CurrentAccount) -> TaiKhoan:
     if normalize_role(current_account.vai_tro) != "GIANG_VIEN":
         raise HTTPException(
             status_code=403,
             detail=f"Yeu cau vai tro GIANG_VIEN, tai khoan hien tai la {current_account.vai_tro}",
         )
     return current_account
+
+
+from collections import defaultdict
+import time
+
+
+class RateLimiter:
+    """A lightweight IP-based rate limiter dependency."""
+
+    def __init__(self, times: int, seconds: int):
+        self.times = times
+        self.seconds = seconds
+        self.history = defaultdict(list)
+
+    def __call__(self, request: Request):
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+
+        # Clean up old timestamps
+        self.history[client_ip] = [t for t in self.history[client_ip] if now - t < self.seconds]
+
+        if len(self.history[client_ip]) >= self.times:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Please try again later."
+            )
+
+        self.history[client_ip].append(now)
+
+
+login_rate_limiter = RateLimiter(times=5, seconds=60)
+

@@ -6,6 +6,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.core.exceptions import AppException
+
 DEFAULT_DEVELOPER_MESSAGE = ""
 DEFAULT_CODE = "000"
 
@@ -16,6 +18,7 @@ def init_app(app: FastAPI) -> None:
     # 例外ハンドラの登録
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(404, not_found_handler)
+    app.add_exception_handler(AppException, app_exception_handler)
 
 
 @dataclass(frozen=True)
@@ -49,3 +52,11 @@ async def not_found_handler(request: Request, exc: HTTPException) -> JSONRespons
         code=DEFAULT_CODE,
     )
     return JSONResponse(status_code=404, content={"errors": [error.to_response()]})
+
+
+async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+    logger.error("app_exception path=%s detail=%s status_code=%s", request.url.path, exc.detail, exc.status_code)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )

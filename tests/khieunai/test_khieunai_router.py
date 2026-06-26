@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from datetime import date
+import pytest
 
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
@@ -8,6 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.api.deps import get_current_active_superuser, get_db
 from app.main import app
 from app.models import (
+    AuditLog,
     BuoiHoc,
     CanBo,
     DiemDanh,
@@ -18,6 +20,12 @@ from app.models import (
     SinhVien,
     TaiKhoan,
 )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def db():
+    """Override conftest.py global db fixture to avoid Render PG execution."""
+    yield None
 
 
 def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
@@ -39,6 +47,7 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             SinhVien.__table__,
             DiemDanh.__table__,
             KhieuNai.__table__,
+            AuditLog.__table__,
         ],
     )
 
@@ -59,8 +68,36 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             """Bypass authentication for router tests."""
             return superuser
 
+        from app.api.deps import get_current_account, get_current_active_student, get_current_active_lecturer
+        from app.api.main import api_router
+        app.include_router(api_router, prefix="")
+
+        from fastapi import Request
+        from app.api.deps import get_current_account, get_current_active_student, get_current_active_lecturer
+        from app.api.main import api_router
+        app.include_router(api_router, prefix="")
+
+        def override_get_db():
+            """Yield the test database session."""
+            yield session
+
+        def override_superuser():
+            """Bypass authentication for router tests."""
+            return superuser
+
+        def override_current_account(request: Request):
+            user_id = request.headers.get("x-test-user-id")
+            if user_id:
+                account = session.get(TaiKhoan, int(user_id))
+                if account:
+                    return account
+            return superuser
+
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_active_superuser] = override_superuser
+        app.dependency_overrides[get_current_account] = override_current_account
+        app.dependency_overrides[get_current_active_lecturer] = override_current_account
+        app.dependency_overrides[get_current_active_student] = override_current_account
         with TestClient(app) as client:
             yield client, session
         app.dependency_overrides.clear()
@@ -68,8 +105,18 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
 def seed_khieu_nai_data(session: Session):
     """Seed staff, class, attendance and complaints for complaint router tests."""
-    can_bo = CanBo(ho="Nguyen", ten="Giang", google_ten_dang_nhap="giang@example.edu")
-    other_can_bo = CanBo(ho="Tran", ten="Khac", google_ten_dang_nhap="khac@example.edu")
+    tk_other = TaiKhoan(
+        ma_tai_khoan=2,
+        ten_dang_nhap="other_can_bo",
+        mat_khau_hash="hashed-password",
+        vai_tro="GIANG_VIEN",
+        trang_thai=True,
+    )
+    session.add(tk_other)
+    session.commit()
+
+    can_bo = CanBo(ho="Nguyen", ten="Giang", google_ten_dang_nhap="giang@example.edu", ma_tai_khoan=1)
+    other_can_bo = CanBo(ho="Tran", ten="Khac", google_ten_dang_nhap="khac@example.edu", ma_tai_khoan=2)
     nganh = Nganh(ten_nganh="Cong nghe thong tin")
     hoc_phan = HocPhan(
         ma_hoc_phan=701,
@@ -210,7 +257,8 @@ def test_khieu_nai_can_xu_ly_flow() -> None:
         )
         wrong_staff_response = client.get(
             f"/khieu-nai/can-bo/{other_can_bo.ma_can_bo}/can-xu-ly/"
-            f"{khieu_nai_1.ma_khieu_nai}"
+            f"{khieu_nai_1.ma_khieu_nai}",
+            headers={"x-test-user-id": "2"},
         )
 
         assert list_response.status_code == 200

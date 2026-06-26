@@ -1,42 +1,109 @@
-from typing import Any
-from fastapi import APIRouter, HTTPException, Depends
-from sqlmodel import select
+"""Define course HTTP routes."""
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path, Query, status
 
 from app.api.deps import SessionDep, get_current_active_superuser
-from app.models import HocPhan, HocPhanCreate, HocPhanUpdate, HocPhanPublic, HocPhansPublic
-from app.crud import hocphan_crud
+from app.models import (
+    HocPhanCreate,
+    HocPhanPublic,
+    HocPhansPublic,
+    HocPhanUpdate,
+    Message,
+)
+from app.services import course_service
 
 router = APIRouter(prefix="/hocphan", tags=["hocphan"])
 
-@router.get("/", response_model=HocPhansPublic)
-def read_hocphans(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
-    items, count = hocphan_crud.get_hocphans(session=session, skip=skip, limit=limit)
-    return {"data": items, "count": count}
 
-@router.get("/{ma_hoc_phan}", response_model=HocPhanPublic)
-def read_hocphan(session: SessionDep, ma_hoc_phan: int) -> Any:
-    item = hocphan_crud.get_hocphan(session=session, ma_hoc_phan=ma_hoc_phan)
-    if not item:
-        raise HTTPException(status_code=404, detail="HocPhan not found")
-    return item
+@router.get(
+    "/",
+    response_model=HocPhansPublic,
+    status_code=status.HTTP_200_OK,
+    summary="List courses",
+    description="Return paginated courses.",
+)
+async def read_courses(
+    session: SessionDep,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+) -> HocPhansPublic:
+    """Return paginated courses."""
+    items, count = course_service.list_courses(
+        session=session,
+        skip=skip,
+        limit=limit,
+    )
+    return HocPhansPublic(data=items, count=count)
 
-@router.post("/", response_model=HocPhanPublic, dependencies=[Depends(get_current_active_superuser)])
-def create_hocphan(session: SessionDep, item_in: HocPhanCreate) -> Any:
-    item = hocphan_crud.create_hocphan(session=session, item_create=item_in)
-    return item
 
-@router.patch("/{ma_hoc_phan}", response_model=HocPhanPublic, dependencies=[Depends(get_current_active_superuser)])
-def update_hocphan(session: SessionDep, ma_hoc_phan: int, item_in: HocPhanUpdate) -> Any:
-    item = hocphan_crud.get_hocphan(session=session, ma_hoc_phan=ma_hoc_phan)
-    if not item:
-        raise HTTPException(status_code=404, detail="HocPhan not found")
-    item = hocphan_crud.update_hocphan(session=session, db_item=item, item_update=item_in)
-    return item
+@router.get(
+    "/{ma_hoc_phan}",
+    response_model=HocPhanPublic,
+    status_code=status.HTTP_200_OK,
+    summary="Get a course",
+    description="Return one course by its identifier.",
+)
+async def read_course(
+    session: SessionDep,
+    ma_hoc_phan: Annotated[int, Path(ge=1)],
+) -> HocPhanPublic:
+    """Return one course."""
+    return course_service.get_course_or_404(
+        session=session,
+        ma_hoc_phan=ma_hoc_phan,
+    )
 
-@router.delete("/{ma_hoc_phan}", dependencies=[Depends(get_current_active_superuser)])
-def delete_hocphan(session: SessionDep, ma_hoc_phan: int) -> Any:
-    item = hocphan_crud.get_hocphan(session=session, ma_hoc_phan=ma_hoc_phan)
-    if not item:
-        raise HTTPException(status_code=404, detail="HocPhan not found")
-    hocphan_crud.delete_hocphan(session=session, db_item=item)
-    return {"message": "HocPhan deleted successfully"}
+
+@router.post(
+    "/",
+    response_model=HocPhanPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a course",
+    description="Create a new course.",
+    dependencies=[Depends(get_current_active_superuser)],
+)
+async def create_course(
+    session: SessionDep,
+    item_in: HocPhanCreate,
+) -> HocPhanPublic:
+    """Create a course."""
+    return course_service.create_course(session=session, item_in=item_in)
+
+
+@router.patch(
+    "/{ma_hoc_phan}",
+    response_model=HocPhanPublic,
+    status_code=status.HTTP_200_OK,
+    summary="Update a course",
+    description="Update one course by its identifier.",
+    dependencies=[Depends(get_current_active_superuser)],
+)
+async def update_course(
+    session: SessionDep,
+    ma_hoc_phan: Annotated[int, Path(ge=1)],
+    item_in: HocPhanUpdate,
+) -> HocPhanPublic:
+    """Update a course."""
+    return course_service.update_course(
+        session=session,
+        ma_hoc_phan=ma_hoc_phan,
+        item_in=item_in,
+    )
+
+
+@router.delete(
+    "/{ma_hoc_phan}",
+    response_model=Message,
+    status_code=status.HTTP_200_OK,
+    summary="Delete a course",
+    description="Delete one course by its identifier.",
+    dependencies=[Depends(get_current_active_superuser)],
+)
+async def delete_course(
+    session: SessionDep,
+    ma_hoc_phan: Annotated[int, Path(ge=1)],
+) -> Message:
+    """Delete a course."""
+    return course_service.delete_course(session=session, ma_hoc_phan=ma_hoc_phan)

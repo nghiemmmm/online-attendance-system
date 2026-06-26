@@ -1,3 +1,45 @@
 [tool.fastapi]
 entrypoint = "app.main:app"
-#là nơi khai báo dependency, tool dev, type check, lint, coverage. Nói ngắn gọn: đây là “bộ luật” của backend Python này.
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["app", "tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "D",
+    "UP",
+    "SIM",
+]
+ignore = [
+    "B008",
+    "D100",
+    "D104",
+    "D107",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tests"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

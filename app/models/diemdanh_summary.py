@@ -1,14 +1,10 @@
-"""
-Diem danh summary schemas.
-
-Defines response schemas for student attendance summary APIs.
-"""
+"""Define attendance summary response models."""
 
 from sqlmodel import SQLModel
 
 
 class TongBuoiCoMatHocKyPublic(SQLModel):
-    """Thong ke tong so buoi co mat cua sinh vien trong hoc ky."""
+    """Represent a student's semester attendance summary."""
 
     ma_sinh_vien: int
     hoc_ky: int

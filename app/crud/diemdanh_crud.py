@@ -4,7 +4,7 @@ from typing import List
 
 from app.models import DiemDanh, BuoiHoc, DangKyHocPhan, DiemDanhCreate, DiemDanhUpdate
 
-def tinh_trang_thai_diem_danh(buoi_hoc: BuoiHoc, current_time: datetime) -> str:
+def calculate_attendance_status(buoi_hoc: BuoiHoc, current_time: datetime) -> str:
     """Xác định trạng thái CO_MAT hoặc MUON dựa trên giờ bắt đầu và số phút muộn tối đa."""
     if not buoi_hoc.gio_bat_dau:
         return "CO_MAT" # Nếu không cấu hình giờ, mặc định là có mặt
@@ -17,7 +17,7 @@ def tinh_trang_thai_diem_danh(buoi_hoc: BuoiHoc, current_time: datetime) -> str:
         return "MUON"
     return "CO_MAT"
 
-def diem_danh_tu_dong_lo(
+def mark_attendance_by_lora(
     *, session: Session, ma_buoi_hoc: int, danh_sach_ma_sinh_vien: List[int], do_tin_cay_trung_binh: float = 0.8
 ) -> dict:
     """Xử lý điểm danh hàng loạt từ AI."""
@@ -29,7 +29,7 @@ def diem_danh_tu_dong_lo(
         return {"success": False, "message": "Buổi học không trong trạng thái ĐANG_DIEN_RA"}
 
     current_time = datetime.now()
-    trang_thai_hien_tai = tinh_trang_thai_diem_danh(buoi_hoc, current_time)
+    trang_thai_hien_tai = calculate_attendance_status(buoi_hoc, current_time)
 
     # Lấy các record điểm danh đã có của các sinh viên này trong buổi học
     statement = select(DiemDanh).where(
@@ -80,7 +80,7 @@ def diem_danh_tu_dong_lo(
     return {"success": True, "message": f"Đã điểm danh cho {len(new_records)} sinh viên", "trang_thai": trang_thai_hien_tai}
 
 
-def diem_danh_thu_cong(
+def mark_attendance_manually(
     *, session: Session, ma_buoi_hoc: int, ma_sinh_vien: int, trang_thai: str, ghi_chu: str | None = None
 ) -> DiemDanh:
     """Giảng viên điểm danh thủ công 1 sinh viên."""
@@ -108,7 +108,7 @@ def diem_danh_thu_cong(
     session.refresh(diem_danh)
     return diem_danh
 
-def chot_diem_danh_vang(*, session: Session, buoi_hoc: BuoiHoc) -> int:
+def finalize_absent_attendance(*, session: Session, buoi_hoc: BuoiHoc) -> int:
     """Tạo bản ghi VANG cho toàn bộ sinh viên chưa có record khi buổi học kết thúc."""
     # Lấy toàn bộ sinh viên đăng ký lớp học phần
     statement = select(DangKyHocPhan.ma_sinh_vien).where(DangKyHocPhan.ma_lop_hoc_phan == buoi_hoc.ma_lop_hoc_phan)

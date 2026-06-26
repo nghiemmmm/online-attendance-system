@@ -1,9 +1,13 @@
+"""Define lesson database and response models."""
+
 from datetime import date, time
 
 from sqlmodel import Field, SQLModel
 
 
 class BuoiHocBase(SQLModel):
+    """Represent shared lesson fields."""
+
     ma_lop_hoc_phan: int
     ngay_hoc: date
     gio_bat_dau: time | None = None
@@ -16,10 +20,14 @@ class BuoiHocBase(SQLModel):
 
 
 class BuoiHocCreate(BuoiHocBase):
+    """Represent data required to create a lesson."""
+
     pass
 
 
 class BuoiHocUpdate(SQLModel):
+    """Represent fields that can update a lesson."""
+
     ma_lop_hoc_phan: int | None = None
     ngay_hoc: date | None = None
     gio_bat_dau: time | None = None
@@ -32,6 +40,8 @@ class BuoiHocUpdate(SQLModel):
 
 
 class BuoiHoc(BuoiHocBase, table=True):
+    """Represent the lesson database table."""
+
     __tablename__ = "buoihoc"
 
     ma_buoi_hoc: int | None = Field(default=None, primary_key=True)
@@ -39,9 +49,13 @@ class BuoiHoc(BuoiHocBase, table=True):
 
 
 class BuoiHocPublic(BuoiHocBase):
+    """Represent lesson data returned by the API."""
+
     ma_buoi_hoc: int
 
 
 class BuoiHocsPublic(SQLModel):
+    """Represent a paginated list of lessons."""
+
     data: list[BuoiHocPublic]
     count: int

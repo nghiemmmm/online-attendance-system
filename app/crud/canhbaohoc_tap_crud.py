@@ -23,7 +23,7 @@ class AbsenceWarningSource:
     so_buoi_vang: int
 
 
-def count_buoi_hoc_by_lop_hoc_phan(
+def count_lessons_by_class_section(
     *, session: Session, ma_lop_hoc_phan: int
 ) -> int:
     """Count lessons for one class section."""
@@ -35,7 +35,7 @@ def count_buoi_hoc_by_lop_hoc_phan(
     return session.exec(statement).one()
 
 
-def count_buoi_vang_by_sinh_vien_and_lop_hoc_phan(
+def count_absences_by_student_and_class_section(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -55,7 +55,7 @@ def count_buoi_vang_by_sinh_vien_and_lop_hoc_phan(
     return session.exec(statement).one()
 
 
-def get_absence_warning_sources_by_sinh_vien(
+def get_absence_warning_sources_by_student(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -70,8 +70,8 @@ def get_absence_warning_sources_by_sinh_vien(
         .join(HocPhan, LopHocPhan.ma_hoc_phan == HocPhan.ma_hoc_phan)
         .where(
             DangKyHocPhan.ma_sinh_vien == ma_sinh_vien,
-            DangKyHocPhan.trang_thai == True,
-            LopHocPhan.trang_thai == True,
+            DangKyHocPhan.trang_thai.is_(True),
+            LopHocPhan.trang_thai.is_(True),
         )
         .order_by(LopHocPhan.ma_lop_hoc_phan)
     )
@@ -79,11 +79,11 @@ def get_absence_warning_sources_by_sinh_vien(
     sources: list[AbsenceWarningSource] = []
 
     for lop_hoc_phan, hoc_phan in rows:
-        tong_so_buoi_hoc = count_buoi_hoc_by_lop_hoc_phan(
+        tong_so_buoi_hoc = count_lessons_by_class_section(
             session=session,
             ma_lop_hoc_phan=lop_hoc_phan.ma_lop_hoc_phan,
         )
-        so_buoi_vang = count_buoi_vang_by_sinh_vien_and_lop_hoc_phan(
+        so_buoi_vang = count_absences_by_student_and_class_section(
             session=session,
             ma_sinh_vien=ma_sinh_vien,
             ma_lop_hoc_phan=lop_hoc_phan.ma_lop_hoc_phan,

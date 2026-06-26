@@ -1,3 +1,5 @@
+"""Expose application database and schema models."""
+
 from sqlmodel import SQLModel
 
 from app.models.anhdiemdanh import (
@@ -50,6 +52,10 @@ from app.models.canbo import (
     CanBoPublic,
     CanBosPublic,
     CanBoUpdate,
+    StaffClassSectionItem,
+    StaffClassSectionsPublic,
+    AttendanceReportDataPoint,
+    StaffAttendanceReportItem,
 )
 from app.models.common import Message
 from app.models.dangkyhocphan import (
@@ -125,6 +131,12 @@ from app.models.sinhvien import (
     SinhVienPublic,
     SinhViensPublic,
     SinhVienUpdate,
+    StudentScheduleItem,
+    StudentSchedulePublic,
+    StudentAttendanceItem,
+    StudentAttendancePublic,
+    StudentAvailableClassItem,
+    StudentAvailableClassPublic,
 )
 from app.models.taikhoan import (
     TaiKhoan,

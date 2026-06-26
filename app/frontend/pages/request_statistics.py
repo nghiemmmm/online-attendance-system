@@ -120,18 +120,3 @@ if requests_data:
         st.info("Chưa có yêu cầu nào hoàn thành")
 else:
     st.info("Không có dữ liệu để phân tích")
-        "Đang xử lý": 8,
-        "Chờ xử lý": 12
-    }
-    
-    fig = px.pie(values=list(status_counts.values()), names=list(status_counts.keys()))
-    st.plotly_chart(fig, use_container_width=True)
-
-with col2:
-    st.subheader("📈 Biểu đồ loại yêu cầu")
-    
-    type_counts = {"Báo cáo": 18, "Điểm danh": 15, "Cấp chứng chỉ": 12}
-    
-    fig = px.bar(x=list(type_counts.keys()), y=list(type_counts.values()))
-    fig.update_layout(xaxis_title="Loại", yaxis_title="Số lượng")
-    st.plotly_chart(fig, use_container_width=True)

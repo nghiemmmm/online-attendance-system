@@ -1,36 +1,32 @@
 # -*- coding: utf-8 -*-
-"""
-core_facenet.py
-Module core FaceNet + MTCNN:
-- Load ảnh
-- Detect face
-- Trích xuất embedding 512-d
-- So sánh face bằng L2
-"""
+"""Core FaceNet and MTCNN helpers."""
 
-import torch
 import numpy as np
-from PIL import Image
+import torch
 from facenet_pytorch import InceptionResnetV1, MTCNN
+from PIL import Image
 
-# ===============================
-# Initialize FaceNet + MTCNN
-# ===============================
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+from app.utils.logger import logger
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = None
 mtcnn = None
 
-def load_model(model_class=InceptionResnetV1, detector_class=MTCNN, keep_all=True):
-    """
-    Load both FaceNet model and MTCNN detector.
-    """
-    model = model_class(pretrained='vggface2').eval().to(device)
+
+def load_model(
+    model_class=InceptionResnetV1,
+    detector_class=MTCNN,
+    keep_all: bool = True,
+):
+    """Load both FaceNet model and MTCNN detector."""
+    loaded_model = model_class(pretrained="vggface2").eval().to(device)
     detector = detector_class(device=device, keep_all=keep_all)
-    print(f"[INFO] FaceNet + MTCNN model loaded on {device}")
-    return model, detector
+    logger.info("FaceNet + MTCNN model loaded on %s", device)
+    return loaded_model, detector
 
 
 def ensure_model_loaded():
+    """Return initialized FaceNet and MTCNN instances."""
     global model, mtcnn
     if model is None or mtcnn is None:
         model, mtcnn = load_model()
@@ -38,33 +34,21 @@ def ensure_model_loaded():
 
 
 def load_image_file(file_path):
-    """
-    Load ảnh từ file, trả về PIL Image
-    """
-    img = Image.open(file_path).convert('RGB')
-    return img
+    """Load an image file as RGB."""
+    return Image.open(file_path).convert("RGB")
 
-# ===============================
-# Detect face
-# ===============================
+
 def face_locations(img):
-    """
-    Trả về list bounding boxes (top, right, bottom, left)
-    """
+    """Return face bounding boxes as top, right, bottom, left tuples."""
     _, detector = ensure_model_loaded()
     boxes, _ = detector.detect(img)
     if boxes is None:
         return []
     return [(int(y1), int(x2), int(y2), int(x1)) for x1, y1, x2, y2 in boxes]
 
-# ===============================
-# Lấy embedding
-# ===============================
+
 def face_encodings(img, known_face_locations=None):
-    """
-    Trích xuất embedding 512-d cho từng face
-    Nếu known_face_locations=None → detect tất cả
-    """
+    """Extract 512-dimensional embeddings for faces in an image."""
     face_model, detector = ensure_model_loaded()
     embeddings = []
 
@@ -75,53 +59,39 @@ def face_encodings(img, known_face_locations=None):
         for face in faces:
             face_embedding = face_model(face.unsqueeze(0).to(device))
             embeddings.append(face_embedding.detach().cpu().numpy()[0])
-    else:
-        for box in known_face_locations:
-            y1, x2, y2, x1 = box
-            face_crop = img.crop((x1, y1, x2, y2))
-            # extract manually
-            face_tensor = detector(face_crop)
-            if face_tensor is not None:
-                face_embedding = face_model(face_tensor.unsqueeze(0).to(device))
-                embeddings.append(face_embedding.detach().cpu().numpy()[0])
+        return embeddings
+
+    for box in known_face_locations:
+        y1, x2, y2, x1 = box
+        face_crop = img.crop((x1, y1, x2, y2))
+        face_tensor = detector(face_crop)
+        if face_tensor is not None:
+            face_embedding = face_model(face_tensor.unsqueeze(0).to(device))
+            embeddings.append(face_embedding.detach().cpu().numpy()[0])
+
     return embeddings
 
-# ===============================
-# Khoảng cách giữa các face
-# ===============================
+
 def face_distance(face_encodings, face_to_compare):
-    """
-    Khoảng cách L2 giữa embeddings
-    """
+    """Calculate L2 distances between known embeddings and one face."""
     if len(face_encodings) == 0:
         return np.empty((0))
     return np.linalg.norm(np.array(face_encodings) - face_to_compare, axis=1)
 
-# ===============================
-# So sánh face
-# ===============================
+
 def compare_faces(known_face_encodings, face_encoding_to_check, tolerance=0.8):
-    """
-    So sánh embedding mới với list embedding đã biết
-    """
-    return list(face_distance(known_face_encodings, face_encoding_to_check) <= tolerance)
+    """Compare one face embedding against known embeddings."""
+    distances = face_distance(known_face_encodings, face_encoding_to_check)
+    return list(distances <= tolerance)
 
 
 def is_face_match(known_face_encodings, face_encoding_to_check, tolerance=0.8):
-    """
-    Trả về True/False để xác định khuôn mặt có khớp hay không.
-
-    Logic:
-    - Dùng compare_faces(...) để lấy danh sách khớp theo ngưỡng tolerance.
-    - Dùng face_distance(...) để đảm bảo có ít nhất một khoảng cách hợp lệ.
-    """
+    """Return whether one face embedding matches any known embedding."""
     if face_encoding_to_check is None:
         return False
-
     if known_face_encodings is None or len(known_face_encodings) == 0:
         return False
 
     matches = compare_faces(known_face_encodings, face_encoding_to_check, tolerance)
     distances = face_distance(known_face_encodings, face_encoding_to_check)
-
     return bool(any(matches)) and bool(len(distances) > 0)

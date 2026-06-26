@@ -1,10 +1,12 @@
+"""Define teaching schedule response models."""
+
 from datetime import date, time
 
 from sqlmodel import SQLModel
 
 
 class BuoiHocGanDayItem(SQLModel):
-    """Mot buoi hoc gan day cua can bo dung cho dashboard."""
+    """Represent one recent lesson for a staff dashboard."""
 
     ma_lop_hoc_phan: int
     ten_hoc_phan: str | None = None
@@ -15,14 +17,14 @@ class BuoiHocGanDayItem(SQLModel):
 
 
 class BuoiHocGanDaysPublic(SQLModel):
-    """Danh sach buoi hoc gan day cua can bo."""
+    """Represent a list of recent lessons for a staff member."""
 
     data: list[BuoiHocGanDayItem]
     count: int
 
 
 class LichDayItem(SQLModel):
-    """Một dòng lịch dạy của cán bộ, gồm lớp học phần, lịch mẫu và buổi học thực tế."""
+    """Represent one teaching schedule row."""
 
     ma_can_bo: int
     ma_lop_hoc_phan: int
@@ -45,14 +47,14 @@ class LichDayItem(SQLModel):
 
 
 class LichDaysPublic(SQLModel):
-    """Danh sách lịch dạy của cán bộ kèm tổng số bản ghi sau khi lọc."""
+    """Represent a filtered list of teaching schedule rows."""
 
     data: list[LichDayItem]
     count: int
 
 
 class SoLuongLopHocPhanDangDayPublic(SQLModel):
-    """Số lượng lớp học phần cán bộ đang giảng dạy trong học kỳ hiện tại."""
+    """Represent the number of class sections currently taught by staff."""
 
     ma_can_bo: int
     hoc_ky: int

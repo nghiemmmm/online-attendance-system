@@ -17,7 +17,7 @@ from app.models import (
 )
 
 
-def get_lich_hoc_hom_nay_by_sinh_vien(
+def get_today_schedule_by_student(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -34,8 +34,8 @@ def get_lich_hoc_hom_nay_by_sinh_vien(
         )
         .where(
             DangKyHocPhan.ma_sinh_vien == ma_sinh_vien,
-            DangKyHocPhan.trang_thai == True,
-            LopHocPhan.trang_thai == True,
+            DangKyHocPhan.trang_thai.is_(True),
+            LopHocPhan.trang_thai.is_(True),
             BuoiHoc.ngay_hoc == target_date,
         )
         .order_by(BuoiHoc.gio_bat_dau, LopHocPhan.ma_lop_hoc_phan)

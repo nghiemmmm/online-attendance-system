@@ -5,11 +5,12 @@ import av
 from PIL import Image
 
 from app.services.face_service import face_service
+from app.utils.logger import logger
 
 # To call db we need session
 from app.core.db import engine
 from sqlmodel import Session
-from app.crud.diemdanh_crud import diem_danh_tu_dong_lo
+from app.crud.diemdanh_crud import mark_attendance_by_lora
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -44,12 +45,12 @@ class VideoTransformTrack(MediaStreamTrack):
             if recognized_ids:
                 # Ghi điểm danh
                 with Session(engine) as session:
-                    result = diem_danh_tu_dong_lo(
+                    result = mark_attendance_by_lora(
                         session=session,
                         ma_buoi_hoc=self.ma_buoi_hoc,
                         danh_sach_ma_sinh_vien=recognized_ids,
                         do_tin_cay_trung_binh=0.8
                     )
-                    print(f"WebRTC AI Diem danh: {result}")
+                    logger.info(f"WebRTC AI Diem danh: {result}")
 
         return frame

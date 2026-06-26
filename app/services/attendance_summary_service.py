@@ -6,6 +6,7 @@ current month performance with the previous month.
 """
 
 from datetime import date
+from typing import Any
 
 from sqlmodel import Session
 
@@ -190,3 +191,69 @@ def get_monthly_attendance_summary(
         previous_month_present_count=previous_counts.present_count,
         previous_month_total_count=previous_counts.total_count,
     )
+
+
+def get_attendance_report_df(
+    *,
+    session: Session,
+    current_account: Any,
+    ma_lop_hoc_phan: int,
+    unsigned: bool = False,
+) -> tuple[Any, int]:
+    """Retrieve and format attendance records as a pandas DataFrame for exporting."""
+    from app.models import LopHocPhan, BuoiHoc, DiemDanh, SinhVien, DangKyHocPhan
+    from app.crud import canbo_crud
+    from fastapi import HTTPException
+    from sqlmodel import select
+    import pandas as pd
+
+    # Check class section
+    lhp = session.get(LopHocPhan, ma_lop_hoc_phan)
+    if not lhp:
+        raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
+        
+    # Check permissions
+    can_bo = canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    if current_account.vai_tro != "ADMIN" and (not can_bo or lhp.ma_can_bo != can_bo.ma_can_bo):
+        raise HTTPException(status_code=403, detail="Không có quyền truy cập dữ liệu lớp này")
+
+    # Get enrolled students
+    statement_sv = select(SinhVien).join(DangKyHocPhan).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
+    danh_sach_sv = session.exec(statement_sv).all()
+
+    # Get lessons
+    statement_bh = select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan).order_by(BuoiHoc.ngay_hoc, BuoiHoc.gio_bat_dau)
+    danh_sach_bh = session.exec(statement_bh).all()
+
+    # Optimize query: fetch all attendance records in ONE query
+    bh_ids = [bh.ma_buoi_hoc for bh in danh_sach_bh]
+    if bh_ids:
+        statement_dd = select(DiemDanh).where(DiemDanh.ma_buoi_hoc.in_(bh_ids))
+        danh_sach_dd = session.exec(statement_dd).all()
+        # Map to dict: (ma_buoi_hoc, ma_sinh_vien) -> trang_thai
+        dd_map = {(dd.ma_buoi_hoc, dd.ma_sinh_vien): dd.trang_thai for dd in danh_sach_dd}
+    else:
+        dd_map = {}
+
+    col_sid = "Ma sinh vien" if unsigned else "Mã sinh viên"
+    col_name = "Ho ten" if unsigned else "Họ tên"
+    unmarked_status = "CHUA_DIEM_DANH" if unsigned else "CHƯA_ĐIỂM_DANH"
+
+    data = []
+    for sv in danh_sach_sv:
+        row = {
+            col_sid: sv.ma_sinh_vien,
+            col_name: f"{sv.ho} {sv.ten}".strip(),
+        }
+        for bh in danh_sach_bh:
+            ngay_str = bh.ngay_hoc.strftime("%d/%m/%Y")
+            trang_thai = dd_map.get((bh.ma_buoi_hoc, sv.ma_sinh_vien), unmarked_status)
+            row[ngay_str] = trang_thai
+        data.append(row)
+
+    df = pd.DataFrame(data)
+    if df.empty:
+        df = pd.DataFrame(columns=[col_sid, col_name])
+
+    return df, ma_lop_hoc_phan
+

@@ -112,15 +112,15 @@ export default function StudentLiveClassroom() {
   const captureFrame = async (): Promise<Blob | null> => {
     if (!videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) return null;
     const canvas = document.createElement("canvas");
-    // Reduce resolution to speed up MTCNN processing on the backend CPU
-    canvas.width = 320;
-    canvas.height = 240;
+    // Use 640x480 resolution for better face detection accuracy
+    canvas.width = 640;
+    canvas.height = 480;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     
     return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.6);
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9);
     });
   };
 

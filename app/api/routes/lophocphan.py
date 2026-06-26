@@ -1,8 +1,8 @@
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import select, func, col
 
-from app.api.deps import SessionDep, get_current_active_giangvien, get_current_active_superuser, CurrentAccount
+from app.api.deps import SessionDep, get_current_active_lecturer, get_current_active_superuser, CurrentAccount
 from app.models import LopHocPhan, LopHocPhanCreate, LopHocPhanUpdate, LopHocPhanPublic, LopHocPhansPublic, SinhVien, DangKyHocPhan, SinhViensPublic, DiemDanh, BuoiHoc
 from app.crud import lophocphan_crud, canbo_crud
 
@@ -31,7 +31,7 @@ def read_lophocphan(
         raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
     return item
 
-@router.get("/{ma_lop_hoc_phan}/sinh-vien", dependencies=[Depends(get_current_active_giangvien)])
+@router.get("/{ma_lop_hoc_phan}/sinh-vien", dependencies=[Depends(get_current_active_lecturer)])
 def read_lophocphan_sinhvien(
     session: SessionDep,
     current_account: CurrentAccount,
@@ -42,7 +42,7 @@ def read_lophocphan_sinhvien(
     if not item:
         raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
     
-    can_bo = canbo_crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    can_bo = canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
     if current_account.vai_tro != "ADMIN" and (not can_bo or item.ma_can_bo != can_bo.ma_can_bo):
         raise HTTPException(status_code=403, detail="Not authorized to view students of this class")
 
@@ -54,7 +54,7 @@ def read_lophocphan_sinhvien(
     sinh_viens = session.exec(statement).all()
     return {"data": sinh_viens, "count": len(sinh_viens)}
 
-@router.get("/{ma_lop_hoc_phan}/thong-ke", dependencies=[Depends(get_current_active_giangvien)])
+@router.get("/{ma_lop_hoc_phan}/thong-ke", dependencies=[Depends(get_current_active_lecturer)])
 def read_lophocphan_thongke(
     session: SessionDep,
     current_account: CurrentAccount,
@@ -65,7 +65,7 @@ def read_lophocphan_thongke(
     if not item:
         raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
     
-    can_bo = canbo_crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+    can_bo = canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
     if current_account.vai_tro != "ADMIN" and (not can_bo or item.ma_can_bo != can_bo.ma_can_bo):
         raise HTTPException(status_code=403, detail="Not authorized to view stats of this class")
 
@@ -92,7 +92,7 @@ def read_lophocphan_thongke(
     return thong_ke
 
 
-@router.get("/{ma_lop_hoc_phan}/canh-bao", dependencies=[Depends(get_current_active_giangvien)])
+@router.get("/{ma_lop_hoc_phan}/canh-bao", dependencies=[Depends(get_current_active_lecturer)])
 def read_lophocphan_canh_bao(
     session: SessionDep,
     current_account: CurrentAccount,
@@ -107,7 +107,7 @@ def read_lophocphan_canh_bao(
     if not item:
         raise HTTPException(status_code=404, detail="Lop hoc phan khong ton tai")
 
-    can_bo = canbo_crud.get_can_bo_by_account_id(
+    can_bo = canbo_crud.get_staff_member_by_account_id(
         session=session,
         ma_tai_khoan=current_account.ma_tai_khoan,
     )
@@ -169,7 +169,12 @@ def read_lophocphan_canh_bao(
     return {"data": data, "count": len(data)}
 
 
-@router.post("/", response_model=LopHocPhanPublic, dependencies=[Depends(get_current_active_superuser)])
+@router.post(
+    "/",
+    response_model=LopHocPhanPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+    status_code=status.HTTP_201_CREATED,
+)
 def create_lophocphan(
     session: SessionDep,
     item_in: LopHocPhanCreate,

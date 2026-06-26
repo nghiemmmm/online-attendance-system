@@ -1,3 +1,5 @@
+"""Define OAuth identity database models."""
+
 from datetime import datetime, timezone
 
 from pydantic import EmailStr
@@ -6,10 +8,13 @@ from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
 
 
 class OAuthIdentity(SQLModel, table=True):
+    """Represent an external OAuth identity linked to an account."""
+
     __tablename__ = "oauth_identity"
     __table_args__ = (
         UniqueConstraint(

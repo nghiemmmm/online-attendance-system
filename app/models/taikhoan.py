@@ -1,3 +1,5 @@
+"""Define account database and response models."""
+
 from datetime import datetime, timezone
 
 from pydantic import EmailStr
@@ -5,20 +7,27 @@ from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
 
 
 class TaiKhoanBase(SQLModel):
+    """Represent shared account fields."""
+
     ten_dang_nhap: str = Field(max_length=50)
     vai_tro: str = Field(default="SINH_VIEN", max_length=20)
     trang_thai: bool = True
 
 
 class TaiKhoanCreate(TaiKhoanBase):
+    """Represent data required to create an account."""
+
     password: str = Field(min_length=5, max_length=128)
 
 
 class TaiKhoanRegister(SQLModel):
+    """Represent account registration data."""
+
     ten_dang_nhap: str = Field(max_length=50)
     password: str = Field(min_length=5, max_length=128)
     vai_tro: str = Field(default="SINH_VIEN", max_length=20)
@@ -30,6 +39,8 @@ class TaiKhoanRegister(SQLModel):
 
 
 class TaiKhoanUpdate(SQLModel):
+    """Represent fields that can update an account."""
+
     ten_dang_nhap: str | None = Field(default=None, max_length=50)
     password: str | None = Field(default=None, min_length=8, max_length=128)
     vai_tro: str | None = Field(default=None, max_length=20)
@@ -37,6 +48,8 @@ class TaiKhoanUpdate(SQLModel):
 
 
 class TaiKhoan(TaiKhoanBase, table=True):
+    """Represent the account database table."""
+
     __tablename__ = "taikhoan"
 
     ma_tai_khoan: int | None = Field(default=None, primary_key=True)
@@ -49,12 +62,16 @@ class TaiKhoan(TaiKhoanBase, table=True):
 
 
 class TaiKhoanPublic(TaiKhoanBase):
+    """Represent account data returned by the API."""
+
     ma_tai_khoan: int
     lan_dang_nhap_cuoi: datetime | None = None
     ngay_tao: datetime
 
 
 class TaiKhoansPublic(SQLModel):
+    """Represent a paginated list of accounts."""
+
     data: list[TaiKhoanPublic]
     count: int
 
@@ -63,5 +80,7 @@ TaiKhoanListPublic = TaiKhoansPublic
 
 
 class TaiKhoanProfile(SQLModel):
+    """Represent an account with its linked profile data."""
+
     tai_khoan: TaiKhoanPublic
     profile: dict | None = None

@@ -1,0 +1,546 @@
+COMPREHENSIVE AUDIT SCAN RESULTS
+================================
+
+1. ROUTER LAYER VIOLATIONS (DB / CRUD DIRECT CALLS) (77)
+------------------------------------------------------------------------
+File: app\api\routes\anhkhuonmat.py:116 in function admin_dang_ky_khuon_mat
+  -> DB call: session.get(SinhVien, ma_sinh_vien)
+  -> DB call: session.add(db_anh)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_anh)
+
+File: app\api\routes\anhkhuonmat.py:196 in function read_admin_anh_khuon_mat
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\anhkhuonmat.py:232 in function approve_face_image
+  -> DB call: session.get(AnhKhuonMat, ma_anh)
+  -> DB call: session.add(db_anh)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_anh)
+
+File: app\api\routes\anhkhuonmat.py:287 in function reject_face_image
+  -> DB call: session.get(AnhKhuonMat, ma_anh)
+  -> DB call: session.add(db_anh)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_anh)
+
+File: app\api\routes\anhkhuonmat.py:348 in function xac_minh_truc_tiep
+  -> CRUD call: sinhvien_crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+
+File: app\api\routes\baocao.py:15 in function export_excel_diem_danh
+  -> DB call: session.get(LopHocPhan, ma_lop_hoc_phan)
+  -> CRUD call: canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement_sv).all()
+  -> DB call: session.exec(statement_bh).all()
+  -> DB call: session.exec(statement_sv)
+  -> DB call: session.exec(statement_bh)
+  -> DB call: session.exec(statement_dd).first()
+  -> DB call: session.exec(statement_dd)
+
+File: app\api\routes\baocao.py:77 in function export_csv_diem_danh
+  -> DB call: session.get(LopHocPhan, ma_lop_hoc_phan)
+  -> CRUD call: canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement_sv).all()
+  -> DB call: session.exec(statement_bh).all()
+  -> DB call: session.exec(statement_sv)
+  -> DB call: session.exec(statement_bh)
+  -> DB call: session.exec(statement_dd).first()
+  -> DB call: session.exec(statement_dd)
+
+File: app\api\routes\buoihoc.py:81 in function read_buoihocs
+  -> CRUD call: buoihoc_crud.get_buoihocs(session=session, skip=skip, limit=limit)
+
+File: app\api\routes\buoihoc.py:94 in function read_buoihocs_by_lop_hoc_phan
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\buoihoc.py:114 in function read_buoihoc
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=ma_buoi_hoc)
+
+File: app\api\routes\buoihoc.py:129 in function create_buoihoc
+  -> CRUD call: buoihoc_crud.create_buoihoc(session=session, item_create=item_in)
+
+File: app\api\routes\buoihoc.py:149 in function update_buoihoc
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=ma_buoi_hoc)
+  -> CRUD call: buoihoc_crud.update_buoihoc(session=session, db_item=item, item_update=item_in)
+
+File: app\api\routes\buoihoc.py:182 in function mo_diem_danh
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=ma_buoi_hoc)
+  -> DB call: session.add(item)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(item)
+
+File: app\api\routes\buoihoc.py:211 in function dong_diem_danh
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=ma_buoi_hoc)
+  -> DB call: session.add(item)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(item)
+  -> CRUD call: diemdanh_crud.finalize_absent_attendance(session=session, buoi_hoc=item)
+
+File: app\api\routes\buoihoc.py:240 in function delete_buoihoc
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=ma_buoi_hoc)
+  -> CRUD call: buoihoc_crud.delete_buoihoc(session=session, db_item=item)
+
+File: app\api\routes\buoihoc.py:256 in function cancel_buoihoc_by_giangvien
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=ma_buoi_hoc)
+  -> DB call: session.add(item)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(item)
+
+File: app\api\routes\buoihoc.py:284 in function read_buoihoc_diem_danh_list
+  -> DB call: session.get(BuoiHoc, ma_buoi_hoc)
+  -> DB call: session.exec(statement_sv).all()
+  -> DB call: session.exec(statement_dd).all()
+  -> DB call: session.exec(statement_sv)
+  -> DB call: session.exec(statement_dd)
+  -> DB call: session.exec(select(AnhDiemDanh).where(AnhDiemDanh.ma_diem_danh == diem_danh.ma_diem_danh).order_by(AnhDiemDanh.ngay_tao.desc())).first()
+  -> DB call: session.exec(select(AnhDiemDanh).where(AnhDiemDanh.ma_diem_danh == diem_danh.ma_diem_danh).order_by(AnhDiemDanh.ngay_tao.desc()))
+
+File: app\api\routes\canbo.py:73 in function read_staff_members
+  -> CRUD call: crud.get_staff_members(session=session, skip=skip, limit=limit, q=q, trang_thai=trang_thai)
+
+File: app\api\routes\canbo.py:100 in function read_staff_member
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+
+File: app\api\routes\canbo.py:123 in function read_my_teaching_schedule
+  -> CRUD call: crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> CRUD call: crud.get_teaching_schedule_by_staff_member(session=session, ma_can_bo=can_bo.ma_can_bo, from_date=from_date, to_date=to_date, hoc_ky=hoc_ky, nam_hoc=nam_hoc, trang_thai=trang_thai, skip=skip, limit=limit)
+
+File: app\api\routes\canbo.py:148 in function read_my_class_sections
+  -> CRUD call: crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(statement)
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)).first()
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan))
+
+File: app\api\routes\canbo.py:184 in function read_staff_teaching_schedule
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+  -> CRUD call: crud.get_teaching_schedule_by_staff_member(session=session, ma_can_bo=ma_can_bo, from_date=from_date, to_date=to_date, hoc_ky=hoc_ky, nam_hoc=nam_hoc, trang_thai=trang_thai, skip=skip, limit=limit)
+
+File: app\api\routes\canbo.py:212 in function read_staff_recent_lessons
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+  -> CRUD call: crud.get_recent_lessons_by_staff_member(session=session, ma_can_bo=ma_can_bo, limit=limit)
+
+File: app\api\routes\canbo.py:230 in function count_current_teaching_class_sections
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+  -> CRUD call: crud.count_current_teaching_class_sections_by_staff_member(session=session, ma_can_bo=ma_can_bo, as_of_date=target_date)
+
+File: app\api\routes\canbo.py:248 in function read_monthly_attendance_summary
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+
+File: app\api\routes\canbo.py:264 in function read_pending_appeal_count
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+
+File: app\api\routes\canbo.py:280 in function create_staff_member
+  -> CRUD call: crud.create_staff_member(session=session, can_bo_create=can_bo_in)
+
+File: app\api\routes\canbo.py:306 in function update_staff_member
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+  -> CRUD call: crud.update_staff_member(session=session, db_can_bo=db_can_bo, can_bo_update=can_bo_in)
+
+File: app\api\routes\canbo.py:345 in function delete_staff_member
+  -> CRUD call: crud.get_staff_member(session=session, ma_can_bo=ma_can_bo)
+  -> CRUD call: crud.delete_staff_member(session=session, db_can_bo=db_can_bo)
+
+File: app\api\routes\canbo.py:372 in function read_my_reports
+  -> CRUD call: crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan, BuoiHoc.trang_thai == 'DA_KET_THUC').order_by(BuoiHoc.so_buoi)).all()
+  -> DB call: session.exec(statement_dd).all()
+  -> DB call: session.exec(statement)
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)).first()
+  -> DB call: session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan)).first()
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan, BuoiHoc.trang_thai == 'DA_KET_THUC').order_by(BuoiHoc.so_buoi))
+  -> DB call: session.exec(statement_dd)
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan))
+  -> DB call: session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.ma_lop_hoc_phan == lhp.ma_lop_hoc_phan))
+
+File: app\api\routes\diemdanh.py:53 in function mark_attendance_automatically
+  -> CRUD call: diemdanh_crud.mark_attendance_by_lora(session=session, ma_buoi_hoc=request.ma_buoi_hoc, danh_sach_ma_sinh_vien=request.danh_sach_ma_sinh_vien, do_tin_cay_trung_binh=request.do_tin_cay_trung_binh)
+
+File: app\api\routes\diemdanh.py:84 in function mark_attendance_manually
+  -> CRUD call: buoihoc_crud.get_buoihoc(session=session, ma_buoi_hoc=request.ma_buoi_hoc)
+  -> DB call: session.get(LopHocPhan, buoi_hoc.ma_lop_hoc_phan)
+  -> CRUD call: canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> CRUD call: diemdanh_crud.mark_attendance_manually(session=session, ma_buoi_hoc=request.ma_buoi_hoc, ma_sinh_vien=request.ma_sinh_vien, trang_thai=request.trang_thai, ghi_chu=request.ghi_chu)
+
+File: app\api\routes\google_auth_router.py:61 in function google_callback
+  -> CRUD call: crud.get_oauth_identity_by_provider_subject(session=session, provider=GOOGLE_PROVIDER, provider_subject=provider_subject)
+  -> DB call: session.get(TaiKhoan, identity.ma_tai_khoan)
+  -> CRUD call: crud.update_oauth_identity_last_login(session=session, identity=identity)
+
+File: app\api\routes\hethong.py:66 in function get_system_stats
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.trang_thai.in_(['DANG_DIEN_RA', 'DA_KET_THUC']))).all()
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan))).first()
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)).where(TaiKhoan.vai_tro == 'SINH_VIEN')).first()
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)).where(TaiKhoan.vai_tro.in_(['GIANG_VIEN', 'CAN_BO']))).first()
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)).where(TaiKhoan.vai_tro == 'ADMIN')).first()
+  -> DB call: session.exec(select(func.count(LopHocPhan.ma_lop_hoc_phan))).first()
+  -> DB call: session.exec(stmt).first()
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.trang_thai.in_(['DANG_DIEN_RA', 'DA_KET_THUC'])))
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == bh.ma_lop_hoc_phan)).first()
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(['CO_MAT', 'DI_MUON', 'MUON']), DiemDanh.ma_buoi_hoc.in_(bh_ids))).first()
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)))
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)).where(TaiKhoan.vai_tro == 'SINH_VIEN'))
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)).where(TaiKhoan.vai_tro.in_(['GIANG_VIEN', 'CAN_BO'])))
+  -> DB call: session.exec(select(func.count(TaiKhoan.ma_tai_khoan)).where(TaiKhoan.vai_tro == 'ADMIN'))
+  -> DB call: session.exec(select(func.count(LopHocPhan.ma_lop_hoc_phan)))
+  -> DB call: session.exec(stmt)
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == bh.ma_lop_hoc_phan))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(['CO_MAT', 'DI_MUON', 'MUON']), DiemDanh.ma_buoi_hoc.in_(bh_ids)))
+
+File: app\api\routes\hethong.py:117 in function get_system_logs
+  -> DB call: session.exec(select(TaiKhoan).order_by(TaiKhoan.ngay_tao.desc()).limit(5)).all()
+  -> DB call: session.exec(select(DiemDanh, SinhVien).join(SinhVien, SinhVien.ma_sinh_vien == DiemDanh.ma_sinh_vien).order_by(DiemDanh.thoi_diem_diem_danh.desc()).limit(10)).all()
+  -> DB call: session.exec(select(KhieuNai, SinhVien).join(SinhVien, SinhVien.ma_sinh_vien == KhieuNai.ma_sinh_vien).order_by(KhieuNai.ngay_gui.desc()).limit(5)).all()
+  -> DB call: session.exec(select(TaiKhoan).order_by(TaiKhoan.ngay_tao.desc()).limit(5))
+  -> DB call: session.exec(select(DiemDanh, SinhVien).join(SinhVien, SinhVien.ma_sinh_vien == DiemDanh.ma_sinh_vien).order_by(DiemDanh.thoi_diem_diem_danh.desc()).limit(10))
+  -> DB call: session.exec(select(KhieuNai, SinhVien).join(SinhVien, SinhVien.ma_sinh_vien == KhieuNai.ma_sinh_vien).order_by(KhieuNai.ngay_gui.desc()).limit(5))
+  -> DB call: session.get(CanBo, cl.ma_can_bo_xu_ly)
+
+File: app\api\routes\hethong.py:227 in function get_system_reports
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.trang_thai.in_(['DANG_DIEN_RA', 'DA_KET_THUC']))).all()
+  -> DB call: session.exec(select(Nganh)).all()
+  -> DB call: session.exec(statement_dept).all()
+  -> DB call: session.exec(statement_weekly).all()
+  -> DB call: session.exec(statement_absent).all()
+  -> DB call: session.exec(statement_class).all()
+  -> DB call: session.exec(select(func.count(SinhVien.ma_sinh_vien))).first()
+  -> DB call: session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.trang_thai == 'DA_KET_THUC')).first()
+  -> DB call: session.exec(statement_warning).all()
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == 'CO_MAT')).first()
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == 'VANG')).first()
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(['DI_MUON', 'MUON']))).first()
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == 'XIN_PHEP')).first()
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.trang_thai.in_(['DANG_DIEN_RA', 'DA_KET_THUC'])))
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == bh.ma_lop_hoc_phan)).first()
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(['CO_MAT', 'DI_MUON', 'MUON']), DiemDanh.ma_buoi_hoc.in_(bh_ids))).first()
+  -> DB call: session.exec(select(Nganh))
+  -> DB call: session.exec(statement_dept)
+  -> DB call: session.exec(statement_weekly)
+  -> DB call: session.exec(statement_absent)
+  -> DB call: session.get(Nganh, sv.ma_nganh)
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.ma_sinh_vien == sv.ma_sinh_vien)).first()
+  -> DB call: session.exec(statement_class)
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == int(name.split('(')[-1].replace(')', '')))).first()
+  -> DB call: session.exec(select(func.count(SinhVien.ma_sinh_vien)))
+  -> DB call: session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.trang_thai == 'DA_KET_THUC'))
+  -> DB call: session.exec(statement_warning)
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == 'CO_MAT'))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == 'VANG'))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(['DI_MUON', 'MUON'])))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == 'XIN_PHEP'))
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == bh.ma_lop_hoc_phan))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(['CO_MAT', 'DI_MUON', 'MUON']), DiemDanh.ma_buoi_hoc.in_(bh_ids)))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.ma_sinh_vien == sv.ma_sinh_vien))
+  -> DB call: session.exec(select(func.count(DangKyHocPhan.ma_sinh_vien)).where(DangKyHocPhan.ma_lop_hoc_phan == int(name.split('(')[-1].replace(')', ''))))
+
+File: app\api\routes\khieunai.py:49 in function create_khieu_nai
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == current_account.ma_tai_khoan)).first()
+  -> DB call: session.exec(select(KhieuNai).where(KhieuNai.ma_diem_danh == payload.ma_diem_danh)).first()
+  -> DB call: session.get(DiemDanh, payload.ma_diem_danh)
+  -> DB call: session.get(BuoiHoc, diem_danh.ma_buoi_hoc)
+  -> DB call: session.add(db_khieu_nai)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_khieu_nai)
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == current_account.ma_tai_khoan))
+  -> DB call: session.exec(select(KhieuNai).where(KhieuNai.ma_diem_danh == payload.ma_diem_danh))
+
+File: app\api\routes\khieunai.py:108 in function read_my_khieu_nai
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == current_account.ma_tai_khoan)).first()
+  -> DB call: session.exec(count_statement).one()
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == current_account.ma_tai_khoan))
+  -> DB call: session.exec(count_statement)
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\khieunai.py:157 in function read_khieu_nai_can_xu_ly
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo))
+
+File: app\api\routes\khieunai.py:182 in function read_khieu_nai_can_xu_ly_detail
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo))
+
+File: app\api\routes\khieunai.py:205 in function approve_khieu_nai
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo))
+
+File: app\api\routes\khieunai.py:240 in function reject_khieu_nai
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo))
+
+File: app\api\routes\lichhoc.py:26 in function read_today_student_schedule
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_sinh_vien == ma_sinh_vien)).first()
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_sinh_vien == ma_sinh_vien))
+
+File: app\api\routes\login.py:33 in function login_access_token
+  -> CRUD call: crud.authenticate_account(session=session, ten_dang_nhap=form_data.username, password=form_data.password)
+
+File: app\api\routes\login.py:69 in function login_json
+  -> CRUD call: crud.authenticate_account(session=session, ten_dang_nhap=body.username, password=body.password)
+
+File: app\api\routes\login.py:149 in function reset_password
+  -> CRUD call: crud.get_account_by_profile_google_email(session=session, google_email=email)
+  -> CRUD call: crud.update_account(session=session, db_account=account, account_in=TaiKhoanUpdate(password=body.new_password))
+
+File: app\api\routes\lophocphan.py:14 in function read_lophocphans
+  -> CRUD call: lophocphan_crud.get_lophocphans(session=session, skip=skip, limit=limit)
+
+File: app\api\routes\lophocphan.py:24 in function read_lophocphan
+  -> CRUD call: lophocphan_crud.get_lophocphan(session=session, ma_lop_hoc_phan=ma_lop_hoc_phan)
+
+File: app\api\routes\lophocphan.py:35 in function read_lophocphan_sinhvien
+  -> CRUD call: lophocphan_crud.get_lophocphan(session=session, ma_lop_hoc_phan=ma_lop_hoc_phan)
+  -> CRUD call: canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\lophocphan.py:58 in function read_lophocphan_thongke
+  -> CRUD call: lophocphan_crud.get_lophocphan(session=session, ma_lop_hoc_phan=ma_lop_hoc_phan)
+  -> CRUD call: canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(select(func.count()).select_from(DangKyHocPhan).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)).one()
+  -> DB call: session.exec(select(func.count()).select_from(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan, BuoiHoc.trang_thai == 'DA_KET_THUC')).one()
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(select(func.count()).select_from(DangKyHocPhan).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan))
+  -> DB call: session.exec(select(func.count()).select_from(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan, BuoiHoc.trang_thai == 'DA_KET_THUC'))
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\lophocphan.py:96 in function read_lophocphan_canh_bao
+  -> CRUD call: lophocphan_crud.get_lophocphan(session=session, ma_lop_hoc_phan=ma_lop_hoc_phan)
+  -> CRUD call: canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan, BuoiHoc.trang_thai == 'DA_KET_THUC')).first()
+  -> DB call: session.exec(statement)
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).join(BuoiHoc, BuoiHoc.ma_buoi_hoc == DiemDanh.ma_buoi_hoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan, DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien, DiemDanh.trang_thai.in_(['VANG', 'VANG_MAT']))).first()
+  -> DB call: session.exec(select(func.count(BuoiHoc.ma_buoi_hoc)).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan, BuoiHoc.trang_thai == 'DA_KET_THUC'))
+  -> DB call: session.exec(select(func.count(DiemDanh.ma_diem_danh)).join(BuoiHoc, BuoiHoc.ma_buoi_hoc == DiemDanh.ma_buoi_hoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan, DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien, DiemDanh.trang_thai.in_(['VANG', 'VANG_MAT'])))
+
+File: app\api\routes\lophocphan.py:173 in function create_lophocphan
+  -> CRUD call: lophocphan_crud.create_lophocphan(session=session, item_create=item_in)
+
+File: app\api\routes\lophocphan.py:181 in function update_lophocphan
+  -> CRUD call: lophocphan_crud.get_lophocphan(session=session, ma_lop_hoc_phan=ma_lop_hoc_phan)
+  -> CRUD call: lophocphan_crud.update_lophocphan(session=session, db_item=item, item_update=item_in)
+
+File: app\api\routes\lophocphan.py:193 in function delete_lophocphan
+  -> CRUD call: lophocphan_crud.get_lophocphan(session=session, ma_lop_hoc_phan=ma_lop_hoc_phan)
+  -> CRUD call: lophocphan_crud.delete_lophocphan(session=session, db_item=item)
+
+File: app\api\routes\sinhvien.py:88 in function read_students
+  -> CRUD call: crud.get_students(session=session, skip=skip, limit=limit, q=q, ma_nganh=ma_nganh, trang_thai_hoc=trang_thai_hoc)
+
+File: app\api\routes\sinhvien.py:112 in function get_my_schedule
+  -> CRUD call: crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\sinhvien.py:154 in function get_my_attendance
+  -> CRUD call: crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\sinhvien.py:188 in function get_my_warnings
+  -> CRUD call: crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+
+File: app\api\routes\sinhvien.py:208 in function read_student
+  -> CRUD call: crud.get_student(session=session, ma_sinh_vien=ma_sinh_vien)
+
+File: app\api\routes\sinhvien.py:228 in function create_student
+  -> CRUD call: crud.create_student(session=session, sinh_vien_create=sinh_vien_in)
+
+File: app\api\routes\sinhvien.py:258 in function update_student
+  -> CRUD call: crud.get_student(session=session, ma_sinh_vien=ma_sinh_vien)
+  -> CRUD call: crud.update_student(session=session, db_sinh_vien=db_sinh_vien, sinh_vien_update=sinh_vien_in)
+
+File: app\api\routes\sinhvien.py:301 in function delete_student
+  -> CRUD call: crud.get_student(session=session, ma_sinh_vien=ma_sinh_vien)
+  -> CRUD call: crud.delete_student(session=session, db_sinh_vien=db_sinh_vien)
+
+File: app\api\routes\sinhvien.py:331 in function get_available_class_sections
+  -> CRUD call: crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(registered_statement).all()
+  -> DB call: session.exec(statement)
+  -> DB call: session.exec(registered_statement)
+
+File: app\api\routes\sinhvien.py:391 in function register_my_class_section
+  -> CRUD call: crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(select(DangKyHocPhan).where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)).first()
+  -> DB call: session.get(LopHocPhan, ma_lop_hoc_phan)
+  -> DB call: session.add(reg)
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan)).all()
+  -> DB call: session.commit()
+  -> DB call: session.add(dd)
+  -> DB call: session.exec(select(DangKyHocPhan).where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan))
+  -> DB call: session.exec(select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan))
+
+File: app\api\routes\sinhvien.py:449 in function cancel_my_class_section
+  -> CRUD call: crud.get_student_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
+  -> DB call: session.exec(select(DangKyHocPhan).where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)).first()
+  -> DB call: session.delete(reg)
+  -> DB call: session.exec(buoi_hoc_ids_statement).all()
+  -> DB call: session.commit()
+  -> DB call: session.exec(select(DiemDanh).where(DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien).where(DiemDanh.ma_buoi_hoc.in_(buoi_hoc_ids))).all()
+  -> DB call: session.exec(select(DangKyHocPhan).where(DangKyHocPhan.ma_sinh_vien == sinh_vien.ma_sinh_vien).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan))
+  -> DB call: session.exec(buoi_hoc_ids_statement)
+  -> DB call: session.execute(text('DELETE FROM khieunai WHERE ma_diem_danh = :dd_id'), {'dd_id': dd.ma_diem_danh})
+  -> DB call: session.delete(dd)
+  -> DB call: session.exec(select(DiemDanh).where(DiemDanh.ma_sinh_vien == sinh_vien.ma_sinh_vien).where(DiemDanh.ma_buoi_hoc.in_(buoi_hoc_ids)))
+
+File: app\api\routes\user.py:37 in function read_accounts
+  -> DB call: session.exec(count_statement).one()
+  -> DB call: session.exec(statement).all()
+  -> DB call: session.exec(count_statement)
+  -> DB call: session.exec(statement)
+
+File: app\api\routes\user.py:57 in function create_account
+  -> CRUD call: crud.get_account_by_username(session=session, ten_dang_nhap=account_in.ten_dang_nhap)
+  -> CRUD call: crud.create_account(session=session, account_create=account_in)
+
+File: app\api\routes\user.py:70 in function register_account
+  -> CRUD call: crud.get_account_by_username(session=session, ten_dang_nhap=account_in.ten_dang_nhap)
+  -> CRUD call: crud.create_account(session=session, account_create=account_create)
+  -> DB call: session.exec(select(Nganh)).first()
+  -> DB call: session.add(db_sinhvien)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_sinhvien)
+  -> DB call: session.add(nganh)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(nganh)
+  -> DB call: session.exec(select(Nganh))
+
+File: app\api\routes\user.py:115 in function read_account_profile
+  -> CRUD call: crud.get_account_profile(session=session, account=current_account)
+
+File: app\api\routes\user.py:123 in function update_account_me
+  -> CRUD call: crud.update_account(session=session, db_account=current_account, account_in=account_in)
+  -> CRUD call: crud.get_account_by_username(session=session, ten_dang_nhap=account_in.ten_dang_nhap)
+
+File: app\api\routes\user.py:146 in function update_password_me
+  -> DB call: session.add(current_account)
+  -> DB call: session.commit()
+
+File: app\api\routes\user.py:165 in function read_user_profiles
+  -> DB call: session.exec(statement.order_by(col(TaiKhoan.ngay_tao).desc())).all()
+  -> DB call: session.exec(statement.order_by(col(TaiKhoan.ngay_tao).desc()))
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == acc.ma_tai_khoan)).first()
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_tai_khoan == acc.ma_tai_khoan)).first()
+  -> DB call: session.exec(select(func.count(AnhKhuonMat.ma_anh)).where(AnhKhuonMat.ma_sinh_vien == profile_data.get('studentId'))).first()
+  -> DB call: session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == acc.ma_tai_khoan))
+  -> DB call: session.exec(select(CanBo).where(CanBo.ma_tai_khoan == acc.ma_tai_khoan))
+  -> DB call: session.exec(select(func.count(AnhKhuonMat.ma_anh)).where(AnhKhuonMat.ma_sinh_vien == profile_data.get('studentId')))
+
+File: app\api\routes\user.py:251 in function read_account_by_id
+  -> DB call: session.get(TaiKhoan, account_id)
+
+File: app\api\routes\user.py:272 in function update_account
+  -> DB call: session.get(TaiKhoan, account_id)
+  -> CRUD call: crud.update_account(session=session, db_account=db_account, account_in=account_in)
+  -> CRUD call: crud.get_account_by_username(session=session, ten_dang_nhap=account_in.ten_dang_nhap)
+
+File: app\api\routes\user.py:294 in function delete_account
+  -> DB call: session.get(TaiKhoan, account_id)
+  -> DB call: session.delete(account)
+  -> DB call: session.commit()
+
+File: app\api\routes\user.py:329 in function create_account_with_profile
+  -> CRUD call: crud.get_account_by_username(session=session, ten_dang_nhap=payload.ten_dang_nhap)
+  -> DB call: session.add(db_account)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_account)
+  -> DB call: session.exec(select(Nganh)).first()
+  -> DB call: session.add(db_sinhvien)
+  -> DB call: session.commit()
+  -> DB call: session.add(nganh)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(nganh)
+  -> DB call: session.add(db_canbo)
+  -> DB call: session.commit()
+  -> DB call: session.exec(select(Nganh))
+
+File: app\api\routes\user.py:404 in function toggle_account_status
+  -> DB call: session.get(TaiKhoan, account_id)
+  -> DB call: session.add(db_account)
+  -> DB call: session.commit()
+  -> DB call: session.refresh(db_account)
+
+2. MISSING ANNOTATED IN ENDPOINTS (0)
+----------------------------------------------------------
+3. BLOCKING CALLS IN ASYNC FUNCTIONS (1)
+--------------------------------------------------------
+File: app\api\routes\anhkhuonmat.py:160 in function admin_dang_ky_khuon_mat
+  Code:   open(filepath, 'wb')
+  Reason: Blocking call 'open' inside async function
+
+4. MANUAL DATABASE SESSION / ENGINE CREATIONS (0)
+------------------------------------------------------------
+5. PRINT STATEMENTS FOUND (63)
+---------------------------
+File: app\frontend\api_client.py:24 -> print(f'Error GET {endpoint}: {e}')
+File: app\frontend\api_client.py:34 -> print(f'Error POST {endpoint}: {e}')
+File: app\frontend\api_client.py:44 -> print(f'Error PUT {endpoint}: {e}')
+File: app\frontend\api_client.py:54 -> print(f'Error DELETE {endpoint}: {e}')
+File: app\frontend\my_media_transform_check.py:17 -> print(self.track)
+File: app\frontend\my_media_transform_check.py:19 -> print(frame)
+File: app\services\face_dectection.py:16 -> print(f'{filename},{top},{right},{bottom},{left}')
+File: app\services\face_dectection.py:25 -> print(f'{image_path},no_person_found,0,0,0,0')
+File: app\services\face_recognition.py:21 -> print(f'[INFO] Using device: {device}')
+File: app\services\face_recognition.py:23 -> print('[INFO] Loading MTCNN detector...')
+File: app\services\face_recognition.py:35 -> print('[INFO] Loading FaceNet model...')
+File: app\services\face_recognition.py:37 -> print('[INFO] Models loaded successfully!')
+File: app\services\face_recognition.py:169 -> print(f"\n{'=' * 60}")
+File: app\services\face_recognition.py:170 -> print(f'Face Recognition using FaceNet + FAISS')
+File: app\services\face_recognition.py:171 -> print(f"{'=' * 60}")
+File: app\services\face_recognition.py:172 -> print(f'Known people folder: {known_people_folder}')
+File: app\services\face_recognition.py:173 -> print(f'Image to check: {image_to_check}')
+File: app\services\face_recognition.py:174 -> print(f'Tolerance: {tolerance}')
+File: app\services\face_recognition.py:175 -> print(f'Show distance: {show_distance}')
+File: app\services\face_recognition.py:176 -> print(f'FAISS index: {index_path}')
+File: app\services\face_recognition.py:177 -> print(f'Metadata: {metadata_path}')
+File: app\services\face_recognition.py:178 -> print(f"{'=' * 60}\n")
+File: app\services\face_recognition.py:200 -> print(f"\n{'=' * 60}")
+File: app\services\face_recognition.py:50 -> print(f'[INFO] FAISS index loaded: {faiss_path}')
+File: app\services\face_recognition.py:51 -> print(f'[INFO] Index contains {index.ntotal} embeddings')
+File: app\services\face_recognition.py:55 -> print(f'[INFO] Metadata loaded: {len(names)} names')
+File: app\services\face_recognition.py:123 -> print(f'{filename},{name},{distance:.4f}')
+File: app\services\face_recognition.py:125 -> print(f'{filename},{name}')
+File: app\services\face_recognition.py:133 -> print(f'[ERROR] Image not found: {image_path}')
+File: app\services\face_recognition.py:183 -> print(f'[ERROR] Failed to load FAISS index.')
+File: app\services\face_recognition.py:184 -> print(f'[INFO] Run: python app/utils/create_ebedding_faiss.py')
+File: app\services\face_recognition.py:188 -> print(f'[ERROR] FAISS index is empty.')
+File: app\services\face_recognition.py:194 -> print(f'[INFO] Processing {len(files)} images...\n')
+File: app\services\face_recognition.py:46 -> print(f'[ERROR] FAISS index not found: {faiss_path}')
+File: app\services\face_recognition.py:59 -> print(f'[ERROR] Failed to load FAISS index: {e}')
+File: app\services\face_recognition.py:69 -> print(f'[ERROR] Image not found: {image_path}')
+File: app\services\face_recognition.py:77 -> print(f'[WARNING] No face detected in {image_path}')
+File: app\services\face_recognition.py:92 -> print(f'[ERROR] Failed to extract embedding: {e}')
+File: app\services\face_recognition.py:115 -> print(f'[ERROR] Failed to search: {e}')
+File: app\test\test.py:18 -> print(f'[INFO] Using device: {device}')
+File: app\test\test.py:32 -> print('[INFO] Models loaded!')
+File: app\test\test.py:41 -> print(f'[ERROR] FAISS index not found at {index_path}')
+File: app\test\test.py:42 -> print(f'[INFO] Creating test with sample data instead...')
+File: app\test\test.py:47 -> print(f'[INFO] FAISS index loaded: {index.ntotal} embeddings')
+File: app\test\test.py:51 -> print(f'[INFO] Metadata loaded: {len(names)} names')
+File: app\test\test.py:59 -> print(f'[ERROR] Test image not found at {image_path}')
+File: app\test\test.py:61 -> print(f'\n[INFO] Testing with: {image_path}')
+File: app\test\test.py:68 -> print('[WARNING] No face detected in image')
+File: app\test\test.py:78 -> print(f'[INFO] Embedding shape: {embedding.shape}')
+File: app\test\test.py:79 -> print(f'[INFO] Embedding norm: {np.linalg.norm(embedding):.4f}')
+File: app\test\test.py:91 -> print(f'\n[RESULT]')
+File: app\test\test.py:92 -> print(f'  Name: {name}')
+File: app\test\test.py:93 -> print(f'  Distance: {dist:.4f}')
+File: app\test\test.py:94 -> print(f"  Matched: {('YES' if matched else 'NO')}")
+File: app\test\test.py:96 -> print('[WARNING] FAISS index is empty, cannot search')
+File: app\utils\create_ebedding_faiss.py:27 -> print(f'[INFO] FaceNet + MTCNN model loaded on {device}')
+File: app\utils\create_ebedding_faiss.py:107 -> print(f'[INFO] Lưu xong FAISS index và metadata. Tổng {len(names)} người')
+File: app\utils\create_ebedding_faiss.py:87 -> print(f'[ERROR] Folder không tồn tại: {folder_path}')
+File: app\utils\create_ebedding_faiss.py:92 -> print(f'[WARNING] Không tìm thấy ảnh trong {folder_path}')
+File: app\utils\create_ebedding_faiss.py:65 -> print(f'[WARNING] Không tìm thấy face trong {image_path}')
+File: app\utils\create_ebedding_faiss.py:76 -> print(f'[WARNING] Lỗi xử lý {image_path}: {e}')
+File: app\utils\create_ebedding_faiss.py:101 -> print(f'[INFO] Thêm {name} vào FAISS index')
+File: app\webrtc\webrtc.py:53 -> print(f'WebRTC AI Diem danh: {result}')
+
+6. LEGACY PYDANTIC V1 PATTERNS (0)
+-------------------------------

@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import col, func, select
 
 from app import crud
@@ -53,6 +53,7 @@ def read_accounts(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     "/",
     dependencies=[Depends(get_current_active_superuser)],
     response_model=TaiKhoanPublic,
+    status_code=status.HTTP_201_CREATED,
 )
 def create_account(*, session: SessionDep, account_in: TaiKhoanCreate) -> Any:
     account = crud.get_account_by_username(
@@ -66,7 +67,11 @@ def create_account(*, session: SessionDep, account_in: TaiKhoanCreate) -> Any:
     return crud.create_account(session=session, account_create=account_in)
 
 
-@router.post("/signup", response_model=TaiKhoanPublic)
+@router.post(
+    "/signup",
+    response_model=TaiKhoanPublic,
+    status_code=status.HTTP_201_CREATED,
+)
 def register_account(session: SessionDep, account_in: TaiKhoanRegister) -> Any:
     account = crud.get_account_by_username(
         session=session, ten_dang_nhap=account_in.ten_dang_nhap
@@ -325,6 +330,7 @@ class UserWithProfileCreate(BaseModel):
     "/with-profile",
     dependencies=[Depends(get_current_active_superuser)],
     response_model=TaiKhoanPublic,
+    status_code=status.HTTP_201_CREATED,
 )
 def create_account_with_profile(
     *,

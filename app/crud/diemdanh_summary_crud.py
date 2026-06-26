@@ -21,7 +21,7 @@ class AttendanceSemesterCountResult:
     total_lesson_count: int
 
 
-def get_registered_class_ids_by_sinh_vien_semester(
+def get_registered_class_ids_by_student_semester(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -37,7 +37,7 @@ def get_registered_class_ids_by_sinh_vien_semester(
         )
         .where(
             DangKyHocPhan.ma_sinh_vien == ma_sinh_vien,
-            DangKyHocPhan.trang_thai == True,
+            DangKyHocPhan.trang_thai.is_(True),
             LopHocPhan.hoc_ky == hoc_ky,
             LopHocPhan.nam_hoc == nam_hoc,
         )
@@ -55,7 +55,7 @@ def get_lesson_ids_by_class_ids(*, session: Session, class_ids: list[int]) -> li
     return list(session.exec(statement).all())
 
 
-def count_present_attendance_by_sinh_vien_lessons(
+def count_present_attendance_by_student_lessons(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -72,7 +72,7 @@ def count_present_attendance_by_sinh_vien_lessons(
     return sum(1 for status in statuses if status in PRESENT_ATTENDANCE_STATUSES)
 
 
-def get_attendance_semester_counts_by_sinh_vien(
+def get_attendance_semester_counts_by_student(
     *,
     session: Session,
     ma_sinh_vien: int,
@@ -80,14 +80,14 @@ def get_attendance_semester_counts_by_sinh_vien(
     nam_hoc: str,
 ) -> AttendanceSemesterCountResult:
     """Count present lessons and total lessons for a student in one semester."""
-    class_ids = get_registered_class_ids_by_sinh_vien_semester(
+    class_ids = get_registered_class_ids_by_student_semester(
         session=session,
         ma_sinh_vien=ma_sinh_vien,
         hoc_ky=hoc_ky,
         nam_hoc=nam_hoc,
     )
     lesson_ids = get_lesson_ids_by_class_ids(session=session, class_ids=class_ids)
-    present_count = count_present_attendance_by_sinh_vien_lessons(
+    present_count = count_present_attendance_by_student_lessons(
         session=session,
         ma_sinh_vien=ma_sinh_vien,
         lesson_ids=lesson_ids,

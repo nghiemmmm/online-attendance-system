@@ -6,16 +6,10 @@ Defines APIs for staff members to view and process pending attendance complaints
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, HTTPException, Request, status
 
-from app.api.deps import SessionDep, get_current_active_superuser, CurrentAccount, get_current_active_sinhvien
-from fastapi import APIRouter, Depends, Path, Query, HTTPException, Request
-from sqlmodel import select, func, col
-from datetime import datetime, timedelta
-
+from app.api.deps import SessionDep, get_current_active_superuser, CurrentAccount, get_current_active_student, get_current_active_lecturer
 from app.models import (
-
-    KhieuNai,
     KhieuNaiCreate,
     KhieuNaiPublic,
     KhieuNaisPublic,
@@ -24,27 +18,36 @@ from app.models import (
     KhieuNaiChapThuanRequest,
     KhieuNaiXuLyRequest,
     KhieuNaiXuLyResult,
-    SinhVien,
-    CanBo,
-    DiemDanh,
-    BuoiHoc,
-    LopHocPhan,
-    HocPhan,
 )
 from app.services.khieunai_service import (
     chap_thuan_khieu_nai,
     get_khieu_nai_can_xu_ly_detail,
     list_khieu_nai_can_xu_ly,
     tu_choi_khieu_nai,
+    create_appeal,
+    list_my_appeals,
 )
+from app.services.staff_service import ensure_staff_owns_profile
 from app.services.audit_log_service import write_audit_log
 
 router = APIRouter(prefix="/khieu-nai", tags=["khieu-nai"])
 
 @router.post(
     "",
-    dependencies=[Depends(get_current_active_sinhvien)],
+    dependencies=[Depends(get_current_active_student)],
     response_model=KhieuNaiPublic,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "Lỗi quá hạn 48 giờ để khiếu nại hoặc đã tồn tại khiếu nại cho bản ghi điểm danh này"
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Tài khoản không phải sinh viên hoặc gửi khiếu nại hộ sinh viên khác"
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Bản ghi điểm danh hoặc buổi học không tồn tại"
+        }
+    }
 )
 def create_khieu_nai(
     request: Request,
@@ -52,42 +55,11 @@ def create_khieu_nai(
     payload: KhieuNaiCreate,
     current_account: CurrentAccount,
 ) -> KhieuNaiPublic:
-    # Ensure student is submitting claim for themselves
-    sinh_vien = session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == current_account.ma_tai_khoan)).first()
-    if not sinh_vien:
-        raise HTTPException(status_code=403, detail="Not a student")
-    if payload.ma_sinh_vien != sinh_vien.ma_sinh_vien:
-        raise HTTPException(status_code=403, detail="Cannot submit claim for another student")
-
-    # Kiểm tra đã có khiếu nại cho bản ghi này chưa
-    existing_khieu_nai = session.exec(select(KhieuNai).where(KhieuNai.ma_diem_danh == payload.ma_diem_danh)).first()
-    if existing_khieu_nai:
-        raise HTTPException(status_code=400, detail="Đã tồn tại khiếu nại cho bản ghi điểm danh này")
-
-    # Kiểm tra giới hạn 48 giờ
-    from app.models import DiemDanh, BuoiHoc
-    diem_danh = session.get(DiemDanh, payload.ma_diem_danh)
-    if not diem_danh:
-        raise HTTPException(status_code=404, detail="Bản ghi điểm danh không tồn tại")
-    
-    buoi_hoc = session.get(BuoiHoc, diem_danh.ma_buoi_hoc)
-    if not buoi_hoc:
-        raise HTTPException(status_code=404, detail="Buổi học không tồn tại")
-        
-    if buoi_hoc.gio_ket_thuc:
-        # Nếu có giờ kết thúc thì tính từ thời điểm đó
-        thoi_gian_ket_thuc = datetime.combine(buoi_hoc.ngay_hoc, buoi_hoc.gio_ket_thuc)
-    else:
-        # Nếu không có giờ kết thúc thì mặc định là cuối ngày học
-        thoi_gian_ket_thuc = datetime.combine(buoi_hoc.ngay_hoc, datetime.max.time())
-        
-    if datetime.now() > thoi_gian_ket_thuc + timedelta(hours=48):
-        raise HTTPException(status_code=400, detail="Đã quá thời hạn 48 giờ để gửi khiếu nại cho buổi học này")
-
-    db_khieu_nai = KhieuNai.model_validate(payload)
-    session.add(db_khieu_nai)
-    session.commit()
-    session.refresh(db_khieu_nai)
+    db_khieu_nai = create_appeal(
+        session=session,
+        payload=payload,
+        current_account=current_account,
+    )
     write_audit_log(
         session=session,
         account=current_account,
@@ -102,7 +74,7 @@ def create_khieu_nai(
 
 @router.get(
     "",
-    dependencies=[Depends(get_current_active_sinhvien)],
+    dependencies=[Depends(get_current_active_student)],
     response_model=KhieuNaisPublic,
 )
 def read_my_khieu_nai(
@@ -111,47 +83,17 @@ def read_my_khieu_nai(
     skip: int = 0,
     limit: int = 100,
 ) -> KhieuNaisPublic:
-    sinh_vien = session.exec(select(SinhVien).where(SinhVien.ma_tai_khoan == current_account.ma_tai_khoan)).first()
-    if not sinh_vien:
-        raise HTTPException(status_code=403, detail="Not a student")
-
-    count_statement = select(func.count()).select_from(KhieuNai).where(KhieuNai.ma_sinh_vien == sinh_vien.ma_sinh_vien)
-    count = session.exec(count_statement).one()
-
-    statement = (
-        select(KhieuNai, DiemDanh, BuoiHoc, LopHocPhan, HocPhan)
-        .join(DiemDanh, KhieuNai.ma_diem_danh == DiemDanh.ma_diem_danh)
-        .join(BuoiHoc, DiemDanh.ma_buoi_hoc == BuoiHoc.ma_buoi_hoc)
-        .join(LopHocPhan, BuoiHoc.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
-        .join(HocPhan, LopHocPhan.ma_hoc_phan == HocPhan.ma_hoc_phan)
-        .where(KhieuNai.ma_sinh_vien == sinh_vien.ma_sinh_vien)
-        .order_by(col(KhieuNai.ngay_gui).desc())
-        .offset(skip)
-        .limit(limit)
+    return list_my_appeals(
+        session=session,
+        current_account=current_account,
+        skip=skip,
+        limit=limit,
     )
-    rows = session.exec(statement).all()
-    khieu_nais = [
-        KhieuNaiPublic(
-            **khieu_nai.model_dump(),
-            ma_lop_hoc_phan=lop_hoc_phan.ma_lop_hoc_phan,
-            ma_hoc_phan=hoc_phan.ma_hoc_phan,
-            ten_hoc_phan=hoc_phan.ten_hoc_phan,
-            ngay_hoc=buoi_hoc.ngay_hoc,
-            so_buoi=buoi_hoc.so_buoi,
-            trang_thai_diem_danh=diem_danh.trang_thai,
-        )
-        for khieu_nai, diem_danh, buoi_hoc, lop_hoc_phan, hoc_phan in rows
-    ]
-    return KhieuNaisPublic(data=khieu_nais, count=count)
 
-
-
-
-from app.api.deps import get_current_active_giangvien
 
 @router.get(
     "/can-bo/{ma_can_bo}/can-xu-ly",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=KhieuNaiCanXuLysPublic,
 )
 def read_khieu_nai_can_xu_ly(
@@ -162,9 +104,11 @@ def read_khieu_nai_can_xu_ly(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> KhieuNaiCanXuLysPublic:
     """Lay danh sach khieu nai can xu ly cua can bo."""
-    can_bo = session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    ensure_staff_owns_profile(
+        session=session,
+        ma_can_bo=ma_can_bo,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
 
     return list_khieu_nai_can_xu_ly(
         session=session,
@@ -176,7 +120,7 @@ def read_khieu_nai_can_xu_ly(
 
 @router.get(
     "/can-bo/{ma_can_bo}/can-xu-ly/{ma_khieu_nai}",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=KhieuNaiCanXuLyDetail,
 )
 def read_khieu_nai_can_xu_ly_detail(
@@ -186,9 +130,11 @@ def read_khieu_nai_can_xu_ly_detail(
     ma_khieu_nai: Annotated[int, Path(ge=1)],
 ) -> KhieuNaiCanXuLyDetail:
     """Lay chi tiet mot khieu nai can xu ly cua can bo."""
-    can_bo = session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    ensure_staff_owns_profile(
+        session=session,
+        ma_can_bo=ma_can_bo,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
 
     return get_khieu_nai_can_xu_ly_detail(
         session=session,
@@ -199,7 +145,7 @@ def read_khieu_nai_can_xu_ly_detail(
 
 @router.patch(
     "/can-bo/{ma_can_bo}/can-xu-ly/{ma_khieu_nai}/chap-thuan",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=KhieuNaiXuLyResult,
 )
 def approve_khieu_nai(
@@ -211,9 +157,11 @@ def approve_khieu_nai(
     payload: KhieuNaiChapThuanRequest,
 ) -> KhieuNaiXuLyResult:
     """Chap thuan khieu nai va cap nhat diem danh neu co."""
-    can_bo = session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    ensure_staff_owns_profile(
+        session=session,
+        ma_can_bo=ma_can_bo,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
     result = chap_thuan_khieu_nai(
         session=session,
         ma_can_bo=ma_can_bo,
@@ -234,7 +182,7 @@ def approve_khieu_nai(
 
 @router.patch(
     "/can-bo/{ma_can_bo}/can-xu-ly/{ma_khieu_nai}/tu-choi",
-    dependencies=[Depends(get_current_active_giangvien)],
+    dependencies=[Depends(get_current_active_lecturer)],
     response_model=KhieuNaiXuLyResult,
 )
 def reject_khieu_nai(
@@ -246,9 +194,11 @@ def reject_khieu_nai(
     payload: KhieuNaiXuLyRequest,
 ) -> KhieuNaiXuLyResult:
     """Tu choi khieu nai va ghi nhan thong tin xu ly."""
-    can_bo = session.exec(select(CanBo).where(CanBo.ma_can_bo == ma_can_bo)).first()
-    if not can_bo or can_bo.ma_tai_khoan != current_account.ma_tai_khoan:
-        raise HTTPException(status_code=403, detail="Not authorized to access this Can Bo's data")
+    ensure_staff_owns_profile(
+        session=session,
+        ma_can_bo=ma_can_bo,
+        ma_tai_khoan=current_account.ma_tai_khoan,
+    )
 
     result = tu_choi_khieu_nai(
         session=session,

@@ -1,14 +1,17 @@
+"""Define refresh token database models."""
+
 from datetime import datetime, timezone
 
 from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
 
 
 class RefreshToken(SQLModel, table=True):
-    """Lưu refresh token đã hash để hỗ trợ ghi nhớ đăng nhập và thu hồi phiên."""
+    """Represent a hashed refresh token for session management."""
 
     __tablename__ = "refresh_token"
 

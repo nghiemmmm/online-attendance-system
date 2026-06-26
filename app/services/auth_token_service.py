@@ -1,8 +1,10 @@
-from datetime import datetime, timedelta, timezone
+"""Provide access-token and refresh-token business logic."""
+
 import hashlib
 import hmac
 import logging
 import secrets
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlmodel import Session
@@ -16,7 +18,15 @@ logger = logging.getLogger("app.auth")
 
 
 def hash_refresh_token(raw_token: str) -> str:
-    """Hash refresh token bằng SECRET_KEY để không lưu token gốc trong database."""
+    """
+    Hash a refresh token before storing it.
+
+    Args:
+        raw_token: Plain refresh token sent to the client.
+
+    Returns:
+        HMAC-SHA256 hash of the refresh token.
+    """
     return hmac.new(
         settings.SECRET_KEY.encode("utf-8"),
         raw_token.encode("utf-8"),
@@ -25,19 +35,43 @@ def hash_refresh_token(raw_token: str) -> str:
 
 
 def create_raw_refresh_token() -> str:
-    """Sinh refresh token ngẫu nhiên dùng cho Remember Me."""
+    """
+    Create a random refresh token for persistent login.
+
+    Returns:
+        URL-safe refresh token string.
+    """
     return secrets.token_urlsafe(64)
 
 
 def normalize_datetime_utc(value: datetime) -> datetime:
-    """Chuẩn hóa datetime từ DB về dạng có timezone UTC để so sánh an toàn."""
+    """
+    Return a timezone-aware UTC datetime.
+
+    Args:
+        value: Datetime value loaded from the database or generated in code.
+
+    Returns:
+        Datetime normalized to UTC.
+    """
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
 
 
 def create_access_token_for_account(*, account: TaiKhoan) -> Token:
-    """Tạo access token JWT ngắn hạn cho tài khoản đã xác thực."""
+    """
+    Create an access token for an authenticated account.
+
+    Args:
+        account: Authenticated account that receives the access token.
+
+    Returns:
+        Access token response data.
+
+    Raises:
+        HTTPException: If the account has no database ID.
+    """
     if account.ma_tai_khoan is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -62,7 +96,21 @@ def create_refresh_token_for_account(
     user_agent: str | None = None,
     ip_address: str | None = None,
 ) -> str:
-    """Tạo refresh token raw, lưu hash vào database và trả token raw cho client."""
+    """
+    Create and store a refresh token for an account.
+
+    Args:
+        session: Active database session.
+        account: Account that owns the refresh token.
+        user_agent: Optional client user-agent string.
+        ip_address: Optional client IP address.
+
+    Returns:
+        Raw refresh token to return to the client.
+
+    Raises:
+        HTTPException: If the account has no database ID.
+    """
     if account.ma_tai_khoan is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -98,7 +146,22 @@ def issue_login_tokens(
     user_agent: str | None = None,
     ip_address: str | None = None,
 ) -> Token:
-    """Cấp token đăng nhập, kèm refresh token nếu người dùng chọn Remember Me."""
+    """
+    Issue login tokens for an account.
+
+    Args:
+        session: Active database session.
+        account: Account that is logging in.
+        remember_me: Whether to issue a refresh token.
+        user_agent: Optional client user-agent string.
+        ip_address: Optional client IP address.
+
+    Returns:
+        Access token response data, optionally including a refresh token.
+
+    Raises:
+        HTTPException: If the account is inactive or waiting for approval.
+    """
     if not account.trang_thai:
         logger.warning(
             "login_token_rejected_inactive account_id=%s username=%s",
@@ -133,9 +196,23 @@ def issue_login_tokens(
 
 
 def _get_valid_refresh_token(
-    *, session: Session, raw_refresh_token: str
+    *,
+    session: Session,
+    raw_refresh_token: str,
 ) -> RefreshToken:
-    """Kiểm tra refresh token còn tồn tại, chưa hết hạn và chưa bị thu hồi."""
+    """
+    Return a valid refresh token or raise an HTTP error.
+
+    Args:
+        session: Active database session.
+        raw_refresh_token: Raw refresh token received from the client.
+
+    Returns:
+        Matching refresh token database record.
+
+    Raises:
+        HTTPException: If the token is invalid, revoked, or expired.
+    """
     token_hash = hash_refresh_token(raw_refresh_token)
     db_token = crud.get_refresh_token_by_hash(
         session=session,
@@ -171,7 +248,19 @@ def _get_valid_refresh_token(
 
 
 def refresh_access_token(*, session: Session, raw_refresh_token: str) -> Token:
-    """Dùng refresh token hợp lệ để cấp access token mới."""
+    """
+    Create a new access token from a valid refresh token.
+
+    Args:
+        session: Active database session.
+        raw_refresh_token: Raw refresh token received from the client.
+
+    Returns:
+        New access token response data.
+
+    Raises:
+        HTTPException: If the token account is missing or inactive.
+    """
     db_token = _get_valid_refresh_token(
         session=session,
         raw_refresh_token=raw_refresh_token,
@@ -210,7 +299,16 @@ def refresh_access_token(*, session: Session, raw_refresh_token: str) -> Token:
 
 
 def logout_refresh_token(*, session: Session, raw_refresh_token: str) -> None:
-    """Đăng xuất một phiên bằng cách thu hồi refresh token tương ứng."""
+    """
+    Revoke one refresh token session.
+
+    Args:
+        session: Active database session.
+        raw_refresh_token: Raw refresh token received from the client.
+
+    Raises:
+        HTTPException: If the refresh token is invalid, revoked, or expired.
+    """
     db_token = _get_valid_refresh_token(
         session=session,
         raw_refresh_token=raw_refresh_token,
@@ -224,7 +322,19 @@ def logout_refresh_token(*, session: Session, raw_refresh_token: str) -> None:
 
 
 def logout_all_refresh_tokens(*, session: Session, account: TaiKhoan) -> int:
-    """Đăng xuất khỏi mọi thiết bị bằng cách thu hồi toàn bộ refresh token."""
+    """
+    Revoke all refresh token sessions for an account.
+
+    Args:
+        session: Active database session.
+        account: Account whose refresh tokens should be revoked.
+
+    Returns:
+        Number of revoked refresh token records.
+
+    Raises:
+        HTTPException: If the account has no database ID.
+    """
     if account.ma_tai_khoan is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

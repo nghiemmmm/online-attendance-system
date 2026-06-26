@@ -265,7 +265,7 @@ def get_system_reports(session: SessionDep) -> Any:
     )
     attendance_warnings = len(session.exec(statement_warning).all())
     
-    # 2. attendanceByDepartment
+    # 2. attendance_by_department
     dept_data = {}
     all_nganhs = session.exec(select(Nganh)).all()
     for n in all_nganhs:
@@ -294,29 +294,61 @@ def get_system_reports(session: SessionDep) -> Any:
                 
     for ma_nganh, info in list(dept_data.items()):
         total = info["present"] + info["absent"] + info["late"]
-        info["rate"] = round(((info["present"] + info["late"]) / total * 100), 1) if total > 0 else 0.0
+        info["rate"] = (
+            round(((info["present"] + info["late"]) / total * 100), 1)
+            if total > 0
+            else 0.0
+        )
         
-    attendanceByDepartment = list(dept_data.values())
-    if not attendanceByDepartment:
-        attendanceByDepartment = [
+    attendance_by_department = list(dept_data.values())
+    if not attendance_by_department:
+        attendance_by_department = [
             {"department": "CNTT", "present": 0, "absent": 0, "late": 0, "rate": 0.0},
             {"department": "QTKD", "present": 0, "absent": 0, "late": 0, "rate": 0.0}
         ]
         
-    # 3. statusDistribution
-    present_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "CO_MAT")).first() or 0
-    absent_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "VANG")).first() or 0
-    late_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai.in_(["DI_MUON", "MUON"]))).first() or 0
-    leave_count = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.trang_thai == "XIN_PHEP")).first() or 0
+    # 3. status_distribution
+    present_count = (
+        session.exec(
+            select(func.count(DiemDanh.ma_diem_danh)).where(
+                DiemDanh.trang_thai == "CO_MAT"
+            )
+        ).first()
+        or 0
+    )
+    absent_count = (
+        session.exec(
+            select(func.count(DiemDanh.ma_diem_danh)).where(
+                DiemDanh.trang_thai == "VANG"
+            )
+        ).first()
+        or 0
+    )
+    late_count = (
+        session.exec(
+            select(func.count(DiemDanh.ma_diem_danh)).where(
+                DiemDanh.trang_thai.in_(["DI_MUON", "MUON"])
+            )
+        ).first()
+        or 0
+    )
+    leave_count = (
+        session.exec(
+            select(func.count(DiemDanh.ma_diem_danh)).where(
+                DiemDanh.trang_thai == "XIN_PHEP"
+            )
+        ).first()
+        or 0
+    )
     
-    statusDistribution = [
+    status_distribution = [
         {"name": "Co mat", "value": present_count, "color": "#22c55e"},
         {"name": "Vang mat", "value": absent_count, "color": "#ef4444"},
         {"name": "Di tre", "value": late_count, "color": "#f59e0b"},
         {"name": "Xin phep", "value": leave_count, "color": "#3b82f6"},
     ]
     
-    # 4. weeklyTrend (last 7 days of completed sessions)
+    # 4. weekly_trend (last 7 days of completed sessions)
     statement_weekly = (
         select(BuoiHoc.ngay_hoc, DiemDanh.trang_thai, func.count(DiemDanh.ma_diem_danh))
         .join(DiemDanh, DiemDanh.ma_buoi_hoc == BuoiHoc.ma_buoi_hoc)
@@ -337,30 +369,34 @@ def get_system_reports(session: SessionDep) -> Any:
         elif status == "VANG":
             weekly_dict[ngay_str]["absent"] += count
             
-    weeklyTrend = []
+    weekly_trend = []
     for ngay_str, info in reversed(list(weekly_dict.items())):
         tot = info["present"] + info["late"] + info["absent"]
-        rate = round(((info["present"] + info["late"]) / tot * 100), 1) if tot > 0 else 0.0
-        weeklyTrend.append({
+        rate = (
+            round(((info["present"] + info["late"]) / tot * 100), 1)
+            if tot > 0
+            else 0.0
+        )
+        weekly_trend.append({
             "week": ngay_str,
             "rate": rate,
             "students": tot
         })
-    if not weeklyTrend:
-        weeklyTrend = [
+    if not weekly_trend:
+        weekly_trend = [
             {"week": "T2", "rate": 0.0, "students": 0},
             {"week": "T3", "rate": 0.0, "students": 0}
         ]
         
-    # 5. monthlyComparison
-    monthlyComparison = [
+    # 5. monthly_comparison
+    monthly_comparison = [
         {"month": "T2", "thisYear": 89.2, "lastYear": 86.1},
         {"month": "T3", "thisYear": 90.1, "lastYear": 87.3},
         {"month": "T4", "thisYear": 87.8, "lastYear": 84.9},
         {"month": "T5", "thisYear": 91.2, "lastYear": 88.0},
     ]
     
-    # 6. topAbsentStudents
+    # 6. top_absent_students
     statement_absent = (
         select(SinhVien, func.count(DiemDanh.ma_diem_danh))
         .join(DiemDanh, DiemDanh.ma_sinh_vien == SinhVien.ma_sinh_vien)
@@ -370,12 +406,19 @@ def get_system_reports(session: SessionDep) -> Any:
         .limit(5)
     )
     absent_results = session.exec(statement_absent).all()
-    topAbsentStudents = []
+    top_absent_students = []
     for sv, count_vang in absent_results:
         nganh = session.get(Nganh, sv.ma_nganh) if sv.ma_nganh else None
-        total_dd = session.exec(select(func.count(DiemDanh.ma_diem_danh)).where(DiemDanh.ma_sinh_vien == sv.ma_sinh_vien)).first() or 1
+        total_dd = (
+            session.exec(
+                select(func.count(DiemDanh.ma_diem_danh)).where(
+                    DiemDanh.ma_sinh_vien == sv.ma_sinh_vien
+                )
+            ).first()
+            or 1
+        )
         rate = round(((total_dd - count_vang) / total_dd * 100), 1)
-        topAbsentStudents.append({
+        top_absent_students.append({
             "id": f"SV{sv.ma_sinh_vien:03d}",
             "name": f"{sv.ho} {sv.ten}".strip(),
             "department": nganh.ten_nganh if nganh else "CNTT",
@@ -383,7 +426,7 @@ def get_system_reports(session: SessionDep) -> Any:
             "rate": rate
         })
         
-    # 7. classPerformance
+    # 7. class_performance
     statement_class = (
         select(LopHocPhan, HocPhan, DiemDanh.trang_thai, func.count(DiemDanh.ma_diem_danh))
         .join(HocPhan, HocPhan.ma_hoc_phan == LopHocPhan.ma_hoc_phan)
@@ -404,19 +447,24 @@ def get_system_reports(session: SessionDep) -> Any:
         elif status in ["DI_MUON", "MUON"]:
             class_map[class_name]["late"] += count
             
-    classPerformance = []
+    class_performance = []
     for name, info in class_map.items():
         tot = info["present"] + info["absent"] + info["late"]
-        avgRate = round(((info["present"] + info["late"]) / tot * 100), 1) if tot > 0 else 0.0
+        average_rate = round(
+            ((info["present"] + info["late"]) / tot * 100), 1
+        ) if tot > 0 else 0.0
         studs = session.exec(
             select(func.count(DangKyHocPhan.ma_sinh_vien))
-            .where(DangKyHocPhan.ma_lop_hoc_phan == int(name.split("(")[-1].replace(")", "")))
+            .where(
+                DangKyHocPhan.ma_lop_hoc_phan
+                == int(name.split("(")[-1].replace(")", ""))
+            )
         ).first() or 0
-        classPerformance.append({
+        class_performance.append({
             "class": name.split(" (")[0],
             "students": studs,
-            "avgRate": avgRate,
-            "trend": "up" if avgRate >= 80 else "down"
+            "avgRate": average_rate,
+            "trend": "up" if average_rate >= 80 else "down"
         })
         
     return {
@@ -426,10 +474,10 @@ def get_system_reports(session: SessionDep) -> Any:
             "total_sessions": total_sessions,
             "attendance_warnings": attendance_warnings
         },
-        "attendanceByDepartment": attendanceByDepartment,
-        "statusDistribution": statusDistribution,
-        "weeklyTrend": weeklyTrend,
-        "monthlyComparison": monthlyComparison,
-        "topAbsentStudents": topAbsentStudents,
-        "classPerformance": classPerformance
+        "attendanceByDepartment": attendance_by_department,
+        "statusDistribution": status_distribution,
+        "weeklyTrend": weekly_trend,
+        "monthlyComparison": monthly_comparison,
+        "topAbsentStudents": top_absent_students,
+        "classPerformance": class_performance
     }

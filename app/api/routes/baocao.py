@@ -5,58 +5,26 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlmodel import select
 
-from app.api.deps import SessionDep, get_current_active_giangvien, get_current_active_superuser, CurrentAccount
+from app.api.deps import SessionDep, get_current_active_lecturer, get_current_active_superuser, CurrentAccount
 from app.models import LopHocPhan, BuoiHoc, DiemDanh, SinhVien, DangKyHocPhan, CanBo
 from app.crud import canbo_crud
+from app.services.attendance_summary_service import get_attendance_report_df
 
 router = APIRouter(prefix="/bao-cao", tags=["bao-cao"])
 
-@router.get("/lop-hoc-phan/{ma_lop_hoc_phan}/export-excel", dependencies=[Depends(get_current_active_giangvien)])
+@router.get("/lop-hoc-phan/{ma_lop_hoc_phan}/export-excel", dependencies=[Depends(get_current_active_lecturer)])
 def export_excel_diem_danh(
     session: SessionDep,
     current_account: CurrentAccount,
     ma_lop_hoc_phan: int,
 ) -> Any:
     """Giảng viên xuất file Excel điểm danh của lớp học phần."""
-    # Kiểm tra lớp học phần
-    lhp = session.get(LopHocPhan, ma_lop_hoc_phan)
-    if not lhp:
-        raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
-        
-    # Kiểm tra quyền
-    can_bo = canbo_crud.get_can_bo_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
-    if current_account.vai_tro != "ADMIN" and (not can_bo or lhp.ma_can_bo != can_bo.ma_can_bo):
-        raise HTTPException(status_code=403, detail="Không có quyền truy cập dữ liệu lớp này")
-
-    # Lấy danh sách sinh viên đăng ký
-    statement_sv = select(SinhVien).join(DangKyHocPhan).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
-    danh_sach_sv = session.exec(statement_sv).all()
-
-    # Lấy danh sách buổi học
-    statement_bh = select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan).order_by(BuoiHoc.ngay_hoc, BuoiHoc.gio_bat_dau)
-    danh_sach_bh = session.exec(statement_bh).all()
-
-    # Tạo DataFrame data
-    data = []
-    for sv in danh_sach_sv:
-        row = {
-            "Mã sinh viên": sv.ma_sinh_vien,
-            "Họ tên": f"{sv.ho} {sv.ten}".strip(),
-        }
-        
-        # Lấy điểm danh cho từng buổi
-        for bh in danh_sach_bh:
-            ngay_str = bh.ngay_hoc.strftime("%d/%m/%Y")
-            statement_dd = select(DiemDanh).where(DiemDanh.ma_buoi_hoc == bh.ma_buoi_hoc, DiemDanh.ma_sinh_vien == sv.ma_sinh_vien)
-            dd = session.exec(statement_dd).first()
-            if dd:
-                row[ngay_str] = dd.trang_thai
-            else:
-                row[ngay_str] = "CHƯA_ĐIỂM_DANH"
-                
-        data.append(row)
-
-    df = pd.DataFrame(data)
+    df, _ = get_attendance_report_df(
+        session=session,
+        current_account=current_account,
+        ma_lop_hoc_phan=ma_lop_hoc_phan,
+        unsigned=False,
+    )
 
     # Chuyển DataFrame thành file Excel trong bộ nhớ
     output = io.BytesIO()
@@ -73,58 +41,22 @@ def export_excel_diem_danh(
     return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
-@router.get("/lop-hoc-phan/{ma_lop_hoc_phan}/export-csv", dependencies=[Depends(get_current_active_giangvien)])
+@router.get("/lop-hoc-phan/{ma_lop_hoc_phan}/export-csv", dependencies=[Depends(get_current_active_lecturer)])
 def export_csv_diem_danh(
     session: SessionDep,
     current_account: CurrentAccount,
     ma_lop_hoc_phan: int,
 ) -> Any:
     """Giang vien xuat file CSV diem danh cua lop hoc phan."""
-    lhp = session.get(LopHocPhan, ma_lop_hoc_phan)
-    if not lhp:
-        raise HTTPException(status_code=404, detail="Lop hoc phan khong ton tai")
-
-    can_bo = canbo_crud.get_can_bo_by_account_id(
+    df, _ = get_attendance_report_df(
         session=session,
-        ma_tai_khoan=current_account.ma_tai_khoan,
+        current_account=current_account,
+        ma_lop_hoc_phan=ma_lop_hoc_phan,
+        unsigned=True,
     )
-    if current_account.vai_tro != "ADMIN" and (
-        not can_bo or lhp.ma_can_bo != can_bo.ma_can_bo
-    ):
-        raise HTTPException(status_code=403, detail="Khong co quyen truy cap du lieu lop nay")
-
-    statement_sv = (
-        select(SinhVien)
-        .join(DangKyHocPhan)
-        .where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
-    )
-    danh_sach_sv = session.exec(statement_sv).all()
-
-    statement_bh = (
-        select(BuoiHoc)
-        .where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan)
-        .order_by(BuoiHoc.ngay_hoc, BuoiHoc.gio_bat_dau)
-    )
-    danh_sach_bh = session.exec(statement_bh).all()
-
-    data = []
-    for sv in danh_sach_sv:
-        row = {
-            "Ma sinh vien": sv.ma_sinh_vien,
-            "Ho ten": f"{sv.ho} {sv.ten}".strip(),
-        }
-        for bh in danh_sach_bh:
-            ngay_str = bh.ngay_hoc.strftime("%d/%m/%Y")
-            statement_dd = select(DiemDanh).where(
-                DiemDanh.ma_buoi_hoc == bh.ma_buoi_hoc,
-                DiemDanh.ma_sinh_vien == sv.ma_sinh_vien,
-            )
-            dd = session.exec(statement_dd).first()
-            row[ngay_str] = dd.trang_thai if dd else "CHUA_DIEM_DANH"
-        data.append(row)
 
     output = io.StringIO()
-    pd.DataFrame(data).to_csv(output, index=False)
+    df.to_csv(output, index=False)
     csv_bytes = io.BytesIO(output.getvalue().encode("utf-8-sig"))
     filename = f"DiemDanh_{ma_lop_hoc_phan}.csv"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
