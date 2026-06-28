@@ -58,21 +58,21 @@ def image_to_feature(image, model):
 def get_avatar_image(employee_name, dataset_path='static/dataset/'):
     """
     Get avatar image path for an employee.
-    
+
     Args:
         employee_name (str): Name of the employee
         dataset_path (str): Path to dataset folder
-    
+
     Returns:
         str: Path to avatar image or placeholder URL
     """
     import os
     avatar_path_jpg = os.path.join(dataset_path, f"Avatar_{employee_name}.jpg")
     avatar_path_JPG = os.path.join(dataset_path, f"Avatar_{employee_name}.JPG")
-    
+
     if os.path.exists(avatar_path_jpg):
         return avatar_path_jpg
     elif os.path.exists(avatar_path_JPG):
         return avatar_path_JPG
-    else:    
+    else:
         return "https://via.placeholder.com/300?text=No+Photo"

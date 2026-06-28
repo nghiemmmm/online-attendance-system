@@ -5,6 +5,11 @@ export interface StudentProfile {
   email: string;
   phone: string;
   department: string;
+  majorName?: string;
+  birthDate?: string;
+  gender?: string;
+  academicStatus?: boolean | string;
+  studyStartedAt?: string;
   faceRegistered: boolean;
   avatarUrl?: string;
   registeredFacesCount: number;

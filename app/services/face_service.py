@@ -8,9 +8,10 @@ import numpy as np
 import torch
 from facenet_pytorch import InceptionResnetV1, MTCNN
 from PIL import Image
+from fastapi import Request
 from sqlmodel import Session, select
 
-from app.models import AnhKhuonMat
+from app.models import FaceImage
 from app.utils.logger import logger
 
 UPLOAD_DIR = "uploads/faces"
@@ -99,9 +100,9 @@ class FaceRecognitionService:
             from app.core.db import engine
 
             with Session(engine) as session:
-                statement = select(AnhKhuonMat).where(
-                    AnhKhuonMat.embedding_vector.is_not(None),
-                    AnhKhuonMat.trang_thai_duyet == "DA_DUYET",
+                statement = select(FaceImage).where(
+                    FaceImage.embedding_vector.is_not(None),
+                    FaceImage.review_status == "DA_DUYET",
                 )
                 records = session.exec(statement).all()
 
@@ -111,7 +112,7 @@ class FaceRecognitionService:
                 embedding = normalize_embedding(record.embedding_vector)
                 if len(embedding) == 512:
                     vectors.append(embedding)
-                    names.append(record.ma_sinh_vien)
+                    names.append(record.student_id)
 
             if vectors:
                 vector_array = np.array(vectors, dtype="float32")
@@ -222,12 +223,12 @@ class FaceRecognitionService:
             logger.exception("Error assessing face image")
             return False, "Khong the kiem tra chat luong anh", 0.0, []
 
-    def add_face_embedding(self, ma_sinh_vien: int, embedding: list[float]) -> None:
+    def add_face_embedding(self, student_id: int, embedding: list[float]) -> None:
         """
         Add one student face embedding to the FAISS index.
 
         Args:
-            ma_sinh_vien: Student identifier linked to the embedding.
+            student_id: Student identifier linked to the embedding.
             embedding: Face embedding values.
 
         Returns:
@@ -239,19 +240,19 @@ class FaceRecognitionService:
 
         emb = np.array(embedding, dtype="float32")
         self.index.add(emb.reshape(1, -1))
-        self.names.append(ma_sinh_vien)
+        self.names.append(student_id)
         self._save_faiss_index()
 
     def register_face(
         self,
-        ma_sinh_vien: int,
+        student_id: int,
         image_bytes: bytes,
     ) -> tuple[bool, str, list[float]]:
         """
         Register a student's face from one image.
 
         Args:
-            ma_sinh_vien: Student identifier linked to the face.
+            student_id: Student identifier linked to the face.
             image_bytes: Raw enrollment image bytes.
 
         Returns:
@@ -265,7 +266,7 @@ class FaceRecognitionService:
 
         embedding = embeddings[0]
         self.index.add(embedding.reshape(1, -1))
-        self.names.append(ma_sinh_vien)
+        self.names.append(student_id)
         self._save_faiss_index()
         return True, "Dang ky khuon mat thanh cong", embedding.tolist()
 
@@ -304,17 +305,17 @@ class FaceRecognitionService:
         self,
         *,
         session: Session,
-        trang_thai_duyet: str | None = None,
+        review_status: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> Any:
         """List face image registration requests for administrators."""
-        from app.models import AnhKhuonMatsPublic
+        from app.models import FaceImagesPublic
         from sqlmodel import select, func
 
-        statement = select(AnhKhuonMat)
-        if trang_thai_duyet:
-            statement = statement.where(AnhKhuonMat.trang_thai_duyet == trang_thai_duyet)
+        statement = select(FaceImage)
+        if review_status:
+            statement = statement.where(FaceImage.review_status == review_status)
 
         count_statement = select(func.count()).select_from(statement.subquery())
         total = session.exec(count_statement).one()
@@ -322,22 +323,22 @@ class FaceRecognitionService:
         statement = statement.offset(skip).limit(limit)
         results = session.exec(statement).all()
 
-        return AnhKhuonMatsPublic(data=results, count=total)
+        return FaceImagesPublic(data=results, count=total)
 
     async def register_student_face_db(
         self,
         *,
         session: Session,
-        ma_sinh_vien: int,
+        student_id: int,
         content: bytes,
     ) -> Any:
         """Register a student's face from one image, save it to the filesystem, and write to database."""
-        from app.models import SinhVien
+        from app.models import Student
         import aiofiles
         from app.core.exceptions import StudentNotFoundError, FaceQualityUnacceptableError
 
-        sinh_vien = session.get(SinhVien, ma_sinh_vien)
-        if not sinh_vien:
+        student = session.get(Student, student_id)
+        if not student:
             raise StudentNotFoundError("Khong tim thay sinh vien")
 
         success, message, quality_score, embedding = self.assess_face_image(
@@ -348,66 +349,66 @@ class FaceRecognitionService:
 
         import re
         import unicodedata
-        combined = f"{sinh_vien.ho or ''}_{sinh_vien.ten or ''}"
+        combined = f"{student.last_name or ''}_{student.first_name or ''}"
         nfkd_form = unicodedata.normalize("NFKD", combined)
         only_ascii = nfkd_form.encode("ASCII", "ignore").decode("utf-8")
-        ho_ten_ascii = re.sub(r"[^a-zA-Z0-9_]", "", only_ascii.replace(" ", "_"))
+        full_name_ascii = re.sub(r"[^a-zA-Z0-9_]", "", only_ascii.replace(" ", "_"))
 
-        filename = f"sv{sinh_vien.ma_sinh_vien}_{ho_ten_ascii}.jpg"
+        filename = f"sv{student.student_id}_{full_name_ascii}.jpg"
         filepath = os.path.join("dataset", filename)
 
         async with aiofiles.open(filepath, "wb") as image_file:
             await image_file.write(content)
 
-        db_anh = AnhKhuonMat(
-            ma_sinh_vien=sinh_vien.ma_sinh_vien,
-            duong_dan_anh=filepath,
-            loai_anh="DANG_KY",
+        image_record = FaceImage(
+            student_id=student.student_id,
+            image_path=filepath,
+            image_type="DANG_KY",
             embedding_vector=embedding,
-            diem_chat_luong=quality_score,
-            trang_thai_duyet="CHO_DUYET",
+            quality_score=quality_score,
+            review_status="CHO_DUYET",
         )
-        session.add(db_anh)
+        session.add(image_record)
         session.commit()
-        session.refresh(db_anh)
-        return db_anh
+        session.refresh(image_record)
+        return image_record
 
     def approve_face_image(
         self,
         *,
         session: Session,
-        ma_anh: int,
+        image_id: int,
         reviewer_id: int,
     ) -> Any:
         """Approve a pending face image and update FAISS cache."""
         from datetime import datetime, timezone
         from app.core.exceptions import FaceImageNotFoundError, InvalidFaceEmbeddingError
 
-        db_anh = session.get(AnhKhuonMat, ma_anh)
-        if not db_anh:
+        image_record = session.get(FaceImage, image_id)
+        if not image_record:
             raise FaceImageNotFoundError("Khong tim thay anh khuon mat")
 
-        embedding = normalize_embedding(db_anh.embedding_vector)
+        embedding = normalize_embedding(image_record.embedding_vector)
         if len(embedding) != 512:
             raise InvalidFaceEmbeddingError("Anh chua co embedding hop le")
 
-        db_anh.trang_thai_duyet = "DA_DUYET"
-        db_anh.ly_do_tu_choi = None
-        db_anh.ma_nguoi_duyet = reviewer_id
-        db_anh.thoi_gian_duyet = datetime.now(timezone.utc)
-        
-        session.add(db_anh)
-        session.commit()
-        session.refresh(db_anh)
+        image_record.review_status = "DA_DUYET"
+        image_record.rejection_reason = None
+        image_record.reviewer_id = reviewer_id
+        image_record.reviewed_at = datetime.now(timezone.utc)
 
-        self.add_face_embedding(db_anh.ma_sinh_vien, embedding)
-        return db_anh
+        session.add(image_record)
+        session.commit()
+        session.refresh(image_record)
+
+        self.add_face_embedding(image_record.student_id, embedding)
+        return image_record
 
     def reject_face_image(
         self,
         *,
         session: Session,
-        ma_anh: int,
+        image_id: int,
         reviewer_id: int,
         reason: str | None,
     ) -> Any:
@@ -415,19 +416,160 @@ class FaceRecognitionService:
         from datetime import datetime, timezone
         from app.core.exceptions import FaceImageNotFoundError
 
-        db_anh = session.get(AnhKhuonMat, ma_anh)
-        if not db_anh:
+        image_record = session.get(FaceImage, image_id)
+        if not image_record:
             raise FaceImageNotFoundError("Khong tim thay anh khuon mat")
 
-        db_anh.trang_thai_duyet = "TU_CHOI"
-        db_anh.ly_do_tu_choi = reason
-        db_anh.ma_nguoi_duyet = reviewer_id
-        db_anh.thoi_gian_duyet = datetime.now(timezone.utc)
+        image_record.review_status = "TU_CHOI"
+        image_record.rejection_reason = reason
+        image_record.reviewer_id = reviewer_id
+        image_record.reviewed_at = datetime.now(timezone.utc)
 
-        session.add(db_anh)
+        session.add(image_record)
         session.commit()
-        session.refresh(db_anh)
-        return db_anh
+        session.refresh(image_record)
+        return image_record
+
+    def save_attendance_evidence(
+        self,
+        *,
+        session: Session,
+        attendance_id: int,
+        image_bytes: bytes,
+        confidence: float,
+    ) -> str:
+        """Save attendance evidence image and create its database record."""
+        from app.models import AttendanceImage
+        import uuid
+
+        evidence_dir = os.path.join("uploads", "attendance")
+        os.makedirs(evidence_dir, exist_ok=True)
+        evidence_name = f"dd_{attendance_id}_{uuid.uuid4().hex[:8]}.jpg"
+        evidence_path = os.path.join(evidence_dir, evidence_name)
+
+        with open(evidence_path, "wb") as evidence_file:
+            evidence_file.write(image_bytes)
+
+        session.add(
+            AttendanceImage(
+                attendance_id=attendance_id,
+                image_path=evidence_path,
+                confidence=confidence,
+            )
+        )
+        session.commit()
+        return evidence_path
+
+    def auto_register_and_verify(
+        self,
+        *,
+        session: Session,
+        student_id: int,
+        class_session_id: int | None,
+        image_bytes: bytes,
+        auto_register_confidence: float = 0.95,
+    ) -> dict[str, Any]:
+        """Auto-register a student's face and optionally record attendance."""
+        from app.models import FaceImage
+        from app.crud.attendance_crud import mark_attendance_by_lora
+
+        try:
+            success, message, quality_score, embedding = self.assess_face_image(
+                image_bytes,
+                min_quality=0.5,
+            )
+            if not success or len(embedding) != 512:
+                return {
+                    "verified": False,
+                    "confidence": 0,
+                    "message": f"Nhan dang that bai: {message}",
+                }
+
+            os.makedirs("dataset", exist_ok=True)
+            filepath = os.path.join("dataset", f"sv{student_id}_auto.jpg")
+            with open(filepath, "wb") as image_file:
+                image_file.write(image_bytes)
+
+            existing = session.exec(
+                select(FaceImage)
+                .where(FaceImage.student_id == student_id)
+                .where(FaceImage.image_type == "DANG_KY")
+            ).first()
+            if existing:
+                existing.image_path = filepath
+                existing.embedding_vector = embedding
+                existing.quality_score = quality_score
+                existing.review_status = "DA_DUYET"
+                session.add(existing)
+            else:
+                session.add(
+                    FaceImage(
+                        student_id=student_id,
+                        image_path=filepath,
+                        image_type="DANG_KY",
+                        embedding_vector=embedding,
+                        quality_score=quality_score,
+                        review_status="DA_DUYET",
+                    )
+                )
+            session.commit()
+
+            self.add_face_embedding(student_id, embedding)
+            logger.info("Auto-registered face for student %s", student_id)
+
+            if class_session_id:
+                result = mark_attendance_by_lora(
+                    session=session,
+                    class_session_id=class_session_id,
+                    student_ids=[student_id],
+                    average_confidence=auto_register_confidence,
+                )
+
+                # Check status text mapping
+                status_map = {
+                    "CO_MAT": "Co mat",
+                    "DI_MUON": "Di muon",
+                    "VANG": "Vang",
+                }
+                status_text = status_map.get(result.get("status"), "Co mat")
+                return {
+                    "verified": True,
+                    "confidence": auto_register_confidence * 100,
+                    "message": "Da tu dong dang ky khuon mat va diem danh "
+                    f"thanh cong ({status_text})",
+                }
+
+            return {
+                "verified": True,
+                "confidence": auto_register_confidence * 100,
+                "message": "Da tu dong dang ky khuon mat moi thanh cong",
+            }
+        except Exception:
+            logger.exception("Auto-registration during verification failed")
+            return {
+                "verified": False,
+                "confidence": 0,
+                "message": "Loi trong qua trinh tu dong nhan dien",
+            }
 
 
-face_service = FaceRecognitionService()
+face_service: FaceRecognitionService | None = None
+
+
+def get_or_create_face_service() -> FaceRecognitionService:
+    """Return the process-local FaceRecognitionService singleton."""
+    global face_service
+    if face_service is None:
+        face_service = FaceRecognitionService()
+    return face_service
+
+
+def get_face_service(request: Request) -> FaceRecognitionService:
+    """Dependency provider that prefers the FastAPI app state cache."""
+    service = getattr(request.app.state, "face_service", None)
+    if service is None:
+        service = get_or_create_face_service()
+        request.app.state.face_service = service
+    return service
+
+

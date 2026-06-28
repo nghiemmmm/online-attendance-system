@@ -6,7 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { AttendanceReport } from "@/types/lecturer"
 import { LecturerService } from "@/services/lecturer.service"
-import { Loader2, AlertCircle, BarChart3, Download, Users, CheckCircle } from "lucide-react"
+import { ClassService } from "@/services/class.service"
+import { CourseClass } from "@/types/class"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Loader2, AlertCircle, BarChart3, Download, Users, CheckCircle, BookOpen } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export default function LecturerReportsPage() {
@@ -16,6 +25,7 @@ export default function LecturerReportsPage() {
     avatar: ""
   })
   const [reports, setReports] = useState<AttendanceReport[]>([])
+  const [classList, setClassList] = useState<CourseClass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
@@ -24,9 +34,15 @@ export default function LecturerReportsPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await LecturerService.getReports()
+      const [data, classes] = await Promise.all([
+        LecturerService.getReports(),
+        ClassService.getClasses(),
+      ])
       setReports(data)
-      if (data.length > 0) {
+      setClassList(classes)
+      if (classes.length > 0) {
+        setSelectedReportId(classes[0].id.toString())
+      } else if (data.length > 0) {
         setSelectedReportId(data[0].id)
       }
     } catch (err: any) {
@@ -49,7 +65,7 @@ export default function LecturerReportsPage() {
     fetchReports()
   }, [])
 
-  const selectedReport = reports.find(r => r.id === selectedReportId)
+  const selectedReport = reports.find(r => r.id === selectedReportId) || reports[0]
 
   return (
     <AppShell
@@ -108,32 +124,48 @@ export default function LecturerReportsPage() {
           </Card>
         )}
 
-        {/* Success */}
-        {!loading && !error && selectedReport && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Lớp học list */}
-            <div className="lg:col-span-1 space-y-3">
-              <h3 className="font-semibold text-[#0F172A] px-1">Lớp học phần</h3>
-              {reports.map(report => (
-                <div 
-                  key={report.id}
-                  onClick={() => setSelectedReportId(report.id)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                    selectedReportId === report.id 
-                      ? 'bg-[#0A2540] text-white border-[#0A2540] shadow-md' 
-                      : 'bg-white border-[#E2E8F0] hover:border-[#0EA5E9] text-[#0F172A]'
-                  }`}
+        {/* Filter Combobox Bar */}
+        {!loading && !error && (classList.length > 0 || reports.length > 0) && (
+          <Card className="border-[#E2E8F0] shadow-sm bg-white p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto flex-1 max-w-xl">
+                <label className="text-sm font-bold text-[#0F172A] whitespace-nowrap flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#0EA5E9]" />
+                  Học phần học kỳ này đảm nhận:
+                </label>
+                <Select
+                  value={selectedReportId || ""}
+                  onValueChange={(val) => setSelectedReportId(val)}
                 >
-                  <p className="font-semibold line-clamp-1">{report.subjectName}</p>
-                  <p className={`text-xs mt-1 ${selectedReportId === report.id ? 'text-white/80' : 'text-[#64748B]'}`}>
-                    {report.subjectCode} • {report.totalStudents} SV
-                  </p>
-                </div>
-              ))}
+                  <SelectTrigger className="w-full bg-[#F8FAFC] border-[#CBD5E1] text-[#0F172A] font-bold">
+                    <SelectValue placeholder="-- Chọn lớp học phần --" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    {classList.length > 0 ? (
+                      classList.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id.toString()}>
+                          {cls.tenHocPhan} (Mã lớp: {cls.maLop})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      reports.map((report) => (
+                        <SelectItem key={report.id} value={report.id}>
+                          {report.subjectName} ({report.subjectCode})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          </Card>
+        )}
 
+        {/* Success Dashboard */}
+        {!loading && !error && selectedReport && (
+          <div className="space-y-6">
             {/* Dashboard chi tiết */}
-            <div className="lg:col-span-3 space-y-6">
+            <div className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card className="shadow-sm border-[#E2E8F0]">
                   <CardContent className="p-4">

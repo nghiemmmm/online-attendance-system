@@ -1,191 +1,203 @@
-# Thiết kế Cơ sở dữ liệu Hệ thống Điểm danh (Online Attendance Database)
+# Tài liệu Tài liệu Cấu trúc Cơ sở Dữ liệu (Database Schema Documentation)
 
-Tài liệu này mô tả chi tiết sơ đồ thiết kế cơ sở dữ liệu quan hệ (PostgreSQL) của hệ thống điểm danh tự động bằng khuôn mặt.
-
----
-
-## 1. Sơ đồ quan hệ thực thể (Entity-Relationship Diagram)
-
-```mermaid
-erDiagram
-    nganh ||--o{ sinhvien : "có"
-    taikhoan ||--o| sinhvien : "liên kết"
-    taikhoan ||--o| canbo : "liên kết"
-    taikhoan ||--o{ oauth_identity : "định danh"
-    sinhvien ||--o{ anhkhuonmat : "đăng ký"
-    sinhvien ||--o{ dangkyhocphan : "đăng ký học"
-    sinhvien ||--o{ diemdanh : "tham gia"
-    sinhvien ||--o{ khieunai : "gửi"
-    canbo ||--o{ lophocphan : "giảng dạy"
-    canbo ||--o{ khieunai : "xử lý"
-    hocphan ||--o{ lophocphan : "chia nhóm"
-    lophocphan ||--o{ buoihoc : "có"
-    lophocphan ||--o{ dangkyhocphan : "chứa"
-    buoihoc ||--o{ diemdanh : "có"
-    diemdanh ||--o| khieunai : "khiếu nại"
-```
+Hệ thống Điểm danh Tự động sử dụng Cơ sở dữ liệu **PostgreSQL** trên Cloud (Render) với kiến trúc chuẩn **RESTful API** Tiếng Anh (`snake_case`). Tất cả các bảng dữ liệu cũ đã được chuyển sổ và đồng bộ 100% sang chuẩn mới.
 
 ---
 
-## 2. Chi tiết các bảng dữ liệu
+## Danh sách các Bảng Dữ liệu (Database Tables)
 
-### 2.1. Bảng `taikhoan` (Tài khoản người dùng)
-Lưu trữ thông tin xác thực đăng nhập chính của toàn bộ sinh viên, giảng viên và quản trị viên.
+### 1. `accounts` (Tài khoản Hệ thống)
+Lưu trữ thông tin xác thực đăng nhập của tất cả các người dùng (Sinh viên, Cán bộ, Giảng viên, Admin).
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_tai_khoan` | INTEGER | PK, Serial | Mã tài khoản tự tăng |
-| `ten_dang_nhap` | VARCHAR(50) | Unique, Index | Tên tài khoản hoặc email đăng nhập |
-| `mat_khau_hash` | VARCHAR(255) | Not Null | Mật khẩu đã mã hóa (argon2/bcrypt) |
-| `vai_tro` | VARCHAR(20) | Mặc định: 'SINH_VIEN' | Quyền truy cập (`ADMIN`, `GIANG_VIEN`, `CAN_BO`, `SINH_VIEN`) |
-| `trang_thai` | BOOLEAN | Mặc định: True | Trạng thái kích hoạt tài khoản |
-| `lan_dang_nhap_cuoi` | TIMESTAMP | Nullable | Thời gian đăng nhập gần nhất |
-| `so_lan_dang_nhap_sai`| INTEGER | Mặc định: 0 | Đếm số lần nhập sai mật khẩu liên tiếp |
-| `thoi_gian_khoa` | TIMESTAMP | Nullable | Thời gian mở khóa tài khoản (nếu bị khóa tạm thời) |
-| `ngay_tao` | TIMESTAMP | Mặc định: NOW() | Ngày tạo tài khoản |
+| `account_id` | `INTEGER` | **PK**, Auto-increment | Mã định danh duy nhất của tài khoản. |
+| `username` | `VARCHAR(50)` | UNIQUE, NOT NULL, Index | Tên đăng nhập (MSSV đối với sinh viên, Mã CB đối với cán bộ/giảng viên). |
+| `password_hash` | `VARCHAR(255)` | NOT NULL | Mật khẩu đã mã hóa Bcrypt. |
+| `role` | `VARCHAR(20)` | NOT NULL | Vai trò (`SINH_VIEN`, `GIANG_VIEN`, `CAN_BO`, `ADMIN`). |
+| `status` | `BOOLEAN` | DEFAULT `true` | Trạng thái hoạt động của tài khoản (`true`: Hoạt động, `false`: Khóa). |
+| `failed_login_count` | `INTEGER` | DEFAULT `0` | Số lần đăng nhập sai mật khẩu liên tiếp. |
+| `locked_until` | `TIMESTAMP` | NULL | Thời điểm tài khoản hết bị tạm khóa (khóa 15 phút nếu sai >5 lần). |
+| `last_login_at` | `TIMESTAMP` | NULL | Thời điểm đăng nhập thành công gần nhất. |
+| `created_at` | `TIMESTAMP` | DEFAULT `NOW()` | Thời gian tạo tài khoản. |
 
 ---
 
-### 2.2. Bảng `sinhvien` (Thông tin sinh viên)
-Lưu hồ sơ cá nhân và học tập của sinh viên.
+### 2. `students` (Hồ sơ Sinh viên)
+Lưu trữ thông tin cá nhân và học tập của sinh viên.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_sinh_vien` | INTEGER | PK, Serial | Mã số sinh viên tự tăng |
-| `ho` | VARCHAR(50) | Not Null | Họ và đệm của sinh viên |
-| `ten` | VARCHAR(50) | Not Null | Tên của sinh viên |
-| `ngay_sinh` | DATE | Nullable | Ngày sinh sinh viên |
-| `gioi_tinh` | VARCHAR(10) | Nullable | Giới tính (`Nam`, `Nữ`, v.v.) |
-| `dien_thoai` | VARCHAR(15) | Nullable | Số điện thoại liên lạc |
-| `google_email` | VARCHAR(100) | Unique, Nullable | Email Google liên kết OAuth |
-| `ma_nganh` | INTEGER | FK -> `nganh.ma_nganh` | Ngành học trực thuộc |
-| `ma_tai_khoan` | INTEGER | FK -> `taikhoan.ma_tai_khoan`, Unique | Tài khoản đăng nhập liên kết |
-| `trang_thai_hoc` | BOOLEAN | Mặc định: True | Đang học (True) hoặc bảo lưu/đã tốt nghiệp (False) |
-| `thoi_gian_bat_dau_hoc`| TIMESTAMP| Mặc định: NOW() | Ngày bắt đầu nhập học |
+| `student_id` | `INTEGER` | **PK** | Mã số sinh viên (MSSV). |
+| `first_name` | `VARCHAR(50)` | NOT NULL | Tên sinh viên. |
+| `last_name` | `VARCHAR(50)` | NOT NULL | Họ và tên đệm sinh viên. |
+| `birth_date` | `DATE` | NULL | Ngày tháng năm sinh. |
+| `gender` | `VARCHAR(10)` | NULL | Giới tính (`Nam`, `Nữ`, `Khác`). |
+| `phone` | `VARCHAR(15)` | NULL | Số điện thoại liên lạc. |
+| `google_email` | `VARCHAR(100)` | NULL | Email Google trường cấp dùng cho đăng nhập OAuth. |
+| `major_id` | `INTEGER` | **FK** -> `majors.major_id` | Chuyên ngành học của sinh viên. |
+| `account_id` | `INTEGER` | **FK** -> `accounts.account_id` | Tài khoản đăng nhập tương ứng. |
+| `academic_status` | `VARCHAR(30)` | DEFAULT `'DANG_HOC'` | Trạng thái học tập (`DANG_HOC`, `THOI_HOC`, `GRADUATED`). |
+| `study_started_at` | `DATE` | NULL | Ngày nhập học. |
 
 ---
 
-### 2.3. Bảng `canbo` (Thông tin cán bộ / giảng viên)
-Lưu hồ sơ giảng dạy và quản lý của giảng viên/nhân viên trường.
+### 3. `staff` (Hồ sơ Cán bộ & Giảng viên)
+Lưu trữ thông tin cán bộ quản lý và giảng viên giảng dạy.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_can_bo` | INTEGER | PK, Serial | Mã cán bộ tự tăng |
-| `ho` | VARCHAR(50) | Not Null | Họ và đệm của cán bộ |
-| `ten` | VARCHAR(50) | Not Null | Tên của cán bộ |
-| `dien_thoai` | VARCHAR(15) | Nullable | Số điện thoại liên lạc |
-| `gioi_tinh` | VARCHAR(10) | Nullable | Giới tính |
-| `ngay_sinh` | DATE | Nullable | Ngày sinh |
-| `google_email` | VARCHAR(100) | Nullable | Email Google liên kết |
-| `ma_tai_khoan` | INTEGER | FK -> `taikhoan.ma_tai_khoan` | Tài khoản đăng nhập liên kết |
-| `chuc_vu` | VARCHAR(50) | Nullable | Chức vụ công tác |
-| `trang_thai` | BOOLEAN | Mặc định: True | Trạng thái công tác |
+| `staff_id` | `INTEGER` | **PK** | Mã cán bộ / giảng viên. |
+| `first_name` | `VARCHAR(50)` | NOT NULL | Tên cán bộ/giảng viên. |
+| `last_name` | `VARCHAR(50)` | NOT NULL | Họ và tên đệm. |
+| `phone` | `VARCHAR(15)` | NULL | Số điện thoại liên lạc. |
+| `gender` | `VARCHAR(10)` | NULL | Giới tính. |
+| `birth_date` | `DATE` | NULL | Ngày sinh. |
+| `google_email` | `VARCHAR(100)` | NULL | Email Google công vụ. |
+| `account_id` | `INTEGER` | **FK** -> `accounts.account_id` | Tài khoản đăng nhập tương ứng. |
+| `position` | `VARCHAR(100)` | NULL | Chức vụ / Học vị (Giảng viên, Trưởng khoa,...). |
+| `status` | `BOOLEAN` | DEFAULT `true` | Trạng thái công tác (`true`: Đang làm việc). |
 
 ---
 
-### 2.4. Bảng `anhkhuonmat` (Đặc trưng sinh trắc học khuôn mặt)
-Lưu giữ thông tin ảnh khuôn mặt của sinh viên phục vụ AI Face Recognition.
+### 4. `courses` (Danh mục Học phần / Môn học)
+Quản lý các môn học trong chương trình đào tạo.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_anh` | INTEGER | PK, Serial | Mã ảnh tự tăng |
-| `ma_sinh_vien` | INTEGER | FK -> `sinhvien.ma_sinh_vien` | Sinh viên sở hữu khuôn mặt |
-| `duong_dan_anh` | VARCHAR(255) | Not Null | Đường dẫn lưu trữ file ảnh vật lý trên server |
-| `loai_anh` | VARCHAR(20) | Mặc định: 'DANG_KY' | Thể loại ảnh (`DANG_KY` - ảnh gốc, hoặc ảnh điểm danh) |
-| `embedding_vector` | FLOAT[] | Not Null | Mảng float chứa vector đặc trưng (128 hoặc 512 chiều) |
-| `ngay_tao` | TIMESTAMP | Mặc định: NOW() | Ngày chụp/đăng ký ảnh |
+| `course_id` | `INTEGER` | **PK**, Auto-increment | Mã định danh học phần. |
+| `course_name` | `VARCHAR(100)` | NOT NULL | Tên môn học / học phần. |
+| `description` | `TEXT` | NULL | Mô tả chi tiết môn học. |
+| `credit_count` | `INTEGER` | NOT NULL | Số tín chỉ của môn học. |
+| `status` | `BOOLEAN` | DEFAULT `true` | Trạng thái môn học (`true`: Đang giảng dạy). |
 
 ---
 
-### 2.5. Bảng `hocphan` (Danh mục học phần / môn học)
-Lưu thông tin danh mục môn học đào tạo trong trường học.
+### 5. `class_sections` (Lớp Học phần)
+Quản lý các lớp học phần được mở trong từng học kỳ.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_hoc_phan` | INTEGER | PK | Mã học phần (nhập thủ công) |
-| `ten_hoc_phan` | VARCHAR(100) | Not Null | Tên môn học |
-| `mo_ta` | TEXT | Nullable | Mô tả chi tiết môn học |
-| `so_tin_chi` | INTEGER | Not Null | Số tín chỉ của học phần |
-| `trang_thai` | BOOLEAN | Mặc định: True | Trạng thái áp dụng môn học |
+| `class_section_id` | `INTEGER` | **PK**, Auto-increment | Mã định danh lớp học phần. |
+| `course_id` | `INTEGER` | **FK** -> `courses.course_id` | Môn học tương ứng. |
+| `staff_id` | `INTEGER` | **FK** -> `staff.staff_id` | Giảng viên phụ trách giảng dạy. |
+| `semester` | `VARCHAR(10)` | NOT NULL | Học kỳ (HK1, HK2, HK3). |
+| `academic_year` | `VARCHAR(20)` | NOT NULL | Năm học (ví dụ: 2025-2026). |
+| `minimum_attendance_rate` | `FLOAT` | DEFAULT `0.8` | Tỷ lệ chuyên cần tối thiểu bắt buộc (ví dụ: 80%). |
+| `status` | `BOOLEAN` | DEFAULT `true` | Trạng thái lớp học phần. |
+| `created_at` | `TIMESTAMP` | DEFAULT `NOW()` | Thời gian tạo lớp. |
 
 ---
 
-### 2.6. Bảng `lophocphan` (Lớp học phần)
-Nhóm học phần giảng dạy trong học kỳ cụ thể do giảng viên quản lý.
+### 6. `class_sessions` (Các Buổi học Điểm danh)
+Quản lý chi tiết từng buổi học cụ thể của lớp học phần.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_lop_hoc_phan` | INTEGER | PK, Serial | Mã lớp tự tăng |
-| `ma_hoc_phan` | INTEGER | FK -> `hocphan.ma_hoc_phan` | Thuộc môn học nào |
-| `ma_can_bo` | INTEGER | FK -> `canbo.ma_can_bo` | Giảng viên phụ trách giảng dạy |
-| `hoc_ky` | INTEGER | Not Null | Học kỳ (1, 2, 3) |
-| `nam_hoc` | VARCHAR(20) | Not Null | Năm học giảng dạy (ví dụ: `2025-2026`) |
-| `ty_le_chuyen_can_toi_thieu`| NUMERIC | Mặc định: 0.8 | Tỷ lệ đi học tối thiểu để được thi cuối kỳ |
-| `trang_thai` | BOOLEAN | Mặc định: True | Trạng thái hoạt động của lớp |
-| `ngay_tao` | TIMESTAMP | Mặc định: NOW() | Ngày mở lớp |
+| `class_session_id` | `INTEGER` | **PK**, Auto-increment | Mã định danh buổi học. |
+| `class_section_id` | `INTEGER` | **FK** -> `class_sections.class_section_id` | Thuộc lớp học phần nào. |
+| `class_date` | `DATE` | NOT NULL | Ngày diễn ra buổi học. |
+| `start_time` | `TIME` | NOT NULL | Giờ bắt đầu điểm danh. |
+| `end_time` | `TIME` | NOT NULL | Giờ kết thúc điểm danh. |
+| `session_number` | `INTEGER` | NOT NULL | Thứ tự buổi học (Buổi 1, Buổi 2,...). |
+| `status` | `VARCHAR(20)` | DEFAULT `'COMPLETED'` | Trạng thái buổi học (`SCHEDULED`, `ONGOING`, `COMPLETED`). |
+| `recognition_threshold` | `FLOAT` | DEFAULT `0.6` | Ngưỡng độ tin cậy nhận diện AI khuôn mặt (0.6 - 0.8). |
+| `late_grace_minutes` | `INTEGER` | DEFAULT `15` | Số phút đi muộn cho phép (sau phút này tính là Vắng). |
+| `note` | `TEXT` | NULL | Ghi chú thêm của giảng viên cho buổi học. |
 
 ---
 
-### 2.7. Bảng `buoihoc` (Buổi học cụ thể)
-Chi tiết từng buổi lên lớp của một lớp học phần.
+### 7. `attendance` (Kết quả Điểm danh)
+Lưu trữ trạng thái và chi tiết điểm danh của sinh viên trong từng buổi học.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_buoi_hoc` | INTEGER | PK, Serial | Mã buổi học tự tăng |
-| `ma_lop_hoc_phan` | INTEGER | FK -> `lophocphan.ma_lop_hoc_phan` | Thuộc lớp học phần nào |
-| `ngay_hoc` | DATE | Not Null | Ngày diễn ra buổi học |
-| `gio_bat_dau` | TIME | Not Null | Giờ bắt đầu học |
-| `gio_ket_thuc` | TIME | Not Null | Giờ kết thúc buổi học |
-| `so_buoi` | INTEGER | Not Null | Số thứ tự buổi học (buổi số 1, số 2...) |
-| `trang_thai` | VARCHAR(20) | Not Null | Trạng thái (`CHUA_DIEM_DANH`, `DANG_DIEM_DANH`, `DA_KET_THUC`) |
-| `nguong_nhan_dien` | FLOAT | Mặc định: 0.5 | Độ tương đồng tối thiểu để AI chấp nhận khuôn mặt |
-| `so_phut_muon_toi_da` | INTEGER | Mặc định: 15 | Số phút trễ cho phép trước khi bị đánh dấu đi muộn |
-| `ghi_chu` | TEXT | Nullable | Ghi chú buổi học |
+| `attendance_id` | `INTEGER` | **PK**, Auto-increment | Mã bản ghi điểm danh. |
+| `student_id` | `INTEGER` | **FK** -> `students.student_id` | Sinh viên được điểm danh. |
+| `class_session_id` | `INTEGER` | **FK** -> `class_sessions.class_session_id` | Buổi học tương ứng. |
+| `status` | `VARCHAR(20)` | NOT NULL | Trạng thái điểm danh (`PRESENT`: Có mặt, `ABSENT`: Vắng, `LATE`: Đi muộn). |
+| `method` | `VARCHAR(30)` | DEFAULT `'FACE_RECOGNITION'` | Phương thức điểm danh (`FACE_RECOGNITION`, `MANUAL_TEACHER`, `QR_CODE`). |
+| `confidence` | `FLOAT` | NULL | Độ tin cậy nhận diện khuôn mặt của AI (0.0 đến 1.0). |
+| `attendance_time` | `TIMESTAMP` | NULL | Thời điểm thực hiện điểm danh thành công. |
+| `edit_reason` | `TEXT` | NULL | Lý do điều chỉnh điểm danh (nếu giảng viên sửa tay). |
 
 ---
 
-### 2.8. Bảng `diemdanh` (Lịch sử điểm danh)
-Lưu kết quả điểm danh của sinh viên trong mỗi buổi học.
+### 8. `face_images` (Bộ dữ liệu Khuôn mặt AI)
+Lưu trữ đường dẫn ảnh và vector đặc trưng (Embeddings) phục vụ AI nhận diện khuôn mặt.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_diem_danh` | INTEGER | PK, Serial | Mã điểm danh tự tăng |
-| `ma_sinh_vien` | INTEGER | FK -> `sinhvien.ma_sinh_vien` | Sinh viên được điểm danh |
-| `ma_buoi_hoc` | INTEGER | FK -> `buoihoc.ma_buoi_hoc` | Điểm danh cho buổi học nào |
-| `trang_thai` | VARCHAR(20) | Not Null | Kết quả (`CO_MAT`, `DI_MUON`, `VANG`) |
-| `phuong_thuc` | VARCHAR(20) | Not Null | Hình thức (`KHUON_MAT` - nhận diện camera, `THU_CONG` - giảng viên tích) |
-| `do_tin_cay` | FLOAT | Nullable | Độ tin cậy (%) phản hồi từ mô hình AI |
-| `thoi_diem_diem_danh` | TIMESTAMP | Mặc định: NOW() | Thời gian thực hiện điểm danh thành công |
+| `image_id` | `INTEGER` | **PK**, Auto-increment | Mã ảnh khuôn mặt. |
+| `student_id` | `INTEGER` | **FK** -> `students.student_id` | Sinh viên sở hữu ảnh. |
+| `image_path` | `VARCHAR(255)` | NOT NULL | Đường dẫn lưu trữ tệp ảnh trên máy chủ. |
+| `image_type` | `VARCHAR(20)` | DEFAULT `'REGISTRATION'` | Loại ảnh (`REGISTRATION`: Ảnh đăng ký mẫu, `ATTENDANCE`: Ảnh chụp điểm danh). |
+| `quality_score` | `FLOAT` | DEFAULT `1.0` | Điểm chất lượng ảnh (ánh sáng, góc mặt, độ nét). |
+| `review_status` | `VARCHAR(20)` | DEFAULT `'APPROVED'` | Trạng thái duyệt ảnh (`PENDING`, `APPROVED`, `REJECTED`). |
+| `rejection_reason` | `TEXT` | NULL | Lý do từ chối ảnh (nếu ảnh quá mờ hoặc không rõ mặt). |
+| `reviewed_at` | `TIMESTAMP` | NULL | Thời gian kiểm duyệt ảnh. |
+| `reviewer_id` | `INTEGER` | NULL | Cán bộ kiểm duyệt ảnh. |
+| `embedding_vector` | `TEXT / JSON` | NULL | Chuỗi vector 512 chiều trích xuất bởi Deep Learning (InsightFace/FaceNet). |
 
 ---
 
-### 2.9. Bảng `khieunai` (Khiếu nại điểm danh)
-Sinh viên khiếu nại kết quả điểm danh khi có sự cố hệ thống.
+### 9. `otp_codes` (Mã Xác thực OTP)
+Lưu trữ mã OTP gửi qua Email trường để xác thực đăng ký tài khoản.
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_khieu_nai` | INTEGER | PK, Serial | Mã khiếu nại tự tăng |
-| `ma_diem_danh` | INTEGER | FK -> `diemdanh.ma_diem_danh` | Liên kết đến bản ghi điểm danh bị khiếu nại |
-| `ma_sinh_vien` | INTEGER | FK -> `sinhvien.ma_sinh_vien` | Sinh viên gửi đơn khiếu nại |
-| `ly_do` | TEXT | Not Null | Lý do giải trình của sinh viên |
-| `trang_thai` | VARCHAR(20) | Mặc định: 'CHO_XU_LY' | Trạng thái xử lý (`CHO_XU_LY`, `DA_DUYET`, `TU_CHOI`) |
-| `ngay_gui` | TIMESTAMP | Mặc định: NOW() | Thời gian gửi đơn |
-| `ma_can_bo_xu_ly` | INTEGER | FK -> `canbo.ma_can_bo` | Giảng viên phụ trách xem xét đơn |
-| `ghi_chu_xu_ly` | TEXT | Nullable | Ý kiến phản hồi từ người duyệt đơn |
-| `ngay_xu_ly` | TIMESTAMP | Nullable | Thời gian duyệt hoặc từ chối đơn |
+| `otp_id` | `INTEGER` | **PK**, Auto-increment | Mã bản ghi OTP. |
+| `email` | `VARCHAR(100)` | NOT NULL, Index | Email nhận mã OTP. |
+| `code` | `VARCHAR(6)` | NOT NULL | Mã OTP ngẫu nhiên 6 chữ số. |
+| `expires_at` | `TIMESTAMP` | NOT NULL | Thời điểm hết hạn của mã OTP (hiệu lực 5 phút). |
+| `is_used` | `BOOLEAN` | DEFAULT `false` | Đã sử dụng mã OTP để kích hoạt tài khoản chưa. |
+| `created_at` | `TIMESTAMP` | DEFAULT `NOW()` | Thời gian khởi tạo mã OTP. |
 
 ---
 
-### 2.10. Bảng `oauth_identity` (Thông tin liên kết Google OAuth)
-Liên kết các tài khoản đăng nhập với thông tin định danh của nhà cung cấp bên thứ 3 (Google).
+### 10. `refresh_token` (Phiên Đăng nhập Dài hạn)
+Lưu trữ token mã hóa phục vụ tính năng "Ghi nhớ đăng nhập" (Remember Me).
 
-| Tên cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `ma_oauth_identity` | INTEGER | PK, Serial | Mã ID tự tăng |
-| `provider` | VARCHAR | Not Null | Tên nhà cung cấp (mặc định: `'google'`) |
-| `provider_subject` | VARCHAR | Not Null | Google Subject ID duy nhất |
-| `email` | VARCHAR | Not Null | Địa chỉ Gmail của tài khoản Google liên kết |
-| `ma_tai_khoan` | INTEGER | FK -> `taikhoan.ma_tai_khoan` | Tài khoản liên kết trong hệ thống |
-| `ngay_tao` | TIMESTAMP | Mặc định: NOW() | Ngày tạo liên kết |
-| `ngay_cap_nhat` | TIMESTAMP | Mặc định: NOW() | Ngày cập nhật trạng thái |
-| `lan_dang_nhap_cuoi` | TIMESTAMP | Nullable | Lần sử dụng đăng nhập gần nhất |
+| `refresh_token_id` | `INTEGER` | **PK**, Auto-increment | Mã bản ghi phiên đăng nhập. |
+| `account_id` | `INTEGER` | **FK** -> `accounts.account_id` | Tài khoản sử dụng phiên đăng nhập này. |
+| `token_hash` | `VARCHAR(255)` | UNIQUE, NOT NULL | Mã hash bảo mật của Refresh Token. |
+| `expires_at` | `TIMESTAMP` | NOT NULL | Thời điểm hết hạn của Refresh Token (ví dụ 30 ngày). |
+| `created_at` | `TIMESTAMP` | DEFAULT `NOW()` | Thời điểm tạo phiên. |
+| `last_used_at` | `TIMESTAMP` | NULL | Thời điểm vừa sử dụng Refresh Token để lấy Access Token mới. |
+| `revoked_at` | `TIMESTAMP` | NULL | Thời điểm phiên bị hủy (khi thu hồi hoặc đăng xuất). |
+| `user_agent` | `VARCHAR(255)` | NULL | Trình duyệt và thiết bị người dùng sử dụng. |
+| `ip_address` | `VARCHAR(45)` | NULL | Địa chỉ IP của người dùng. |
+
+---
+
+### 11. `auditlog` (Nhật ký Hệ thống)
+Ghi lại toàn bộ thao tác quan trọng (Đăng nhập, Đăng ký, Điểm danh, Đổi mật khẩu) để kiểm vết an ninh.
+
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
+| :--- | :--- | :--- | :--- |
+| `audit_log_id` | `INTEGER` | **PK**, Auto-increment | Mã bản ghi nhật ký. |
+| `account_id` | `INTEGER` | **FK** -> `accounts.account_id` | Người thực hiện thao tác (NULL nếu chưa đăng nhập). |
+| `role` | `VARCHAR(20)` | NULL | Vai trò của người thực hiện thao tác. |
+| `action` | `VARCHAR(100)` | NOT NULL | Hành động (`DANG_NHAP`, `DANG_KY`, `DIEM_DANH`,...). |
+| `target_type` | `VARCHAR(100)` | NULL | Đối tượng bị tác động (`Account`, `Student`, `Attendance`). |
+| `target_id` | `VARCHAR(100)` | NULL | ID của đối tượng bị tác động. |
+| `before_data` | `JSON` | NULL | Dữ liệu trước khi thay đổi. |
+| `after_data` | `JSON` | NULL | Dữ liệu sau khi thay đổi. |
+| `ip` | `VARCHAR(45)` | NULL | Địa chỉ IP gửi yêu cầu. |
+| `user_agent` | `VARCHAR(255)` | NULL | Thông tin thiết bị/trình duyệt. |
+| `status` | `VARCHAR(30)` | DEFAULT `'SUCCESS'` | Trạng thái hành động (`SUCCESS`, `FAILED`). |
+| `detail` | `VARCHAR(500)` | NULL | Chi tiết kết quả hoặc nguyên nhân lỗi. |
+| `timestamp` | `TIMESTAMP` | DEFAULT `NOW()` | Thời điểm ghi nhật ký. |
+
+---
+
+### 12. `majors` (Danh mục Ngành học)
+Lưu trữ danh sách các ngành/khoa đào tạo trong nhà trường.
+
+| Tên trường (Column) | Kiểu dữ liệu (Type) | Ràng buộc (Constraint) | Mô tả chi tiết |
+| :--- | :--- | :--- | :--- |
+| `major_id` | `INTEGER` | **PK**, Auto-increment | Mã định danh ngành học. |
+| `major_name` | `VARCHAR(100)` | NOT NULL | Tên ngành học (Công nghệ thông tin, Kế toán,...). |
+| `description` | `TEXT` | NULL | Mô tả thêm về ngành học. |

@@ -2,21 +2,22 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import google_auth_router as google_auth
-from app.models import OAuthIdentity, RefreshToken, TaiKhoan
+from app.core.exceptions import AccountInactiveError
+from app.models import OAuthIdentity, RefreshToken, Account
 
 
 class FakeSession:
     """Session giả dùng để mô phỏng đọc/ghi database trong test đăng nhập."""
 
-    def __init__(self, account: TaiKhoan | None = None) -> None:
+    def __init__(self, account: Account | None = None) -> None:
         self.account = account
         self.added = []
         self.commits = 0
         self.refreshed = []
 
     def get(self, model, object_id):
-        """Trả về tài khoản giả khi callback cần lấy TaiKhoan từ ma_tai_khoan."""
-        if model is TaiKhoan and self.account and self.account.ma_tai_khoan == object_id:
+        """Trả về tài khoản giả khi callback cần lấy Account từ account_id."""
+        if model is Account and self.account and self.account.account_id == object_id:
             return self.account
         return None
 
@@ -40,25 +41,25 @@ class FakeRequest:
         self.session = {"google_auth_mode": mode}
 
 
-def make_account(*, ma_tai_khoan: int = 1, trang_thai: bool = True) -> TaiKhoan:
+def make_account(*, account_id: int = 1, status: bool = True) -> Account:
     """Tạo tài khoản giả dùng trong luồng đăng nhập Google."""
-    return TaiKhoan(
-        ma_tai_khoan=ma_tai_khoan,
-        ten_dang_nhap=f"google_user_{ma_tai_khoan}",
-        mat_khau_hash="hashed-password",
-        vai_tro="SINH_VIEN",
-        trang_thai=trang_thai,
+    return Account(
+        account_id=account_id,
+        username=f"google_user_{account_id}",
+        password_hash="hashed-password",
+        role="SINH_VIEN",
+        status=status,
     )
 
 
-def make_identity(*, ma_tai_khoan: int = 1) -> OAuthIdentity:
+def make_identity(*, account_id: int = 1) -> OAuthIdentity:
     """Tạo OAuth identity giả cho tài khoản Google đã liên kết."""
     return OAuthIdentity(
-        ma_oauth_identity=99,
+        oauth_identity_id=99,
         provider=google_auth.GOOGLE_PROVIDER,
         provider_subject="google-subject",
-        ten_dang_nhap="student@example.edu",
-        ma_tai_khoan=ma_tai_khoan,
+        username="student@example.edu",
+        account_id=account_id,
     )
 
 
@@ -81,8 +82,8 @@ def test_existing_google_login_links_profile_account_and_returns_token(
 ) -> None:
     """Kiểm tra đăng nhập Google bằng email đã có hồ sơ thì trả token."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=11, trang_thai=True)
-    created_identity = make_identity(ma_tai_khoan=account.ma_tai_khoan)
+    account = make_account(account_id=11, status=True)
+    created_identity = make_identity(account_id=account.account_id)
     updated_identities = []
 
     # Giả lập email Google đã được khai báo trong hồ sơ sinh viên/cán bộ.
@@ -95,7 +96,7 @@ def test_existing_google_login_links_profile_account_and_returns_token(
     monkeypatch.setattr(
         google_auth.crud,
         "create_oauth_identity",
-        lambda *, session, provider, provider_subject, email, ma_tai_khoan: created_identity,
+        lambda *, session, provider, provider_subject, email, account_id: created_identity,
     )
     monkeypatch.setattr(
         google_auth.crud,
@@ -107,12 +108,12 @@ def test_existing_google_login_links_profile_account_and_returns_token(
     result = google_auth.handle_existing_account_login(
         session=session,
         provider_subject="google-subject",
-        ten_dang_nhap="student@example.edu",
+        email="student@example.edu",
     )
 
     assert result.access_token == "jwt-token"
     assert result.token_type == "bearer"
-    assert account.lan_dang_nhap_cuoi is not None
+    assert account.last_login_at is not None
     assert session.commits == 1
     assert updated_identities == [created_identity]
 
@@ -131,7 +132,7 @@ def test_existing_google_login_rejects_unregistered_email(monkeypatch) -> None:
         google_auth.handle_existing_account_login(
             session=session,
             provider_subject="google-subject",
-            ten_dang_nhap="unknown@example.edu",
+            email="unknown@example.edu",
         )
 
     assert exc_info.value.status_code == 404
@@ -143,7 +144,7 @@ def test_existing_google_login_with_remember_me_returns_refresh_token(
 ) -> None:
     """Kiểm tra đăng nhập Google remember_me=True trả thêm refresh token."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=14, trang_thai=True)
+    account = make_account(account_id=14, status=True)
 
     monkeypatch.setattr(
         google_auth.crud,
@@ -153,8 +154,8 @@ def test_existing_google_login_with_remember_me_returns_refresh_token(
     monkeypatch.setattr(
         google_auth.crud,
         "create_oauth_identity",
-        lambda *, session, provider, provider_subject, email, ma_tai_khoan: make_identity(
-            ma_tai_khoan=ma_tai_khoan
+        lambda *, session, provider, provider_subject, email, account_id: make_identity(
+            account_id=account_id
         ),
     )
     monkeypatch.setattr(
@@ -166,8 +167,8 @@ def test_existing_google_login_with_remember_me_returns_refresh_token(
         google_auth.crud,
         "create_refresh_token",
         lambda **kwargs: RefreshToken(
-            ma_refresh_token=1,
-            ma_tai_khoan=kwargs["ma_tai_khoan"],
+            refresh_token_id=1,
+            account_id=kwargs["account_id"],
             token_hash=kwargs["token_hash"],
             expires_at=kwargs["expires_at"],
         ),
@@ -177,7 +178,7 @@ def test_existing_google_login_with_remember_me_returns_refresh_token(
     result = google_auth.handle_existing_account_login(
         session=session,
         provider_subject="google-subject",
-        ten_dang_nhap="student@example.edu",
+        email="student@example.edu",
         remember_me=True,
     )
 
@@ -188,7 +189,7 @@ def test_existing_google_login_with_remember_me_returns_refresh_token(
 def test_existing_google_login_rejects_inactive_account(monkeypatch) -> None:
     """Kiểm tra tài khoản inactive hoặc chờ duyệt không được nhận token."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=12, trang_thai=False)
+    account = make_account(account_id=12, status=False)
 
     monkeypatch.setattr(
         google_auth.crud,
@@ -198,16 +199,16 @@ def test_existing_google_login_rejects_inactive_account(monkeypatch) -> None:
     monkeypatch.setattr(
         google_auth.crud,
         "create_oauth_identity",
-        lambda *, session, provider, provider_subject, email, ma_tai_khoan: make_identity(
-            ma_tai_khoan=ma_tai_khoan
+        lambda *, session, provider, provider_subject, email, account_id: make_identity(
+            account_id=account_id
         ),
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AccountInactiveError) as exc_info:
         google_auth.handle_existing_account_login(
             session=session,
             provider_subject="google-subject",
-            ten_dang_nhap="student@example.edu",
+            email="student@example.edu",
         )
 
     assert exc_info.value.status_code == 400
@@ -219,8 +220,8 @@ async def test_google_callback_logs_in_with_existing_oauth_identity(
     monkeypatch,
 ) -> None:
     """Kiểm tra callback đăng nhập lại khi Google account đã được liên kết."""
-    account = make_account(ma_tai_khoan=13, trang_thai=True)
-    identity = make_identity(ma_tai_khoan=account.ma_tai_khoan)
+    account = make_account(account_id=13, status=True)
+    identity = make_identity(account_id=account.account_id)
     session = FakeSession(account=account)
     request = FakeRequest(mode="existing")
     updated_identities = []
@@ -233,7 +234,7 @@ async def test_google_callback_logs_in_with_existing_oauth_identity(
         """Giả lập Google trả về user info đã xác thực."""
         return {
             "sub": "google-subject",
-            "ten_dang_nhap": "student@example.edu",
+            "email": "student@example.edu",
             "email_verified": True,
         }
 
@@ -257,9 +258,10 @@ async def test_google_callback_logs_in_with_existing_oauth_identity(
 
     result = await google_auth.google_callback(request=request, session=session)
 
-    assert result.access_token == "callback-jwt-token"
-    assert result.token_type == "bearer"
-    assert account.lan_dang_nhap_cuoi is not None
+    from fastapi.responses import RedirectResponse
+    assert isinstance(result, RedirectResponse)
+    assert "token=" in result.headers["location"]
+    assert account.last_login_at is not None
     assert session.commits == 1
     assert updated_identities == [identity]
     assert "google_auth_mode" not in request.session
@@ -268,7 +270,7 @@ async def test_google_callback_logs_in_with_existing_oauth_identity(
 @pytest.mark.asyncio
 async def test_google_callback_rejects_missing_linked_account(monkeypatch) -> None:
     """Kiểm tra callback báo lỗi khi OAuth identity trỏ tới tài khoản không tồn tại."""
-    identity = make_identity(ma_tai_khoan=404)
+    identity = make_identity(account_id=404)
     session = FakeSession(account=None)
     request = FakeRequest(mode="existing")
 
@@ -280,7 +282,7 @@ async def test_google_callback_rejects_missing_linked_account(monkeypatch) -> No
         """Giả lập Google user info hợp lệ."""
         return {
             "sub": "google-subject",
-            "ten_dang_nhap": "student@example.edu",
+            "email": "student@example.edu",
             "email_verified": True,
         }
 
@@ -296,8 +298,10 @@ async def test_google_callback_rejects_missing_linked_account(monkeypatch) -> No
         lambda *, session, provider, provider_subject: identity,
     )
 
-    with pytest.raises(HTTPException) as exc_info:
-        await google_auth.google_callback(request=request, session=session)
+    from fastapi.responses import RedirectResponse
+    result = await google_auth.google_callback(request=request, session=session)
+    assert isinstance(result, RedirectResponse)
+    assert "error=Account not found" in result.headers["location"]
 
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "Account not found"
+
+

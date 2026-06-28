@@ -26,19 +26,19 @@ import { AdminService, HocPhanOption } from "@/services/admin.service";
 import { BookOpen, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 type SubjectForm = {
-  ma_hoc_phan: string;
-  ten_hoc_phan: string;
-  so_tin_chi: string;
-  mo_ta: string;
-  trang_thai: string;
+  course_id: string;
+  course_name: string;
+  credit_count: string;
+  description: string;
+  status: string;
 };
 
 const emptyForm: SubjectForm = {
-  ma_hoc_phan: "",
-  ten_hoc_phan: "",
-  so_tin_chi: "3",
-  mo_ta: "",
-  trang_thai: "true",
+  course_id: "",
+  course_name: "",
+  credit_count: "3",
+  description: "",
+  status: "true",
 };
 
 export default function AdminSubjectsPage() {
@@ -82,9 +82,9 @@ export default function AdminSubjectsPage() {
 
     return subjects.filter((subject) => {
       return (
-        subject.ma_hoc_phan.toString().includes(keyword) ||
-        subject.ten_hoc_phan.toLowerCase().includes(keyword) ||
-        (subject.mo_ta || "").toLowerCase().includes(keyword)
+        subject.course_id.toString().includes(keyword) ||
+        subject.course_name.toLowerCase().includes(keyword) ||
+        (subject.description || "").toLowerCase().includes(keyword)
       );
     });
   }, [query, subjects]);
@@ -98,38 +98,38 @@ export default function AdminSubjectsPage() {
   const openEditDialog = (subject: HocPhanOption) => {
     setEditingSubject(subject);
     setForm({
-      ma_hoc_phan: subject.ma_hoc_phan.toString(),
-      ten_hoc_phan: subject.ten_hoc_phan,
-      so_tin_chi: (subject.so_tin_chi ?? 3).toString(),
-      mo_ta: subject.mo_ta || "",
-      trang_thai: subject.trang_thai === false ? "false" : "true",
+      course_id: subject.course_id.toString(),
+      course_name: subject.course_name,
+      credit_count: (subject.credit_count ?? 3).toString(),
+      description: subject.description || "",
+      status: subject.status === false ? "false" : "true",
     });
     setDialogOpen(true);
   };
 
   const submitForm = async () => {
-    const subjectId = Number(form.ma_hoc_phan);
-    const credits = Number(form.so_tin_chi);
-    if (!subjectId || !form.ten_hoc_phan.trim() || !credits) {
-      setError("Vui long nhap day du ma hoc phan, ten hoc phan va so tin chi.");
+    const subjectId = Number(form.course_id);
+    const credits = Number(form.credit_count);
+    if (!subjectId || !form.course_name.trim() || !credits) {
+      setError("Vui long nhap day du ma hoc phan, first_name hoc phan va so tin chi.");
       return;
     }
 
     setSubmitting(true);
     setError(null);
     const payload = {
-      ten_hoc_phan: form.ten_hoc_phan.trim(),
-      so_tin_chi: credits,
-      mo_ta: form.mo_ta.trim() || null,
-      trang_thai: form.trang_thai === "true",
+      course_name: form.course_name.trim(),
+      credit_count: credits,
+      description: form.description.trim() || null,
+      status: form.status === "true",
     };
 
     try {
       if (editingSubject) {
-        await AdminService.updateSubject(editingSubject.ma_hoc_phan, payload);
+        await AdminService.updateSubject(editingSubject.course_id, payload);
       } else {
         await AdminService.createSubject({
-          ma_hoc_phan: subjectId,
+          course_id: subjectId,
           ...payload,
         });
       }
@@ -154,7 +154,7 @@ export default function AdminSubjectsPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await AdminService.deleteSubject(deletingSubject.ma_hoc_phan);
+      await AdminService.deleteSubject(deletingSubject.course_id);
       setDeleteOpen(false);
       setDeletingSubject(null);
       await loadData();
@@ -198,7 +198,7 @@ export default function AdminSubjectsPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
               <Input
                 className="pl-9"
-                placeholder="Tim theo ma, ten, mo ta"
+                placeholder="Tim theo ma, first_name, mo ta"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -231,24 +231,24 @@ export default function AdminSubjectsPage() {
                     </tr>
                   ) : (
                     filteredSubjects.map((subject) => (
-                      <tr key={subject.ma_hoc_phan} className="bg-white">
-                        <td className="px-4 py-3 font-medium text-[#0F172A]">{subject.ma_hoc_phan}</td>
+                      <tr key={subject.course_id} className="bg-white">
+                        <td className="px-4 py-3 font-medium text-[#0F172A]">{subject.course_id}</td>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-[#0F172A]">{subject.ten_hoc_phan}</div>
-                          {subject.mo_ta && (
-                            <div className="mt-1 line-clamp-1 text-xs text-[#64748B]">{subject.mo_ta}</div>
+                          <div className="font-medium text-[#0F172A]">{subject.course_name}</div>
+                          {subject.description && (
+                            <div className="mt-1 line-clamp-1 text-xs text-[#64748B]">{subject.description}</div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-[#334155]">{subject.so_tin_chi ?? "-"}</td>
+                        <td className="px-4 py-3 text-[#334155]">{subject.credit_count ?? "-"}</td>
                         <td className="px-4 py-3">
                           <span
                             className={
-                              subject.trang_thai === false
+                              subject.status === false
                                 ? "inline-flex rounded-full bg-[#F1F5F9] px-2.5 py-1 text-xs font-medium text-[#475569]"
                                 : "inline-flex rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-medium text-[#166534]"
                             }
                           >
-                            {subject.trang_thai === false ? "Tam dung" : "Hoat dong"}
+                            {subject.status === false ? "Tam dung" : "Hoat dong"}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -285,16 +285,16 @@ export default function AdminSubjectsPage() {
                 type="number"
                 min="1"
                 disabled={Boolean(editingSubject)}
-                value={form.ma_hoc_phan}
-                onChange={(event) => setForm((prev) => ({ ...prev, ma_hoc_phan: event.target.value }))}
+                value={form.course_id}
+                onChange={(event) => setForm((prev) => ({ ...prev, course_id: event.target.value }))}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="subject-name">Ten hoc phan</Label>
               <Input
                 id="subject-name"
-                value={form.ten_hoc_phan}
-                onChange={(event) => setForm((prev) => ({ ...prev, ten_hoc_phan: event.target.value }))}
+                value={form.course_name}
+                onChange={(event) => setForm((prev) => ({ ...prev, course_name: event.target.value }))}
               />
             </div>
             <div className="grid gap-2">
@@ -303,15 +303,15 @@ export default function AdminSubjectsPage() {
                 id="subject-credit"
                 type="number"
                 min="1"
-                value={form.so_tin_chi}
-                onChange={(event) => setForm((prev) => ({ ...prev, so_tin_chi: event.target.value }))}
+                value={form.credit_count}
+                onChange={(event) => setForm((prev) => ({ ...prev, credit_count: event.target.value }))}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="subject-status">Trang thai</Label>
               <Select
-                value={form.trang_thai}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, trang_thai: value }))}
+                value={form.status}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}
               >
                 <SelectTrigger id="subject-status">
                   <SelectValue />
@@ -326,8 +326,8 @@ export default function AdminSubjectsPage() {
               <Label htmlFor="subject-description">Mo ta</Label>
               <Textarea
                 id="subject-description"
-                value={form.mo_ta}
-                onChange={(event) => setForm((prev) => ({ ...prev, mo_ta: event.target.value }))}
+                value={form.description}
+                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
               />
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function AdminSubjectsPage() {
           <DialogHeader>
             <DialogTitle>Xoa hoc phan</DialogTitle>
             <DialogDescription>
-              Ban co chac muon xoa hoc phan {deletingSubject?.ten_hoc_phan}? Thao tac nay khong the hoan tac.
+              Ban co chac muon xoa hoc phan {deletingSubject?.course_name}? Thao tac nay khong the hoan tac.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

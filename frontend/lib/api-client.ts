@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -7,7 +7,7 @@ interface RequestOptions extends RequestInit {
 export const apiClient = {
   async fetch<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { requiresAuth = true, headers, ...customConfig } = options;
-    
+
     const config: RequestInit = {
       ...customConfig,
       headers: {
@@ -32,7 +32,7 @@ export const apiClient = {
     } else if (finalHeaders["Content-Type"] === "multipart/form-data") {
         delete finalHeaders["Content-Type"]; // let browser set it with boundary
     }
-    
+
     config.headers = finalHeaders;
 
     if (requiresAuth) {
@@ -45,7 +45,15 @@ export const apiClient = {
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    } catch (e: any) {
+      if (e.message === "Failed to fetch" || e.name === "TypeError") {
+        throw new Error("Không thể kết nối tới máy chủ Backend (http://localhost:8000). Vui lòng kiểm tra máy chủ Backend (fastapi dev) đã được khởi động chưa!");
+      }
+      throw e;
+    }
 
     if (!response.ok) {
       // Handle unauthorized (e.g., token expired)
@@ -58,9 +66,32 @@ export const apiClient = {
           window.location.replace("/");
         }
       }
-      
+
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      let message = "";
+      if (typeof errorData.detail === "string") {
+        message = errorData.detail;
+      } else if (Array.isArray(errorData.detail)) {
+        message = errorData.detail.map((err: any) => err.msg || JSON.stringify(err)).join("; ");
+      } else if (errorData.message && typeof errorData.message === "string") {
+        message = errorData.message;
+      }
+
+      if (!message) {
+        if (response.status === 400) {
+          message = "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại dữ liệu nhập vào.";
+        } else if (response.status === 403) {
+          message = "Bạn không có quyền thực hiện thao tác này.";
+        } else if (response.status === 404) {
+          message = "Không tìm thấy dữ liệu yêu cầu.";
+        } else if (response.status === 500) {
+          message = "Máy chủ xảy ra lỗi nội bộ (500). Vui lòng liên hệ quản trị viên.";
+        } else {
+          message = `Đã xảy ra lỗi từ hệ thống (Mã lỗi: ${response.status})`;
+        }
+      }
+
+      throw new Error(message);
     }
 
     return response.json();
@@ -73,7 +104,7 @@ export const apiClient = {
   post<T>(endpoint: string, body: any, options?: RequestOptions) {
     // If body is FormData, don't set Content-Type header so browser sets it with boundary
     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
-    
+
     const headers: Record<string, string> = { ...((options?.headers as Record<string, string>) || {}) };
     if (isFormData) {
        headers["Content-Type"] = "multipart/form-data";

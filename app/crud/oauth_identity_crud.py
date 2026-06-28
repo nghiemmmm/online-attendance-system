@@ -21,13 +21,13 @@ def create_oauth_identity(
     provider: str,
     provider_subject: str,
     email: str,
-    ma_tai_khoan: int,
+    account_id: int,
 ) -> OAuthIdentity:
     identity = OAuthIdentity(
         provider=provider,
         provider_subject=provider_subject,
         email=email,
-        ma_tai_khoan=ma_tai_khoan,
+        account_id=account_id,
     )
     session.add(identity)
     session.commit()

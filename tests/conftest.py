@@ -1,25 +1,53 @@
+import os
+os.environ["DATABASE_URL"] = "sqlite:///test.db"
+
 from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, delete
+from sqlmodel import Session, SQLModel
 
 from app.core.config import settings
 from app.core.db import engine, init_db
+import app.models  # Ensure all models are loaded and registered
+from app.models import Account
 from app.main import app
-from app.models import TaiKhoan
+from app.api.deps import login_rate_limiter
+app.dependency_overrides[login_rate_limiter] = lambda: None
+
+
+@pytest.fixture(autouse=True)
+def bypass_rate_limiter():
+    app.dependency_overrides[login_rate_limiter] = lambda: None
+
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
 
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
+    # Enable foreign keys for SQLite
+    from sqlalchemy import event
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    # Set up SQLite test database tables
+    SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         init_db(session)
         yield session
-        statement = delete(TaiKhoan)
-        session.execute(statement)
-        session.commit()
+        # Clean up database after the session
+        SQLModel.metadata.drop_all(engine)
+    
+    # Remove test database file
+    if os.path.exists("test.db"):
+        try:
+            os.remove("test.db")
+        except OSError:
+            pass
 
 
 @pytest.fixture(scope="module")
@@ -36,5 +64,5 @@ def superuser_token_headers(client: TestClient) -> dict[str, str]:
 @pytest.fixture(scope="module")
 def normal_user_token_headers(client: TestClient, db: Session) -> dict[str, str]:
     return authentication_token_from_email(
-        client=client, ten_dang_nhap=settings.EMAIL_TEST_USER, db=db
+        client=client, email=settings.EMAIL_TEST_USER, db=db
     )

@@ -73,3 +73,4 @@ Mật khẩu của cả 3 tài khoản (Admin, Giảng viên, Sinh viên) đều
 Quản trị viên: admin@university.edu.vn/thanh (Mật khẩu: password)
 Giảng viên: gv001@university.edu.vn/nam (Mật khẩu: password)
 Sinh viên: sv001@student.edu.vn (Mật khẩu: password)
+MSSV 21080001 với Email nguyenducnghiemthptllqt@gmail.com. Bạn có thể tiến hành test đăng ký và kiểm tra hòm thư ngay bây giờ!

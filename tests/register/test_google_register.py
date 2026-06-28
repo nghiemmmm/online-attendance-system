@@ -2,7 +2,8 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import google_auth_router as google_auth
-from app.models import GoogleAuthPending, OAuthIdentity, TaiKhoan
+from app.core.exceptions import AccountInactiveError
+from app.models import GoogleAuthPending, OAuthIdentity, Account
 
 
 class FakeSession:
@@ -26,25 +27,25 @@ class FakeSession:
         self.refreshed.append(obj)
 
 
-def make_account(*, ma_tai_khoan: int = 1, trang_thai: bool = True) -> TaiKhoan:
+def make_account(*, account_id: int = 1, status: bool = True) -> Account:
     """Tạo tài khoản giả để dùng trong các nhánh đăng ký Google."""
-    return TaiKhoan(
-        ma_tai_khoan=ma_tai_khoan,
-        ten_dang_nhap=f"google_user_{ma_tai_khoan}",
-        mat_khau_hash="hashed-password",
-        vai_tro="SINH_VIEN",
-        trang_thai=trang_thai,
+    return Account(
+        account_id=account_id,
+        username=f"google_user_{account_id}",
+        password_hash="hashed-password",
+        role="SINH_VIEN",
+        status=status,
     )
 
 
-def make_identity(*, ma_tai_khoan: int = 1) -> OAuthIdentity:
+def make_identity(*, account_id: int = 1) -> OAuthIdentity:
     """Tạo bản ghi OAuth giả liên kết Google với tài khoản nội bộ."""
     return OAuthIdentity(
-        ma_oauth_identity=10,
+        oauth_identity_id=10,
         provider=google_auth.GOOGLE_PROVIDER,
         provider_subject="google-subject",
-        ten_dang_nhap="student@example.edu",
-        ma_tai_khoan=ma_tai_khoan,
+        username="student@example.edu",
+        account_id=account_id,
     )
 
 
@@ -53,7 +54,7 @@ def test_validate_google_user_info_accepts_verified_email() -> None:
     provider_subject, email = google_auth.validate_google_user_info(
         {
             "sub": "google-subject",
-            "ten_dang_nhap": "student@example.edu",
+            "username": "student@example.edu",
             "email_verified": True,
         }
     )
@@ -68,7 +69,7 @@ def test_validate_google_user_info_rejects_unverified_email() -> None:
         google_auth.validate_google_user_info(
             {
                 "sub": "google-subject",
-                "ten_dang_nhap": "student@example.edu",
+                "username": "student@example.edu",
                 "email_verified": False,
             }
         )
@@ -115,19 +116,19 @@ def test_auto_register_creates_pending_account_and_google_identity(monkeypatch) 
     def fake_create_account(*, session, account_create):
         """Ghi lại dữ liệu tạo tài khoản để assert sau khi gọi use case."""
         created["account_create"] = account_create
-        return make_account(ma_tai_khoan=42, trang_thai=account_create.trang_thai)
+        return make_account(account_id=42, status=account_create.status)
 
     def fake_create_oauth_identity(
-        *, session, provider, provider_subject, email, ma_tai_khoan
+        *, session, provider, provider_subject, email, account_id
     ):
         """Ghi lại dữ liệu liên kết OAuth để kiểm tra provider và email."""
         created["identity"] = {
             "provider": provider,
             "provider_subject": provider_subject,
-            "ten_dang_nhap": email,
-            "ma_tai_khoan": ma_tai_khoan,
+            "username": email,
+            "account_id": account_id,
         }
-        return make_identity(ma_tai_khoan=ma_tai_khoan)
+        return make_identity(account_id=account_id)
 
     monkeypatch.setattr(google_auth.crud, "create_account", fake_create_account)
     monkeypatch.setattr(
@@ -139,20 +140,20 @@ def test_auto_register_creates_pending_account_and_google_identity(monkeypatch) 
     result = google_auth.handle_auto_register_login(
         session=session,
         provider_subject="google-subject",
-        ten_dang_nhap="new-student@example.edu",
+        email="new-student@example.edu",
     )
 
     assert isinstance(result, GoogleAuthPending)
     assert result.status == "pending_approval"
-    assert result.ma_tai_khoan == 42
-    assert created["account_create"].vai_tro == "SINH_VIEN"
-    assert created["account_create"].trang_thai is False
-    assert created["account_create"].ten_dang_nhap.startswith("google_")
+    assert result.account_id == 42
+    assert created["account_create"].role == "SINH_VIEN"
+    assert created["account_create"].status is False
+    assert created["account_create"].username.startswith("google_")
     assert created["identity"] == {
         "provider": "google",
         "provider_subject": "google-subject",
-        "ten_dang_nhap": "new-student@example.edu",
-        "ma_tai_khoan": 42,
+        "username": "new-student@example.edu",
+        "account_id": 42,
     }
 
 
@@ -161,7 +162,7 @@ def test_auto_register_links_existing_profile_account_and_returns_token(
 ) -> None:
     """Kiểm tra Google email đã có hồ sơ thì liên kết OAuth và trả token."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=7, trang_thai=True)
+    account = make_account(account_id=7, status=True)
     updated_identities = []
 
     monkeypatch.setattr(
@@ -183,8 +184,8 @@ def test_auto_register_links_existing_profile_account_and_returns_token(
     monkeypatch.setattr(
         google_auth.crud,
         "create_oauth_identity",
-        lambda *, session, provider, provider_subject, email, ma_tai_khoan: make_identity(
-            ma_tai_khoan=ma_tai_khoan
+        lambda *, session, provider, provider_subject, email, account_id: make_identity(
+            account_id=account_id
         ),
     )
     # Ghi nhận việc cập nhật thời điểm đăng nhập cuối của OAuth identity.
@@ -202,12 +203,12 @@ def test_auto_register_links_existing_profile_account_and_returns_token(
     result = google_auth.handle_auto_register_login(
         session=session,
         provider_subject="google-subject",
-        ten_dang_nhap="student@example.edu",
+        email="student@example.edu",
     )
 
     assert result.access_token == "jwt-token"
     assert result.token_type == "bearer"
-    assert account.lan_dang_nhap_cuoi is not None
+    assert account.last_login_at is not None
     assert session.commits == 1
     assert len(updated_identities) == 1
 
@@ -215,7 +216,7 @@ def test_auto_register_links_existing_profile_account_and_returns_token(
 def test_auto_register_blocks_existing_inactive_profile_account(monkeypatch) -> None:
     """Kiểm tra tài khoản đã có nhưng đang inactive thì không được đăng nhập."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=8, trang_thai=False)
+    account = make_account(account_id=8, status=False)
 
     monkeypatch.setattr(
         google_auth.settings,
@@ -230,16 +231,16 @@ def test_auto_register_blocks_existing_inactive_profile_account(monkeypatch) -> 
     monkeypatch.setattr(
         google_auth.crud,
         "create_oauth_identity",
-        lambda *, session, provider, provider_subject, email, ma_tai_khoan: make_identity(
-            ma_tai_khoan=ma_tai_khoan
+        lambda *, session, provider, provider_subject, email, account_id: make_identity(
+            account_id=account_id
         ),
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AccountInactiveError) as exc_info:
         google_auth.handle_auto_register_login(
             session=session,
             provider_subject="google-subject",
-            ten_dang_nhap="student@example.edu",
+            email="student@example.edu",
         )
 
     assert exc_info.value.status_code == 400

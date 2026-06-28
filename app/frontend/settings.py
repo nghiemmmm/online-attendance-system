@@ -55,14 +55,14 @@ col1, col2 = st.columns(2)
 
 with col1:
     backup_frequency = st.selectbox("Tần suất sao lưu", ["Hàng ngày", "Hàng tuần", "Hàng tháng"])
-    
+
     if st.button("🔄 Sao lưu ngay"):
         st.success("✓ Sao lưu dữ liệu thành công!")
 
 with col2:
     st.write("**Lần sao lưu cuối cùng:** 2024-03-08 10:30")
     st.write("**Kích thước:** 524 MB")
-    
+
     if st.button("📥 Tải xuống sao lưu"):
         st.info("Đang chuẩn bị tệp sao lưu...")
 
@@ -94,7 +94,7 @@ if st.button("🔑 Đổi mật khẩu"):
         old_password = st.password_input("Mật khẩu cũ")
         new_password = st.password_input("Mật khẩu mới")
         confirm_password = st.password_input("Xác nhận mật khẩu")
-        
+
         if st.form_submit_button("✓ Đổi mật khẩu"):
             if new_password == confirm_password:
                 st.success("✓ Đổi mật khẩu thành công!")
@@ -103,7 +103,7 @@ if st.button("🔑 Đổi mật khẩu"):
 
 if st.button("🗑️ Xóa tài khoản", key="delete_account"):
     st.error("❌ Xóa tài khoản sẽ xóa tất cả dữ liệu của bạn. Không thể hoàn tác!")
-    
+
     if st.button("✓ Xác nhận xóa"):
         st.error("✓ Tài khoản đã bị xóa")
 

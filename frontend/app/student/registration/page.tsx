@@ -87,10 +87,10 @@ export default function StudentRegistrationPage() {
   }
 
   const filteredClasses = classes.filter(cls => {
-    const subjectName = cls.ten_hoc_phan || ""
-    const teacherName = cls.ten_giang_vien || ""
-    const term = cls.nam_hoc || ""
-    
+    const subjectName = cls.course_name || ""
+    const teacherName = cls.lecturer_name || ""
+    const term = cls.academic_year || ""
+
     return (
       subjectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -184,23 +184,27 @@ export default function StudentRegistrationPage() {
                     <TableHead>Số Tín Chỉ</TableHead>
                     <TableHead>Giảng Viên</TableHead>
                     <TableHead>Học Kỳ / Năm</TableHead>
+                    <TableHead>Thời Gian Học</TableHead>
                     <TableHead>Yêu Cầu</TableHead>
                     <TableHead className="text-center w-[160px]">Hành Động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredClasses.map((cls, index) => {
-                    const isProcessing = processingId === cls.ma_lop_hoc_phan
+                    const isProcessing = processingId === cls.class_section_id
                     return (
-                      <TableRow key={cls.ma_lop_hoc_phan} className={index % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}>
-                        <TableCell className="font-medium text-[#0A2540]">LHP {cls.ma_lop_hoc_phan}</TableCell>
-                        <TableCell className="font-semibold text-[#0F172A]">{cls.ten_hoc_phan}</TableCell>
-                        <TableCell>{cls.so_tin_chi || 3} TC</TableCell>
-                        <TableCell>{cls.ten_giang_vien}</TableCell>
-                        <TableCell>Kỳ {cls.hoc_ky} — {cls.nam_hoc}</TableCell>
+                      <TableRow key={cls.class_section_id} className={index % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}>
+                        <TableCell className="font-medium text-[#0A2540]">LHP {cls.class_section_id}</TableCell>
+                        <TableCell className="font-semibold text-[#0F172A]">{cls.course_name}</TableCell>
+                        <TableCell>{cls.credit_count || 3} TC</TableCell>
+                        <TableCell>{cls.lecturer_name}</TableCell>
+                        <TableCell>Kỳ {cls.semester} — {cls.academic_year}</TableCell>
+                        <TableCell className="text-xs text-[#0EA5E9] font-medium">
+                          {cls.start_date || "02/02/2026"} ➔ {cls.end_date || "31/05/2026"}
+                        </TableCell>
                         <TableCell>
                           <span className="text-xs font-medium text-[#475569]">
-                            {cls.ty_le_chuyen_can_toi_thieu * 100}% Chuyên cần
+                            {cls.minimum_attendance_rate * 100}% Chuyên cần
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
@@ -214,7 +218,7 @@ export default function StudentRegistrationPage() {
                                 variant="outline"
                                 size="sm"
                                 disabled={isProcessing}
-                                onClick={() => handleCancel(cls.ma_lop_hoc_phan)}
+                                onClick={() => handleCancel(cls.class_section_id)}
                                 className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white h-7 text-xs"
                               >
                                 {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Hủy"}
@@ -224,7 +228,7 @@ export default function StudentRegistrationPage() {
                             <Button
                               size="sm"
                               disabled={isProcessing}
-                              onClick={() => handleRegister(cls.ma_lop_hoc_phan)}
+                              onClick={() => handleRegister(cls.class_section_id)}
                               className="bg-[#0EA5E9] hover:bg-[#0284C7] text-white w-24 h-8 text-xs font-medium"
                             >
                               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : "Đăng ký"}

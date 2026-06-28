@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  Hand, 
-  MessageSquare, 
+import {
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Hand,
+  MessageSquare,
   LogOut,
   Clock,
   BookOpen,
@@ -52,15 +52,15 @@ export default function StudentLiveClassroom() {
     if (idVal) {
       const idNum = parseInt(idVal)
       setMaBuoiHoc(idNum)
-      
-      apiClient.get<any>(`/buoi-hoc/${idNum}`)
+
+      apiClient.get<any>(`/class-sessions/${idNum}`)
         .then((buoiHoc) => {
-          setSessionNum(buoiHoc.so_buoi || 1)
-          const active = buoiHoc.trang_thai === "DANG_DIEN_RA"
+          setSessionNum(buoiHoc.session_number || 1)
+          const active = buoiHoc.status === "DANG_DIEN_RA"
           setIsSessionActive(active)
-          setSubjectName(buoiHoc.ten_hoc_phan || "Lớp học phần")
-          setLecturerName(buoiHoc.ten_giang_vien || "Giảng viên")
-          
+          setSubjectName(buoiHoc.course_name || "Lớp học phần")
+          setLecturerName(buoiHoc.lecturer_name || "Giảng viên")
+
           if (!active) {
             setApiError("Phiên điểm danh chưa được mở hoặc đã kết thúc")
             setVerificationStatus("failed")
@@ -77,7 +77,7 @@ export default function StudentLiveClassroom() {
   // Handle Camera Stream
   useEffect(() => {
     let stream: MediaStream | null = null;
-    
+
     const setupCamera = async () => {
       if (cameraEnabled) {
         try {
@@ -90,9 +90,9 @@ export default function StudentLiveClassroom() {
         }
       }
     }
-    
+
     setupCamera()
-    
+
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop())
@@ -118,7 +118,7 @@ export default function StudentLiveClassroom() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    
+
     return new Promise((resolve) => {
       canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9);
     });
@@ -138,7 +138,7 @@ export default function StudentLiveClassroom() {
     const verify = async () => {
       const blob = await captureFrame();
       if (!blob) return;
-      
+
       const result = await StudentService.verifyFace(blob, maBuoiHoc || undefined);
       if (result.verified) {
         setConfidence(result.confidence);
@@ -154,7 +154,7 @@ export default function StudentLiveClassroom() {
 
     // Initial check after 2 seconds
     const initialTimer = setTimeout(verify, 2000);
-    
+
     // Then check every 7 seconds
     const intervalId = setInterval(verify, 7000);
 
@@ -294,11 +294,11 @@ export default function StudentLiveClassroom() {
           <h3 className="text-sm font-medium text-[#94A3B8] mb-3">Camera của bạn</h3>
           <div className="relative aspect-square rounded-lg overflow-hidden bg-[#0D1117]">
             {cameraEnabled ? (
-              <video 
+              <video
                 ref={videoRef}
-                autoPlay 
-                playsInline 
-                muted 
+                autoPlay
+                playsInline
+                muted
                 className="w-full h-full object-cover bg-[#1A3A5C]"
               />
             ) : (
@@ -307,7 +307,7 @@ export default function StudentLiveClassroom() {
                 <p className="text-sm text-[#64748B] absolute bottom-4">Camera đã tắt</p>
               </div>
             )}
-            
+
             {/* Face tracking brackets */}
             {cameraEnabled && verificationStatus !== "failed" && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -317,7 +317,7 @@ export default function StudentLiveClassroom() {
                   verificationStatus === "pending" && "animate-pulse"
                 )}>
                   {/* Corner brackets */}
-                  <div className={cn("absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 rounded-tl", 
+                  <div className={cn("absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 rounded-tl",
                     verificationStatus === "verified" ? "border-[#22C55E]" : "border-[#0EA5E9]")} />
                   <div className={cn("absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 rounded-tr",
                     verificationStatus === "verified" ? "border-[#22C55E]" : "border-[#0EA5E9]")} />
@@ -363,7 +363,7 @@ export default function StudentLiveClassroom() {
               <div
                 className={cn(
                   "h-full transition-all duration-500",
-                  confidence >= 85 ? "bg-gradient-to-r from-[#0A2540] to-[#22C55E]" : 
+                  confidence >= 85 ? "bg-gradient-to-r from-[#0A2540] to-[#22C55E]" :
                   confidence >= 70 ? "bg-gradient-to-r from-[#0A2540] to-[#F59E0B]" :
                   "bg-gradient-to-r from-[#0A2540] to-[#EF4444]"
                 )}

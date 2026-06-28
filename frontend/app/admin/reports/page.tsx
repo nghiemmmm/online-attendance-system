@@ -5,12 +5,12 @@ import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import {
@@ -270,25 +270,25 @@ export default function AdminReportsPage() {
 
         {/* Charts */}
         <div className="flex border-b border-border space-x-6 mb-4">
-          <button 
+          <button
             className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "overview" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
             onClick={() => setActiveTab("overview")}
           >
             Tổng quan
           </button>
-          <button 
+          <button
             className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "departments" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
             onClick={() => setActiveTab("departments")}
           >
             Theo khoa
           </button>
-          <button 
+          <button
             className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "trends" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
             onClick={() => setActiveTab("trends")}
           >
             Hiệu suất & Xu hướng
           </button>
-          <button 
+          <button
             className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "alerts" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
             onClick={() => setActiveTab("alerts")}
           >
@@ -322,7 +322,7 @@ export default function AdminReportsPage() {
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                         <Tooltip 
+                         <Tooltip
                            formatter={(value: any) => [value?.toLocaleString() || "0", "Lượt"]}
                          />
                         <Legend />
@@ -345,7 +345,7 @@ export default function AdminReportsPage() {
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                         <XAxis dataKey="week" className="text-xs" />
                         <YAxis domain={[70, 100]} className="text-xs" />
-                         <Tooltip 
+                         <Tooltip
                            formatter={(value: any, name: any) => [
                              name === "rate" ? `${value}%` : value?.toLocaleString() || "0",
                              name === "rate" ? "Tỉ lệ" : "Sinh viên"
@@ -580,7 +580,7 @@ export default function AdminReportsPage() {
                     <thead>
                       <tr className="border-b border-border">
                         <th className="px-4 py-3 text-left font-medium text-muted-foreground">MSSV</th>
-                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ho ten</th>
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ho first_name</th>
                         <th className="px-4 py-3 text-left font-medium text-muted-foreground">Khoa</th>
                         <th className="px-4 py-3 text-right font-medium text-muted-foreground">So buoi vang</th>
                         <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ti le</th>

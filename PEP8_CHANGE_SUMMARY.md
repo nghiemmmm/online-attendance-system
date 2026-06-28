@@ -54,10 +54,10 @@ AnhKhuonMat.embedding_vector.is_not(None)
 - `app/api/routes/anhkhuonmat.py`
 - `app/services/face_service.py`
 - `app/services/models.py`
-- `app/crud/canhbaohoc_tap_crud.py`
-- `app/crud/diemdanh_summary_crud.py`
-- `app/crud/lichhoc_crud.py`
-- `app/crud/lichday_crud.py`
+- `app/crud/academic_warning_crud.py`
+- `app/crud/attendance_stats_crud.py`
+- `app/crud/student_schedule_crud.py`
+- `app/crud/teaching_schedule_crud.py`
 - `app/api/routes/sinhvien.py`
 
 ## Verification

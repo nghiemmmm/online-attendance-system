@@ -2,8 +2,11 @@
 
 from datetime import datetime, timezone
 
+from pydantic import field_serializer
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, SQLModel
+
+from app.models.base import AppBaseModel
 
 
 def get_datetime_utc() -> datetime:
@@ -14,23 +17,23 @@ def get_datetime_utc() -> datetime:
 class AuditLogBase(SQLModel):
     """Represent shared audit log fields."""
 
-    ma_tai_khoan: int | None = Field(default=None, foreign_key="taikhoan.ma_tai_khoan")
-    vai_tro: str | None = Field(default=None, max_length=20)
-    hanh_dong: str = Field(max_length=100)
-    doi_tuong: str | None = Field(default=None, max_length=100)
-    doi_tuong_id: str | None = Field(default=None, max_length=100)
-    du_lieu_truoc: dict | None = Field(
+    account_id: int | None = Field(default=None, foreign_key="accounts.account_id")
+    role: str | None = Field(default=None, max_length=20)
+    action: str = Field(max_length=100)
+    target_type: str | None = Field(default=None, max_length=100)
+    target_id: str | None = Field(default=None, max_length=100)
+    before_data: dict | None = Field(
         default=None,
         sa_column=Column(JSON, nullable=True),
     )
-    du_lieu_sau: dict | None = Field(
+    after_data: dict | None = Field(
         default=None,
         sa_column=Column(JSON, nullable=True),
     )
     ip: str | None = Field(default=None, max_length=45)
     user_agent: str | None = Field(default=None, max_length=255)
-    trang_thai: str = Field(default="SUCCESS", max_length=30)
-    chi_tiet: str | None = Field(default=None, max_length=500)
+    status: str = Field(default="SUCCESS", max_length=30)
+    detail: str | None = Field(default=None, max_length=500)
 
 
 class AuditLogCreate(AuditLogBase):
@@ -44,15 +47,19 @@ class AuditLog(AuditLogBase, table=True):
 
     __tablename__ = "auditlog"
 
-    ma_audit_log: int | None = Field(default=None, primary_key=True)
-    thoi_gian: datetime = Field(default_factory=get_datetime_utc, index=True)
+    audit_log_id: int | None = Field(default=None, primary_key=True)
+    timestamp: datetime = Field(default_factory=get_datetime_utc, index=True)
 
 
-class AuditLogPublic(AuditLogBase):
+class AuditLogPublic(AppBaseModel, AuditLogBase):
     """Represent audit log data returned by the API."""
 
-    ma_audit_log: int
-    thoi_gian: datetime
+    audit_log_id: int
+    timestamp: datetime
+
+    @field_serializer("timestamp")
+    def _serialize_datetime(self, value: datetime) -> str:
+        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class AuditLogsPublic(SQLModel):

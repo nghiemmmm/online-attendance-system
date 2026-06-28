@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
   AlertTriangle,
   ShieldCheck,
   Zap,
@@ -25,7 +25,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/a
 type UserRole = "student" | "lecturer" | "admin"
 
 interface LoginFormProps {
-  onSubmit?: (data: { email: string; password: string; role: UserRole; remember: boolean }) => void
+  onSubmit?: (data: { email: string; password: string; role: UserRole; remember: boolean }) => Promise<void> | void
   onRegisterClick?: () => void
   isLocked?: boolean
   lockTimeRemaining?: number
@@ -37,13 +37,29 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit?.({ email, password, role, remember })
+    setErrorMessage("")
+    if (!email) {
+      setErrorMessage("Vui lòng nhập Mã số sinh viên (MSSV) hoặc Tên đăng nhập")
+      return
+    }
+    if (!password) {
+      setErrorMessage("Vui lòng nhập mật khẩu")
+      return
+    }
+    setSubmitting(true)
+    try {
+      await onSubmit?.({ email, password, role, remember })
+    } catch (err: any) {
+      setErrorMessage(err.message || "Đăng nhập thất bại. Vui lòng thử lại.")
+    } finally {
+      setSubmitting(false)
+    }
   }
-
-
 
   return (
     <div className="w-full max-w-[420px]">
@@ -58,7 +74,13 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
         <p className="text-[#64748B]">Đăng nhập để tiếp tục</p>
       </div>
 
-
+      {/* Error Alert */}
+      {errorMessage && (
+        <div className="mb-6 p-3.5 bg-[#FEE2E2] border border-[#FCA5A5] rounded-lg flex items-start gap-2.5 text-sm text-[#991B1B] animate-in fade-in">
+          <AlertTriangle className="w-5 h-5 text-[#DC2626] shrink-0 mt-0.5" />
+          <span className="font-medium leading-tight">{errorMessage}</span>
+        </div>
+      )}
 
       {/* Lock Alert */}
       {isLocked && (
@@ -80,11 +102,11 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
           <Input
             type="text"
-            placeholder="Tên đăng nhập"
+            placeholder="Mã số sinh viên (MSSV) / Tên đăng nhập"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setErrorMessage(""); }}
             className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
-            disabled={isLocked}
+            disabled={isLocked || submitting}
             required
           />
         </div>
@@ -96,9 +118,9 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
             type={showPassword ? "text" : "password"}
             placeholder="Mật khẩu"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setErrorMessage(""); }}
             className="pl-10 pr-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
-            disabled={isLocked}
+            disabled={isLocked || submitting}
             required
           />
           <button
@@ -116,7 +138,7 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
             <Checkbox
               checked={remember}
               onCheckedChange={(checked) => setRemember(checked === true)}
-              disabled={isLocked}
+              disabled={isLocked || submitting}
             />
             <span className="text-sm text-[#64748B]">Ghi nhớ đăng nhập</span>
           </label>
@@ -129,9 +151,9 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
         <Button
           type="submit"
           className="w-full h-11 bg-[#0A2540] hover:bg-[#1A3A5C] text-white font-medium"
-          disabled={isLocked}
+          disabled={isLocked || submitting}
         >
-          Đăng nhập
+          {submitting ? "Đang xử lý..." : "Đăng nhập"}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </form>
@@ -139,12 +161,11 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
 
       {/* Register Link */}
-      <p className="text-center text-sm text-[#64748B]">
+      <p className="text-center text-sm text-[#64748B] mt-6">
         Chưa có tài khoản?{" "}
-        <button onClick={onRegisterClick} className="text-[#0EA5E9] hover:underline font-medium">
-          Liên hệ quản trị viên
-        </button>{" "}
-        để được cấp quyền.
+        <button type="button" onClick={onRegisterClick} className="text-[#0EA5E9] hover:underline font-medium">
+          Đăng ký ngay
+        </button>
       </p>
     </div>
   )
@@ -152,44 +173,105 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
 interface RegisterFormProps {
   onSubmit?: (data: {
-    ten_dang_nhap: string
+    mssv: number
     email: string
     password: string
-    ho: string
-    ten: string
-    dien_thoai: string
-    gioi_tinh: string
-  }) => void
+    otp_code: string
+  }) => Promise<void> | void
   onLoginClick?: () => void
 }
 
 export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
-  const [username, setUsername] = useState("")
+  const [mssv, setMssv] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [firstName, setFirstName] = useState("")
-  const [phone, setPhone] = useState("")
-  const [gender, setGender] = useState("Nam")
+  const [otpCode, setOtpCode] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpTimer, setOtpTimer] = useState(0)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (password !== confirmPassword) {
-      alert("Mật khẩu xác nhận không khớp")
-      return
+  const handleSendOtp = async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+    if (!mssv || Number(mssv) <= 0) {
+      setErrorMessage("Vui lòng nhập Mã số sinh viên hợp lệ trước khi gửi OTP");
+      return;
     }
-    onSubmit?.({
-      ten_dang_nhap: username,
-      email,
-      password,
-      ho: lastName,
-      ten: firstName,
-      dien_thoai: phone,
-      gioi_tinh: gender
-    })
-  }
+    if (!email || !email.includes("@")) {
+      setErrorMessage("Vui lòng nhập Email trường học hợp lệ trước khi gửi OTP");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      const { AuthService } = await import("@/services/auth.service");
+      const res: any = await AuthService.sendOtp(Number(mssv), email);
+      setSuccessMessage(res.message || "Mã OTP đã được gửi tới email của bạn");
+      if (res.dev_otp) {
+        setSuccessMessage(`Mã OTP đã gửi! [DEV TEST OTP: ${res.dev_otp}]`);
+      }
+      setOtpSent(true);
+      setOtpTimer(60);
+      const interval = setInterval(() => {
+        setOtpTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err: any) {
+      setErrorMessage("Gửi OTP thất bại: " + (err.message || "Không thể gửi mã OTP"));
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!mssv || Number(mssv) <= 0) {
+      setErrorMessage("Vui lòng nhập Mã số sinh viên hợp lệ");
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      setErrorMessage("Vui lòng nhập Email trường học hợp lệ");
+      return;
+    }
+    if (!otpCode || otpCode.length !== 6) {
+      setErrorMessage("Vui lòng nhập đủ 6 chữ số mã OTP xác thực");
+      return;
+    }
+    if (password.length < 5) {
+      setErrorMessage("Mật khẩu phải có độ dài ít nhất 5 ký tự");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMessage("Mật khẩu xác nhận không trùng khớp");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit?.({
+        mssv: Number(mssv),
+        email,
+        password,
+        otp_code: otpCode,
+      });
+    } catch (err: any) {
+      setErrorMessage("Đăng ký thất bại: " + (err.message || "Đã xảy ra lỗi"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-[420px]">
@@ -201,45 +283,43 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Đăng ký tài khoản</h1>
-        <p className="text-[#64748B]">Dành cho sinh viên</p>
+        <p className="text-[#64748B]">Dành cho sinh viên trong hệ thống</p>
       </div>
 
       {/* Notice */}
       <div className="mb-6 p-4 bg-[#DBEAFE] border border-[#93C5FD] rounded-lg">
         <p className="text-sm text-[#1E40AF]">
-          Sau khi đăng ký, quản trị viên sẽ xét duyệt hồ sơ khuôn mặt trước khi bạn có thể điểm danh.
+          Nhập MSSV và Email để nhận mã OTP xác thực trước khi kích hoạt tài khoản.
         </p>
       </div>
 
+      {/* Error & Success Alerts */}
+      {errorMessage && (
+        <div className="mb-4 p-3.5 bg-[#FEE2E2] border border-[#FCA5A5] rounded-lg flex items-start gap-2.5 text-sm text-[#991B1B] animate-in fade-in">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-[#DC2626] mt-0.5" />
+          <span className="font-medium leading-tight">{errorMessage}</span>
+        </div>
+      )}
+      {successMessage && (
+        <div className="mb-4 p-3.5 bg-[#DCFCE7] border border-[#86EFAC] rounded-lg flex items-start gap-2.5 text-sm text-[#166534] animate-in fade-in">
+          <ShieldCheck className="w-5 h-5 shrink-0 text-[#16A34A] mt-0.5" />
+          <span className="font-medium leading-tight">{successMessage}</span>
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex gap-4">
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
           <Input
-            type="text"
-            placeholder="Họ và tên đệm"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
-            required
-          />
-          <Input
-            type="text"
-            placeholder="Tên"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            type="number"
+            placeholder="Mã số sinh viên (MSSV)"
+            value={mssv}
+            onChange={(e) => { setMssv(e.target.value); setErrorMessage(""); }}
+            className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
             required
           />
         </div>
-
-        <Input
-          type="text"
-          placeholder="Tên đăng nhập"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
-          required
-        />
 
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
@@ -247,41 +327,40 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
             type="email"
             placeholder="Email trường học"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setErrorMessage(""); }}
             className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
             required
           />
         </div>
 
-        <Input
-          type="text"
-          placeholder="Số điện thoại"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
-          required
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-[#64748B] pl-1">Giới tính</label>
-          <select
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-            className="flex h-11 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[#0F172A]"
+        {/* OTP row */}
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            maxLength={6}
+            placeholder="Mã OTP 6 chữ số"
+            value={otpCode}
+            onChange={(e) => { setOtpCode(e.target.value); setErrorMessage(""); }}
+            className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9] tracking-widest text-center font-bold"
+            required
+          />
+          <Button
+            type="button"
+            onClick={handleSendOtp}
+            disabled={sendingOtp || otpTimer > 0}
+            className="h-11 bg-[#0EA5E9] hover:bg-[#0284C7] text-white font-medium shrink-0 px-4"
           >
-            <option value="Nam">Nam</option>
-            <option value="Nữ">Nữ</option>
-            <option value="Khác">Khác</option>
-          </select>
+            {sendingOtp ? "Đang gửi..." : otpTimer > 0 ? `${otpTimer}s` : otpSent ? "Gửi lại" : "Gửi OTP"}
+          </Button>
         </div>
 
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
           <Input
             type={showPassword ? "text" : "password"}
-            placeholder="Mật khẩu"
+            placeholder="Mật khẩu (tối thiểu 5 ký tự)"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setErrorMessage(""); }}
             className="pl-10 pr-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
             required
           />
@@ -298,16 +377,17 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
           type={showPassword ? "text" : "password"}
           placeholder="Xác nhận mật khẩu"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) => { setConfirmPassword(e.target.value); setErrorMessage(""); }}
           className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
           required
         />
 
         <Button
           type="submit"
+          disabled={submitting}
           className="w-full h-11 bg-[#0A2540] hover:bg-[#1A3A5C] text-white font-medium"
         >
-          Đăng ký tài khoản
+          {submitting ? "Đang xử lý..." : "Xác thực OTP & Đăng ký"}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </form>
@@ -384,7 +464,7 @@ export function AuthHero() {
             className="animate-face-scan"
             strokeDasharray="10 5"
           />
-          
+
           {/* Mesh lines */}
           {[...Array(8)].map((_, i) => (
             <line
@@ -410,7 +490,7 @@ export function AuthHero() {
               opacity="0.4"
             />
           ))}
-          
+
           {/* Key points */}
           {[
             [100, 70], [65, 75], [135, 75], // eyes
@@ -427,7 +507,7 @@ export function AuthHero() {
               style={{ animationDelay: `${i * 0.2}s` }}
             />
           ))}
-          
+
           {/* Scanning rings */}
           <circle
             cx="100"

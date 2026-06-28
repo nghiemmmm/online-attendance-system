@@ -18,12 +18,12 @@ depends_on = None
 
 
 def upgrade():
-    op.alter_column("sinhvien", "email", new_column_name="google_email")
-    op.alter_column("canbo", "email", new_column_name="google_email")
+    op.alter_column("students", "email", new_column_name="google_email")
+    op.alter_column("staff", "email", new_column_name="google_email")
 
     op.create_table(
         "oauth_identity",
-        sa.Column("ma_oauth_identity", sa.Integer(), nullable=False),
+        sa.Column("oauth_identity_id", sa.Integer(), nullable=False),
         sa.Column(
             "provider",
             sqlmodel.sql.sqltypes.AutoString(length=30),
@@ -39,11 +39,11 @@ def upgrade():
             sqlmodel.sql.sqltypes.AutoString(length=255),
             nullable=False,
         ),
-        sa.Column("ma_tai_khoan", sa.Integer(), nullable=False),
+        sa.Column("account_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(["ma_tai_khoan"], ["taikhoan.ma_tai_khoan"]),
-        sa.PrimaryKeyConstraint("ma_oauth_identity"),
+        sa.ForeignKeyConstraint(["account_id"], ["accounts.account_id"]),
+        sa.PrimaryKeyConstraint("oauth_identity_id"),
         sa.UniqueConstraint(
             "provider",
             "provider_subject",
@@ -57,9 +57,9 @@ def upgrade():
         unique=False,
     )
     op.create_index(
-        op.f("ix_oauth_identity_ma_tai_khoan"),
+        op.f("ix_oauth_identity_account_id"),
         "oauth_identity",
-        ["ma_tai_khoan"],
+        ["account_id"],
         unique=False,
     )
     op.create_index(
@@ -83,11 +83,11 @@ def downgrade():
     )
     op.drop_index(op.f("ix_oauth_identity_provider"), table_name="oauth_identity")
     op.drop_index(
-        op.f("ix_oauth_identity_ma_tai_khoan"),
+        op.f("ix_oauth_identity_account_id"),
         table_name="oauth_identity",
     )
     op.drop_index(op.f("ix_oauth_identity_email"), table_name="oauth_identity")
     op.drop_table("oauth_identity")
 
-    op.alter_column("canbo", "google_email", new_column_name="email")
-    op.alter_column("sinhvien", "google_email", new_column_name="email")
+    op.alter_column("staff", "google_email", new_column_name="email")
+    op.alter_column("students", "google_email", new_column_name="email")

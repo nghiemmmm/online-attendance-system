@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matches=None):
     """
     Visualize embeddings in 3D space using PCA with highlighted points and similarity lines.
-    
+
     Args:
         all_embeddings (np.ndarray): All face embeddings
         label_map (np.ndarray): Labels for embeddings
@@ -16,7 +16,7 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
     """
     if all_embeddings is None or len(all_embeddings) < 3:
         return
-    
+
     # Prepare data for visualization
     embeddings_to_plot = all_embeddings.copy()
     labels = label_map.copy()
@@ -30,7 +30,7 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
             hover_names.append(f"Employee: {name} (Dist: {dist:.4f})")
         else:
             hover_names.append(f"Employee: {name}")
-    
+
     # Add query embedding if available
     query_idx = None
     if query_embedding is not None:
@@ -40,7 +40,7 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
         colors.append('red')
         sizes.append(12)
         hover_names.append("Your Face (Query)")
-    
+
     # Highlight matches if available
     if matches:
         for i, (name, similarity, idx) in enumerate(matches):
@@ -48,11 +48,11 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
                 colors[idx] = 'green' if i == 0 else 'orange'
                 sizes[idx] = 12
                 hover_names[idx] = f"Match {i+1}: {name} (Similarity: {similarity:.4f})"
-    
+
     # Reduce dimensionality with PCA (3D)
     pca = PCA(n_components=3, random_state=42)
     embeddings_3d = pca.fit_transform(embeddings_to_plot)
-    
+
     # Create DataFrame for Plotly
     df = pd.DataFrame({
         'x': embeddings_3d[:, 0],
@@ -63,10 +63,10 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
         'size': sizes,
         'hover_name': hover_names
     })
-    
+
     # Create 3D interactive plot
     fig = px.scatter_3d(
-        df, 
+        df,
         x='x', y='y', z='z',
         color='color', size='size', hover_name='hover_name',
         title='Face Embeddings in 3D Space',
@@ -77,7 +77,7 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
             'orange': 'rgba(255, 152, 0, 1)'
         }
     )
-    
+
     # Add similarity lines
     if query_embedding is not None and matches:
         for i, (name, similarity, idx) in enumerate(matches[:5]):
@@ -92,12 +92,12 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
                     hoverinfo='text',
                     hovertext=f"Similarity: {similarity:.4f}"
                 ))
-    
+
     fig.update_layout(
         scene=dict(xaxis_title='Dimension 1', yaxis_title='Dimension 2', zaxis_title='Dimension 3'),
         showlegend=False, hovermode='closest', margin=dict(l=0, r=0, b=0, t=30)
     )
-    
+
     # Add annotations
     if matches:
         for i, (name, similarity, idx) in enumerate(matches[:5]):
@@ -107,10 +107,10 @@ def visualize_embeddings(all_embeddings, label_map, query_embedding=None, matche
                     text=f"Match {i+1}" if i > 0 else "Best Match",
                     showarrow=True, arrowhead=1, font=dict(size=12, color="black")
                 )
-    
+
     import streamlit as st
     st.plotly_chart(fig, use_container_width=True)
-    
+
     # Add similarity table
     if matches:
         st.subheader("Match Distances")

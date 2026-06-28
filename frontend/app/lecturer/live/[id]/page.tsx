@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
+import {
   Play,
   Square,
   Settings,
@@ -25,7 +25,8 @@ import {
   Video,
   VideoOff,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from "lucide-react"
 import { useParams } from "next/navigation"
 import { apiClient } from "@/lib/api-client"
@@ -64,16 +65,12 @@ export default function LecturerLiveClassroom() {
     setLoading(true)
     setError(null)
     try {
-      const buoiHoc = await apiClient.get<any>(`/buoi-hoc/${maBuoiHoc}`)
-      setLateMinutes(buoiHoc.so_phut_muon_toi_da || 15)
-      setSessionNum(buoiHoc.so_buoi || 1)
-      setSessionActive(buoiHoc.trang_thai === "DANG_DIEN_RA")
-      
-      if (buoiHoc.ma_lop_hoc_phan) {
-        const lop = await apiClient.get<any>(`/lop-hoc-phan/${buoiHoc.ma_lop_hoc_phan}`)
-        setClassName(lop.ten_lop_hoc_phan || lop.ten_hoc_phan || `Lớp học phần ${buoiHoc.ma_lop_hoc_phan}`)
-      }
-      
+      const buoiHoc = await apiClient.get<any>(`/class-sessions/${maBuoiHoc}`)
+      setLateMinutes(buoiHoc.late_grace_minutes || 15)
+      setSessionNum(buoiHoc.session_number || 1)
+      setSessionActive(buoiHoc.status === "DANG_DIEN_RA")
+      setClassName(buoiHoc.course_name || `Lớp học phần ${buoiHoc.class_section_id}`)
+
       const attList = await LecturerService.getLiveAttendance(maBuoiHoc)
       setStudents(attList)
     } catch (err: any) {
@@ -135,8 +132,9 @@ export default function LecturerLiveClassroom() {
       setSessionTime(0)
       const attList = await LecturerService.getLiveAttendance(maBuoiHoc)
       setStudents(attList)
-    } catch (err) {
-      alert("Lỗi khi mở phiên điểm danh.")
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || "Lỗi khi mở phiên điểm danh."
+      alert(`Lỗi: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`)
     }
   }
 
@@ -148,8 +146,9 @@ export default function LecturerLiveClassroom() {
       setSessionActive(false)
       const attList = await LecturerService.getLiveAttendance(maBuoiHoc)
       setStudents(attList)
-    } catch (err) {
-      alert("Lỗi khi đóng phiên điểm danh.")
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || "Lỗi khi đóng phiên điểm danh."
+      alert(`Lỗi: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`)
     }
   }
 
@@ -158,13 +157,14 @@ export default function LecturerLiveClassroom() {
     try {
       const studentDbId = parseInt(studentId)
       await LecturerService.updateAttendanceManual(maBuoiHoc, studentDbId, newStatus as any)
-      
-      setStudents(prev => prev.map(s => 
+
+      setStudents(prev => prev.map(s =>
         s.id === studentId ? { ...s, status: newStatus, verifiedAt: new Date().toLocaleTimeString("vi-VN") } : s
       ))
       setEditingStudent(null)
-    } catch (err) {
-      alert("Không thể cập nhật điểm danh.")
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || "Không thể cập nhật điểm danh."
+      alert(`Lỗi: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`)
     }
   }
 
@@ -202,14 +202,22 @@ export default function LecturerLiveClassroom() {
               Buổi {sessionNum}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {sessionActive && (
-              <div className="flex items-center gap-2 text-[#0EA5E9]">
+              <div className="flex items-center gap-2 text-[#0EA5E9] bg-[#161B22] px-3 py-1.5 rounded-lg border border-[#30363D]">
                 <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
                 <Clock className="w-4 h-4" />
                 <span className="font-mono">{formatTime(sessionTime)}</span>
               </div>
             )}
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = "/lecturer/live"}
+              className="border-[#30363D] bg-[#161B22] text-[#C9D1D9] hover:bg-[#21262D] hover:text-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              Rời phòng
+            </Button>
           </div>
         </div>
 
@@ -309,7 +317,7 @@ export default function LecturerLiveClassroom() {
         {/* Attendance Summary */}
         <div className="p-4 border-b border-[#2D3748]">
           <h3 className="text-sm font-medium text-[#94A3B8] mb-4">Thống kê điểm danh</h3>
-          
+
           {/* Donut Chart Placeholder */}
           <div className="flex items-center gap-4 mb-4">
             <div className="relative w-24 h-24">
@@ -387,7 +395,7 @@ export default function LecturerLiveClassroom() {
           </div>
 
           {!sessionActive ? (
-            <Button 
+            <Button
               className="w-full bg-[#22C55E] hover:bg-[#22C55E]/80 text-white"
               onClick={handleStartSession}
             >
@@ -395,7 +403,7 @@ export default function LecturerLiveClassroom() {
               Bắt đầu phiên điểm danh
             </Button>
           ) : (
-            <Button 
+            <Button
               className="w-full bg-[#EF4444] hover:bg-[#EF4444]/80 text-white"
               onClick={handleEndSession}
             >

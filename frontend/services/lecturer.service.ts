@@ -7,9 +7,9 @@ export const LecturerService = {
       const data = await apiClient.get<any>("/users/me/profile");
       const profile = data.profile || {};
       return {
-        name: `${profile.ho || ""} ${profile.ten || ""}`.trim() || data.tai_khoan?.ten_dang_nhap || "Giảng viên",
-        email: profile.google_email || data.tai_khoan?.ten_dang_nhap || "Unknown",
-        maCanBo: profile.ma_can_bo || 0,
+        name: `${profile.last_name || ""} ${profile.first_name || ""}`.trim() || data.account?.username || "Giảng viên",
+        email: profile.google_email || data.account?.username || "Unknown",
+        maCanBo: profile.staff_id || 0,
       };
     } catch (error) {
       console.error("Lỗi tải thông tin cá nhân giảng viên:", error);
@@ -19,20 +19,20 @@ export const LecturerService = {
 
   getClaims: async (maCanBo: number): Promise<Claim[]> => {
     try {
-      const response = await apiClient.get<any>(`/khieu-nai/can-bo/${maCanBo}/can-xu-ly`);
+      const response = await apiClient.get<any>(`/appeals/staff/${maCanBo}?status=pending`);
       const claims = response.data || [];
       return claims.map((claim: any) => ({
-        id: claim.ma_khieu_nai?.toString() || `CLM${Math.random()}`,
-        studentId: claim.ma_sinh_vien?.toString() || "Unknown",
-        studentName: claim.ho_ten_sinh_vien || "Unknown",
-        subjectCode: claim.ma_lop_hoc_phan?.toString() || "Unknown",
-        subjectName: claim.ten_hoc_phan || "Lớp học phần",
-        date: claim.ngay_hoc ? new Date(claim.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
-        sessionNumber: claim.so_buoi || 0,
-        currentStatus: claim.trang_thai_diem_danh === 'CO_MAT' ? 'present' : (claim.trang_thai_diem_danh === 'DI_MUON' ? 'late' : 'absent'),
-        reason: claim.ly_do || "",
-        status: claim.trang_thai === 'CHO_XU_LY' ? 'pending' : (claim.trang_thai === 'DA_DUYET' ? 'approved' : 'rejected'),
-        submittedAt: claim.ngay_gui ? new Date(claim.ngay_gui).toLocaleString("vi-VN") : "N/A",
+        id: claim.appeal_id?.toString() || `CLM${Math.random()}`,
+        studentId: claim.student_id?.toString() || "Unknown",
+        studentName: claim.student_full_name || "Unknown",
+        subjectCode: claim.class_section_id?.toString() || "Unknown",
+        subjectName: claim.course_name || "Lớp học phần",
+        date: claim.class_date ? new Date(claim.class_date).toLocaleDateString("vi-VN") : "N/A",
+        sessionNumber: claim.session_number || 0,
+        currentStatus: claim.attendance_status === 'CO_MAT' ? 'present' : (claim.attendance_status === 'DI_MUON' ? 'late' : 'absent'),
+        reason: claim.reason || "",
+        status: claim.status === 'CHO_XU_LY' ? 'pending' : (claim.status === 'DA_DUYET' ? 'approved' : 'rejected'),
+        submittedAt: claim.submitted_at ? new Date(claim.submitted_at).toLocaleString("vi-VN") : "N/A",
       }));
     } catch (error) {
       console.error("Lỗi tải danh sách khiếu nại:", error);
@@ -40,10 +40,10 @@ export const LecturerService = {
     }
   },
 
-  getLichDayToday: async (): Promise<any[]> => {
+  getLichDayToday: async (maCanBo: number): Promise<any[]> => {
     try {
       const todayStr = new Date().toISOString().split("T")[0];
-      const response = await apiClient.get<any>(`/canbo/me/lich-day?from_date=${todayStr}&to_date=${todayStr}`);
+      const response = await apiClient.get<any>(`/staff/${maCanBo}/teaching-schedule?from_date=${todayStr}&to_date=${todayStr}`);
       return response.data || [];
     } catch (error) {
       console.error("Lỗi tải lịch dạy hôm nay:", error);
@@ -53,7 +53,7 @@ export const LecturerService = {
 
   getRecentSessions: async (maCanBo: number): Promise<any[]> => {
     try {
-      const response = await apiClient.get<any>(`/canbo/${maCanBo}/buoi-hoc/gan-day`);
+      const response = await apiClient.get<any>(`/staff/${maCanBo}/class-sessions/recent`);
       return response.data || [];
     } catch (error) {
       console.error("Lỗi tải các buổi học gần đây:", error);
@@ -63,7 +63,7 @@ export const LecturerService = {
 
   getPendingClaimsCount: async (maCanBo: number): Promise<number> => {
     try {
-      const response = await apiClient.get<any>(`/canbo/${maCanBo}/khieu-nai/cho-xu-ly/count`);
+      const response = await apiClient.get<any>(`/staff/${maCanBo}/appeals/pending/count`);
       return response.count || 0;
     } catch (error) {
       console.error("Lỗi tải số khiếu nại chờ xử lý:", error);
@@ -73,7 +73,7 @@ export const LecturerService = {
 
   getMonthlyAttendanceSummary: async (maCanBo: number): Promise<any> => {
     try {
-      const response = await apiClient.get<any>(`/canbo/${maCanBo}/attendance/monthly-summary`);
+      const response = await apiClient.get<any>(`/staff/${maCanBo}/attendance/monthly-summary`);
       return response;
     } catch (error) {
       console.error("Lỗi tải thống kê điểm danh tháng:", error);
@@ -83,7 +83,7 @@ export const LecturerService = {
 
   getLopHocPhanCount: async (maCanBo: number): Promise<number> => {
     try {
-      const response = await apiClient.get<any>(`/canbo/${maCanBo}/lop-hoc-phan/dang-day/count`);
+      const response = await apiClient.get<any>(`/staff/${maCanBo}/class-sections/active/count`);
       return response.count || 0;
     } catch (error) {
       console.error("Lỗi tải số lớp học phần đang giảng dạy:", error);
@@ -93,8 +93,8 @@ export const LecturerService = {
 
   getReports: async (): Promise<AttendanceReport[]> => {
     try {
-      const response = await apiClient.get<AttendanceReport[]>("/canbo/me/reports");
-      return response; 
+      const response = await apiClient.get<AttendanceReport[]>("/staff/me/reports");
+      return response;
     } catch (error) {
       console.error("Lỗi tải báo cáo:", error);
       throw error;
@@ -105,13 +105,15 @@ export const LecturerService = {
     try {
       const idNum = parseInt(claimId);
       if (status === 'approved') {
-        await apiClient.patch(`/khieu-nai/can-bo/${maCanBo}/can-xu-ly/${idNum}/chap-thuan`, {
-          trang_thai_diem_danh_moi: "CO_MAT",
-          ghi_chu_xu_ly: "Giảng viên đã chấp thuận khiếu nại"
+        await apiClient.patch(`/appeals/${idNum}?staff_id=${maCanBo}`, {
+          status: "approved",
+          new_attendance_status: "CO_MAT",
+          resolution_note: "Giảng viên đã chấp thuận khiếu nại"
         });
       } else {
-        await apiClient.patch(`/khieu-nai/can-bo/${maCanBo}/can-xu-ly/${idNum}/tu-choi`, {
-          ghi_chu_xu_ly: "Giảng viên từ chối khiếu nại"
+        await apiClient.patch(`/appeals/${idNum}?staff_id=${maCanBo}`, {
+          status: "rejected",
+          resolution_note: "Giảng viên từ chối khiếu nại"
         });
       }
       return true;
@@ -123,17 +125,36 @@ export const LecturerService = {
 
   getLiveAttendance: async (maBuoiHoc: number): Promise<any[]> => {
     try {
-      const response = await apiClient.get<any[]>(`/buoi-hoc/${maBuoiHoc}/diem-danh`);
-      return response;
+      const response = await apiClient.get<any>(`/class-sessions/${maBuoiHoc}/attendance`);
+      const rawData = response?.data || (Array.isArray(response) ? response : []);
+      return rawData.map((item: any) => {
+        const rawStatus = item.status || "CHUA_DIEM_DANH";
+        let normStatus = "pending";
+        if (["CO_MAT", "PRESENT", "present"].includes(rawStatus)) normStatus = "present";
+        else if (["DI_MUON", "MUON", "LATE", "late"].includes(rawStatus)) normStatus = "late";
+        else if (["VANG", "VANG_MAT", "ABSENT", "absent"].includes(rawStatus)) normStatus = "absent";
+
+        return {
+          id: item.student_id?.toString() || "",
+          studentId: item.student_id?.toString() || "",
+          name: `${item.last_name || ""} ${item.first_name || ""}`.trim() || `SV ${item.student_id}`,
+          status: normStatus,
+          confidence: normStatus === "present" ? "high" : normStatus === "late" ? "medium" : "low",
+          hasCamera: true,
+          verifiedAt: normStatus !== "pending" ? "Đã ghi nhận" : undefined,
+        };
+      });
     } catch (error) {
       console.error("Lỗi lấy danh sách điểm danh trực tiếp:", error);
-      throw error;
+      return [];
     }
   },
 
   moDiemDanh: async (maBuoiHoc: number): Promise<any> => {
     try {
-      const response = await apiClient.post<any>(`/buoi-hoc/${maBuoiHoc}/mo-diem-danh`, {});
+      const response = await apiClient.patch<any>(`/class-sessions/${maBuoiHoc}`, {
+        status: "DANG_DIEN_RA",
+      });
       return response;
     } catch (error) {
       console.error("Lỗi mở phiên điểm danh:", error);
@@ -143,7 +164,9 @@ export const LecturerService = {
 
   dongDiemDanh: async (maBuoiHoc: number): Promise<any> => {
     try {
-      const response = await apiClient.post<any>(`/buoi-hoc/${maBuoiHoc}/dong-diem-danh`, {});
+      const response = await apiClient.patch<any>(`/class-sessions/${maBuoiHoc}`, {
+        status: "DA_KET_THUC",
+      });
       return response;
     } catch (error) {
       console.error("Lỗi đóng phiên điểm danh:", error);
@@ -158,11 +181,11 @@ export const LecturerService = {
         late: "DI_MUON",
         absent: "VANG"
       };
-      const response = await apiClient.post<any>("/diem-danh/thu-cong", {
-        ma_buoi_hoc: maBuoiHoc,
-        ma_sinh_vien: maSinhVien,
-        trang_thai: statusMap[status],
-        ghi_chu: "Giảng viên cập nhật thủ công"
+      const response = await apiClient.post<any>("/attendance-records/manual-adjustments", {
+        class_session_id: maBuoiHoc,
+        student_id: maSinhVien,
+        status: statusMap[status],
+        note: "Giảng viên cập nhật thủ công"
       });
       return response;
     } catch (error) {
@@ -173,7 +196,7 @@ export const LecturerService = {
 
   getClassSessions: async (maLopHocPhan: number): Promise<any[]> => {
     try {
-      const response = await apiClient.get<any>(`/buoi-hoc/lop-hoc-phan/${maLopHocPhan}`);
+      const response = await apiClient.get<any>(`/class-sessions/class-sections/${maLopHocPhan}`);
       return response.data || [];
     } catch (error) {
       console.error("Lỗi tải danh sách buổi học:", error);
@@ -183,7 +206,7 @@ export const LecturerService = {
 
   createSession: async (payload: any): Promise<any> => {
     try {
-      return await apiClient.post<any>("/buoi-hoc/", payload);
+      return await apiClient.post<any>("/class-sessions/", payload);
     } catch (error) {
       console.error("Lỗi tạo buổi học:", error);
       throw error;
@@ -192,7 +215,7 @@ export const LecturerService = {
 
   updateSession: async (maBuoiHoc: number, payload: any): Promise<any> => {
     try {
-      return await apiClient.patch<any>(`/buoi-hoc/${maBuoiHoc}`, payload);
+      return await apiClient.patch<any>(`/class-sessions/${maBuoiHoc}`, payload);
     } catch (error) {
       console.error("Lỗi cập nhật buổi học:", error);
       throw error;
@@ -201,16 +224,25 @@ export const LecturerService = {
 
   cancelSession: async (maBuoiHoc: number): Promise<any> => {
     try {
-      return await apiClient.delete<any>(`/buoi-hoc/${maBuoiHoc}/giang-vien`);
+      return await apiClient.delete<any>(`/class-sessions/${maBuoiHoc}/lecturer`);
     } catch (error) {
       console.error("Lỗi hủy buổi học:", error);
       throw error;
     }
   },
 
+  postponeSession: async (maBuoiHoc: number, reason: string): Promise<any> => {
+    try {
+      return await apiClient.post<any>(`/class-sessions/${maBuoiHoc}/postpone?reason=${encodeURIComponent(reason)}`);
+    } catch (error) {
+      console.error("Lỗi hoãn buổi học:", error);
+      throw error;
+    }
+  },
+
   getClassWarnings: async (maLopHocPhan: number): Promise<any[]> => {
     try {
-      const response = await apiClient.get<any>(`/lop-hoc-phan/${maLopHocPhan}/canh-bao`);
+      const response = await apiClient.get<any>(`/class-sections/${maLopHocPhan}/warnings`);
       return response.data || [];
     } catch (error) {
       console.error("Lỗi tải cảnh báo chuyên cần:", error);
@@ -220,7 +252,7 @@ export const LecturerService = {
 
   getClassStudents: async (maLopHocPhan: number): Promise<any[]> => {
     try {
-      const response = await apiClient.get<any>(`/lop-hoc-phan/${maLopHocPhan}/sinh-vien`);
+      const response = await apiClient.get<any>(`/class-sections/${maLopHocPhan}/students`);
       return response.data || [];
     } catch (error) {
       console.error("Lỗi tải danh sách sinh viên lớp học phần:", error);
@@ -231,8 +263,8 @@ export const LecturerService = {
 
   downloadAttendanceReport: async (maLopHocPhan: number, format: "excel" | "csv" = "excel"): Promise<void> => {
     const endpoint = format === "csv"
-      ? `/bao-cao/lop-hoc-phan/${maLopHocPhan}/export-csv`
-      : `/bao-cao/lop-hoc-phan/${maLopHocPhan}/export-excel`;
+      ? `/reports/class-sections/${maLopHocPhan}/attendance?format=csv`
+      : `/reports/class-sections/${maLopHocPhan}/attendance?format=xlsx`;
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api"}${endpoint}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

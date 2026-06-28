@@ -8,7 +8,7 @@ from app.models import RefreshToken
 def create_refresh_token(
     *,
     session: Session,
-    ma_tai_khoan: int,
+    account_id: int,
     token_hash: str,
     expires_at: datetime,
     user_agent: str | None = None,
@@ -16,7 +16,7 @@ def create_refresh_token(
 ) -> RefreshToken:
     """Tạo bản ghi refresh token đã hash cho một phiên đăng nhập."""
     db_token = RefreshToken(
-        ma_tai_khoan=ma_tai_khoan,
+        account_id=account_id,
         token_hash=token_hash,
         expires_at=expires_at,
         user_agent=user_agent,
@@ -59,11 +59,11 @@ def revoke_refresh_token(
 
 
 def revoke_all_refresh_tokens_for_account(
-    *, session: Session, ma_tai_khoan: int
+    *, session: Session, account_id: int
 ) -> int:
     """Thu hồi toàn bộ refresh token còn hiệu lực của một tài khoản."""
     statement = select(RefreshToken).where(
-        RefreshToken.ma_tai_khoan == ma_tai_khoan,
+        RefreshToken.account_id == account_id,
         RefreshToken.revoked_at.is_(None),
     )
     tokens = session.exec(statement).all()

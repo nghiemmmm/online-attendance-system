@@ -6,7 +6,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from app.api.deps import get_current_active_superuser, get_db
 from app.main import app
-from app.models import TaiKhoan, SinhVien, CanBo, Nganh
+from app.models import Account, Student, Staff, Major
 from app.core.config import settings
 
 @pytest.fixture(scope="session", autouse=True)
@@ -23,27 +23,27 @@ def make_test_client():
     SQLModel.metadata.create_all(
         engine,
         tables=[
-            TaiKhoan.__table__,
-            SinhVien.__table__,
-            CanBo.__table__,
-            Nganh.__table__,
+            Account.__table__,
+            Student.__table__,
+            Staff.__table__,
+            Major.__table__,
         ],
     )
     with Session(engine) as session:
-        superuser = TaiKhoan(
-            ma_tai_khoan=1,
-            ten_dang_nhap="admin",
-            mat_khau_hash="hashed-password",
-            vai_tro="ADMIN",
-            trang_thai=True,
+        superuser = Account(
+            account_id=1,
+            username="admin",
+            password_hash="hashed-password",
+            role="ADMIN",
+            status=True,
         )
-        
+
         def override_get_db():
             yield session
-            
+
         def override_superuser():
             return superuser
-            
+
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_active_superuser] = override_superuser
         with TestClient(app) as client:
@@ -54,11 +54,11 @@ def test_create_user_returns_201() -> None:
     for client, session in make_test_client():
         username = "new_user_201@example.com"
         password = "testpassword123"
-        data = {"ten_dang_nhap": username, "password": password}
+        data = {"username": username, "password": password}
         response = client.post(
             f"{settings.API_V1_STR}/users/",
             json=data,
         )
         assert response.status_code == 201
         created_user = response.json()
-        assert created_user["ten_dang_nhap"] == username
+        assert created_user["username"] == username

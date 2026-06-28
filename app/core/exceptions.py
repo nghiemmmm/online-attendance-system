@@ -127,3 +127,45 @@ class AttendanceAlreadyExistsError(AppException):
 class PermissionDeniedError(AppException):
     status_code = 403
     detail = "Permission denied"
+
+
+# Authentication and account exceptions
+class AccountNotFoundError(AppException):
+    status_code = 404
+    detail = "Account not found"
+
+
+class AccountHasNoIdError(AppException):
+    status_code = 400
+    detail = "Account has no id"
+
+
+class AccountInactiveError(AppException):
+    status_code = 400
+    detail = "Inactive account or waiting for approval"
+
+
+class AccountLockedError(AppException):
+    status_code = 403
+    detail = "Account is locked. Please try again later."
+
+
+class InvalidRefreshTokenError(AppException):
+    status_code = 401
+    detail = "Invalid refresh token"
+
+
+class RefreshTokenRevokedError(AppException):
+    status_code = 401
+    detail = "Refresh token has been revoked"
+
+
+class RefreshTokenExpiredError(AppException):
+    status_code = 401
+    detail = "Refresh token has expired"
+
+
+# Validation exceptions
+class InvalidWarningThresholdError(AppException):
+    status_code = 400
+    detail = "warning_threshold must be less than or equal to absence_limit"

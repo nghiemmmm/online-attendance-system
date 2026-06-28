@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { 
+import {
   Plus,
   Download,
   Search,
@@ -146,17 +146,17 @@ export default function AdminUserManagement() {
     setSubmitting(true)
     try {
       const nameParts = formName.trim().split(" ")
-      const ho = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : ""
-      const ten = nameParts.length > 0 ? nameParts[nameParts.length - 1] : ""
+      const last_name = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : ""
+      const first_name = nameParts.length > 0 ? nameParts[nameParts.length - 1] : ""
 
       const payload = {
-        ten_dang_nhap: formEmail.trim(),
+        username: formEmail.trim(),
         password: formPassword,
-        vai_tro: formRole,
-        ho,
-        ten,
-        dien_thoai: formPhone.trim() || null,
-        gioi_tinh: formGender
+        role: formRole,
+        last_name,
+        first_name,
+        phone: formPhone.trim() || null,
+        gender: formGender
       }
 
       const res = await AdminService.createUser(payload)
@@ -179,9 +179,9 @@ export default function AdminUserManagement() {
   }
 
   return (
-    <AppShell 
-      role="admin" 
-      user={adminUser} 
+    <AppShell
+      role="admin"
+      user={adminUser}
       breadcrumb="Quản lý người dùng"
     >
       <div className="space-y-6">
@@ -194,7 +194,7 @@ export default function AdminUserManagement() {
             </span>
           </div>
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={() => setCreateUserOpen(true)}
               className="bg-[#0A2540] hover:bg-[#1A3A5C]"
             >
@@ -300,7 +300,7 @@ export default function AdminUserManagement() {
                   ) : (
                     users.map((user) => (
                       <>
-                        <TableRow 
+                        <TableRow
                           key={user.id}
                           className={cn(
                             "cursor-pointer hover:bg-[#F8FAFC]",
@@ -346,9 +346,9 @@ export default function AdminUserManagement() {
                           <TableCell className="text-[#64748B]">{user.createdAt}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="w-8 h-8"
                                 onClick={() => handleToggleStatus(parseInt(user.id))}
                               >
@@ -358,9 +358,9 @@ export default function AdminUserManagement() {
                                   <Unlock className="w-4 h-4 text-[#22C55E]" />
                                 )}
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="w-8 h-8 text-[#EF4444] hover:text-[#EF4444]"
                                 onClick={() => handleDeleteUser(parseInt(user.id))}
                               >
@@ -429,9 +429,9 @@ export default function AdminUserManagement() {
               <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Họ và tên <span className="text-red-500">*</span>
               </label>
-              <Input 
-                placeholder="VD: Nguyễn Văn C" 
-                value={formName} 
+              <Input
+                placeholder="VD: Nguyễn Văn C"
+                value={formName}
                 onChange={(e) => setFormName(e.target.value)}
               />
             </div>
@@ -440,10 +440,10 @@ export default function AdminUserManagement() {
               <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Email / Tên đăng nhập <span className="text-red-500">*</span>
               </label>
-              <Input 
-                type="email" 
-                placeholder="VD: c.nguyen@student.edu.vn" 
-                value={formEmail} 
+              <Input
+                type="email"
+                placeholder="VD: c.nguyen@student.edu.vn"
+                value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
               />
             </div>
@@ -468,9 +468,9 @@ export default function AdminUserManagement() {
                 <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Số điện thoại
                 </label>
-                <Input 
-                  placeholder="VD: 0987654321" 
-                  value={formPhone} 
+                <Input
+                  placeholder="VD: 0987654321"
+                  value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
                 />
               </div>
@@ -497,10 +497,10 @@ export default function AdminUserManagement() {
                 <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Mật khẩu <span className="text-red-500">*</span>
                 </label>
-                <Input 
-                  type="password" 
-                  placeholder="Mật khẩu" 
-                  value={formPassword} 
+                <Input
+                  type="password"
+                  placeholder="Mật khẩu"
+                  value={formPassword}
                   onChange={(e) => setFormPassword(e.target.value)}
                 />
               </div>
@@ -511,7 +511,7 @@ export default function AdminUserManagement() {
             <Button variant="outline" onClick={() => setCreateUserOpen(false)} disabled={submitting}>
               Hủy
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateUser}
               className="bg-[#0A2540] hover:bg-[#1A3A5C]"
               disabled={submitting}

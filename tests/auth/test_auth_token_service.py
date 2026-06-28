@@ -1,16 +1,16 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from fastapi import HTTPException
 
-from app.models import RefreshToken, TaiKhoan
+from app.core.exceptions import RefreshTokenRevokedError
+from app.models import RefreshToken, Account
 from app.services import auth_token_service
 
 
 class FakeSession:
     """Session giả phục vụ unit test service token mà không cần database thật."""
 
-    def __init__(self, account: TaiKhoan | None = None) -> None:
+    def __init__(self, account: Account | None = None) -> None:
         self.account = account
         self.added = []
         self.commits = 0
@@ -18,7 +18,7 @@ class FakeSession:
 
     def get(self, model, object_id):
         """Trả về tài khoản giả khi service cần kiểm tra chủ refresh token."""
-        if model is TaiKhoan and self.account and self.account.ma_tai_khoan == object_id:
+        if model is Account and self.account and self.account.account_id == object_id:
             return self.account
         return None
 
@@ -35,22 +35,22 @@ class FakeSession:
         self.refreshed.append(obj)
 
 
-def make_account(*, ma_tai_khoan: int = 1, trang_thai: bool = True) -> TaiKhoan:
+def make_account(*, account_id: int = 1, status: bool = True) -> Account:
     """Tạo tài khoản giả cho các test Remember Me."""
-    return TaiKhoan(
-        ma_tai_khoan=ma_tai_khoan,
-        ten_dang_nhap=f"user_{ma_tai_khoan}",
-        mat_khau_hash="hashed-password",
-        vai_tro="SINH_VIEN",
-        trang_thai=trang_thai,
+    return Account(
+        account_id=account_id,
+        username=f"user_{account_id}",
+        password_hash="hashed-password",
+        role="SINH_VIEN",
+        status=status,
     )
 
 
 def make_refresh_token(*, raw_token: str, account_id: int = 1) -> RefreshToken:
     """Tạo refresh token còn hạn với hash tương ứng token raw."""
     return RefreshToken(
-        ma_refresh_token=1,
-        ma_tai_khoan=account_id,
+        refresh_token_id=1,
+        account_id=account_id,
         token_hash=auth_token_service.hash_refresh_token(raw_token),
         expires_at=datetime.now(timezone.utc) + timedelta(days=1),
     )
@@ -98,7 +98,7 @@ def test_issue_login_tokens_without_remember_me_does_not_create_refresh_token(
 def test_issue_login_tokens_with_remember_me_creates_refresh_token(monkeypatch) -> None:
     """Kiểm tra remember_me=True tạo refresh token và chỉ lưu hash vào CRUD."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=2)
+    account = make_account(account_id=2)
     created = {}
 
     monkeypatch.setattr(
@@ -111,8 +111,8 @@ def test_issue_login_tokens_with_remember_me_creates_refresh_token(monkeypatch) 
         """Ghi nhận dữ liệu refresh token được lưu xuống database."""
         created.update(kwargs)
         return RefreshToken(
-            ma_refresh_token=1,
-            ma_tai_khoan=kwargs["ma_tai_khoan"],
+            refresh_token_id=1,
+            account_id=kwargs["account_id"],
             token_hash=kwargs["token_hash"],
             expires_at=kwargs["expires_at"],
         )
@@ -133,7 +133,7 @@ def test_issue_login_tokens_with_remember_me_creates_refresh_token(monkeypatch) 
 
     assert result.access_token == "access-token"
     assert result.refresh_token
-    assert created["ma_tai_khoan"] == 2
+    assert created["account_id"] == 2
     assert created["token_hash"] != result.refresh_token
     assert created["token_hash"] == auth_token_service.hash_refresh_token(
         result.refresh_token
@@ -155,7 +155,7 @@ def test_refresh_access_token_rejects_revoked_token(monkeypatch) -> None:
         lambda *, session, token_hash: db_token,
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(RefreshTokenRevokedError) as exc_info:
         auth_token_service.refresh_access_token(
             session=session,
             raw_refresh_token=raw_token,
@@ -166,16 +166,16 @@ def test_refresh_access_token_rejects_revoked_token(monkeypatch) -> None:
 
 
 def test_logout_all_refresh_tokens_calls_crud(monkeypatch) -> None:
-    """Kiểm tra logout-all thu hồi toàn bộ refresh token của tài khoản."""
+    """Kiểm tra logout-all weekday hồi toàn bộ refresh token của tài khoản."""
     session = FakeSession()
-    account = make_account(ma_tai_khoan=3)
+    account = make_account(account_id=3)
     called = {}
 
     monkeypatch.setattr(
         auth_token_service.crud,
         "revoke_all_refresh_tokens_for_account",
-        lambda *, session, ma_tai_khoan: called.setdefault(
-            "ma_tai_khoan", ma_tai_khoan
+        lambda *, session, account_id: called.setdefault(
+            "account_id", account_id
         )
         or 2,
     )
@@ -186,4 +186,4 @@ def test_logout_all_refresh_tokens_calls_crud(monkeypatch) -> None:
     )
 
     assert result == 3
-    assert called["ma_tai_khoan"] == 3
+    assert called["account_id"] == 3

@@ -2,21 +2,21 @@
 
 from sqlmodel import SQLModel
 
-from app.models.anhdiemdanh import (
-    AnhDiemDanh,
-    AnhDiemDanhBase,
-    AnhDiemDanhCreate,
-    AnhDiemDanhPublic,
-    AnhDiemDanhsPublic,
-    AnhDiemDanhUpdate,
+from app.models.attendance_image import (
+    AttendanceImage,
+    AttendanceImageBase,
+    AttendanceImageCreate,
+    AttendanceImagePublic,
+    AttendanceImagesPublic,
+    AttendanceImageUpdate,
 )
-from app.models.anhkhuonmat import (
-    AnhKhuonMat,
-    AnhKhuonMatBase,
-    AnhKhuonMatCreate,
-    AnhKhuonMatPublic,
-    AnhKhuonMatsPublic,
-    AnhKhuonMatUpdate,
+from app.models.face_image import (
+    FaceImage,
+    FaceImageBase,
+    FaceImageCreate,
+    FaceImagePublic,
+    FaceImagesPublic,
+    FaceImageUpdate,
 )
 from app.models.attendance_summary import MonthlyAttendanceSummary
 from app.models.audit_log import (
@@ -36,101 +36,106 @@ from app.models.auth import (
     TokenPayload,
     UpdatePassword,
 )
-from app.models.buoihoc import (
-    BuoiHoc,
-    BuoiHocBase,
-    BuoiHocCreate,
-    BuoiHocPublic,
-    BuoiHocsPublic,
-    BuoiHocUpdate,
+from app.models.otp import (
+    OTPRecord,
+    SendOtpRequest,
+    StudentRegisterRequest,
 )
-from app.models.canhbaohoc_tap import CanhBaoVangItem, CanhBaoVangPublic
-from app.models.canbo import (
-    CanBo,
-    CanBoBase,
-    CanBoCreate,
-    CanBoPublic,
-    CanBosPublic,
-    CanBoUpdate,
+from app.models.class_session import (
+    ClassSession,
+    ClassSessionBase,
+    ClassSessionCreate,
+    ClassSessionPublic,
+    ClassSessionsPublic,
+    ClassSessionUpdate,
+)
+from app.models.academic_warning import AbsenceWarningItem, AbsenceWarningsPublic
+from app.models.staff import (
+    Staff,
+    StaffBase,
+    StaffCreate,
+    StaffPublic,
+    StaffMembersPublic,
+    StaffUpdate,
     StaffClassSectionItem,
     StaffClassSectionsPublic,
     AttendanceReportDataPoint,
     StaffAttendanceReportItem,
 )
 from app.models.common import Message
-from app.models.dangkyhocphan import (
-    DangKyHocPhan,
-    DangKyHocPhanBase,
-    DangKyHocPhanCreate,
-    DangKyHocPhanPublic,
-    DangKyHocPhansPublic,
-    DangKyHocPhanUpdate,
+from app.models.course_registration import (
+    CourseRegistration,
+    CourseRegistrationBase,
+    CourseRegistrationCreate,
+    CourseRegistrationPublic,
+    CourseRegistrationsPublic,
+    CourseRegistrationUpdate,
 )
-from app.models.diemdanh import (
-    DiemDanh,
-    DiemDanhBase,
-    DiemDanhCreate,
-    DiemDanhPublic,
-    DiemDanhsPublic,
-    DiemDanhUpdate,
+from app.models.attendance import (
+    Attendance,
+    AttendanceBase,
+    AttendanceCreate,
+    AttendancePublic,
+    AttendancesPublic,
+    AttendanceUpdate,
 )
-from app.models.diemdanh_summary import TongBuoiCoMatHocKyPublic
-from app.models.hocphan import (
-    HocPhan,
-    HocPhanBase,
-    HocPhanCreate,
-    HocPhanPublic,
-    HocPhansPublic,
-    HocPhanUpdate,
+from app.models.attendance_statistics import SemesterAttendanceSummaryPublic
+from app.models.course import (
+    Course,
+    CourseBase,
+    CourseCreate,
+    CoursePublic,
+    CoursesPublic,
+    CourseUpdate,
 )
-from app.models.khieunai import (
-    KhieuNai,
-    KhieuNaiBase,
-    KhieuNaiCanXuLyDetail,
-    KhieuNaiCanXuLyItem,
-    KhieuNaiCanXuLysPublic,
-    KhieuNaiChapThuanRequest,
-    KhieuNaiChoXuLyMetric,
-    KhieuNaiCreate,
-    KhieuNaiPublic,
-    KhieuNaisPublic,
-    KhieuNaiUpdate,
-    KhieuNaiXuLyRequest,
-    KhieuNaiXuLyResult,
+from app.models.appeal import (
+    Appeal,
+    AppealBase,
+    PendingAppealDetail,
+    PendingAppealItem,
+    PendingAppealsPublic,
+    AppealApprovalRequest,
+    PendingAppealMetric,
+    AppealCreate,
+    AppealPublic,
+    AppealsPublic,
+    AppealUpdate,
+    AppealResolutionRequest,
+    AppealResolutionResult,
 )
-from app.models.lophocphan import (
-    LopHocPhan,
-    LopHocPhanBase,
-    LopHocPhanCreate,
-    LopHocPhanPublic,
-    LopHocPhansPublic,
-    LopHocPhanUpdate,
+from app.models.class_section import (
+    ClassSection,
+    ClassSectionBase,
+    ClassSectionCreate,
+    ClassSectionPublic,
+    ClassSectionsPublic,
+    ClassSectionUpdate,
 )
-from app.models.lichday import (
-    BuoiHocGanDayItem,
-    BuoiHocGanDaysPublic,
-    LichDayItem,
-    LichDaysPublic,
-    SoLuongLopHocPhanDangDayPublic,
+from app.models.teaching_schedule import (
+    RecentClassSessionItem,
+    RecentClassSessionsPublic,
+    TeachingScheduleItem,
+    TeachingSchedulesPublic,
+    ActiveClassSectionCountPublic,
 )
-from app.models.lichhoc import LichHocHomNayItem, LichHocHomNayPublic
-from app.models.nganh import (
-    Nganh,
-    NganhBase,
-    NganhCreate,
-    NganhPublic,
-    NganhsPublic,
-    NganhUpdate,
+from app.models.student_schedule import TodayScheduleItem, TodaySchedulePublic
+from app.models.major import (
+    Major,
+    MajorBase,
+    MajorCreate,
+    MajorPublic,
+    MajorsPublic,
+    MajorUpdate,
 )
 from app.models.oauth_identity import OAuthIdentity
 from app.models.refresh_token import RefreshToken
-from app.models.sinhvien import (
-    SinhVien,
-    SinhVienBase,
-    SinhVienCreate,
-    SinhVienPublic,
-    SinhViensPublic,
-    SinhVienUpdate,
+from app.models.student import (
+    Student,
+    StudentBase,
+    StudentCreate,
+    StudentPublic,
+    StudentsPublic,
+    StudentUpdate,
     StudentScheduleItem,
     StudentSchedulePublic,
     StudentAttendanceItem,
@@ -138,24 +143,32 @@ from app.models.sinhvien import (
     StudentAvailableClassItem,
     StudentAvailableClassPublic,
 )
-from app.models.taikhoan import (
-    TaiKhoan,
-    TaiKhoanBase,
-    TaiKhoanCreate,
-    TaiKhoanListPublic,
-    TaiKhoanProfile,
-    TaiKhoanPublic,
-    TaiKhoanRegister,
-    TaiKhoansPublic,
-    TaiKhoanUpdate,
+from app.models.account import (
+    Account,
+    AccountBase,
+    AccountCreate,
+    AccountListPublic,
+    AccountProfile,
+    AccountPublic,
+    AccountRegister,
+    AccountsPublic,
+    AccountUpdate,
 )
-from app.models.thoikhoabieu import (
-    ThoiKhoaBieu,
-    ThoiKhoaBieuBase,
-    ThoiKhoaBieuCreate,
-    ThoiKhoaBieuPublic,
-    ThoiKhoaBieusPublic,
-    ThoiKhoaBieuUpdate,
+from app.models.timetable import (
+    Timetable,
+    TimetableBase,
+    TimetableCreate,
+    TimetablePublic,
+    TimetablesPublic,
+    TimetableUpdate,
+)
+from app.models.semester import (
+    Semester,
+    SemesterBase,
+    SemesterCreate,
+    SemesterPublic,
+    SemestersPublic,
+    SemesterUpdate,
 )
 
 __all__ = [name for name in globals() if not name.startswith("_")]

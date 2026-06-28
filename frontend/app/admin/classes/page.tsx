@@ -14,12 +14,12 @@ import { AlertCircle, BookOpen, Edit, Loader2, Plus, Search, Trash2, Users } fro
 type AdminClass = Awaited<ReturnType<typeof AdminService.getClasses>>[number]
 
 const defaultForm = {
-  ma_hoc_phan: "",
-  ma_can_bo: "",
-  hoc_ky: "1",
-  nam_hoc: "2025-2026",
-  ty_le_chuyen_can_toi_thieu: "0.8",
-  trang_thai: "true",
+  course_id: "",
+  staff_id: "",
+  semester: "1",
+  academic_year: "2025-2026",
+  minimum_attendance_rate: "0.8",
+  status: "true",
 }
 
 export default function AdminClassesPage() {
@@ -66,8 +66,8 @@ export default function AdminClassesPage() {
     setEditingId(null)
     setFormData({
       ...defaultForm,
-      ma_hoc_phan: subjects[0]?.ma_hoc_phan?.toString() || "",
-      ma_can_bo: lecturers[0]?.ma_can_bo?.toString() || "",
+      course_id: subjects[0]?.course_id?.toString() || "",
+      staff_id: lecturers[0]?.staff_id?.toString() || "",
     })
     setIsDialogOpen(true)
   }
@@ -75,23 +75,23 @@ export default function AdminClassesPage() {
   const openEditDialog = (item: AdminClass) => {
     setEditingId(item.id)
     setFormData({
-      ma_hoc_phan: item.maHocPhan?.toString() || "",
-      ma_can_bo: item.maCanBo?.toString() || "",
-      hoc_ky: item.hocKyNumber?.toString() || "1",
-      nam_hoc: item.namHoc || "2025-2026",
-      ty_le_chuyen_can_toi_thieu: item.tyLeChuyenCanToiThieu?.toString() || "0.8",
-      trang_thai: item.trangThai === "Đang học" ? "true" : "false",
+      course_id: item.maHocPhan?.toString() || "",
+      staff_id: item.maCanBo?.toString() || "",
+      semester: item.hocKyNumber?.toString() || "1",
+      academic_year: item.namHoc || "2025-2026",
+      minimum_attendance_rate: item.tyLeChuyenCanToiThieu?.toString() || "0.8",
+      status: item.trangThai === "Đang học" ? "true" : "false",
     })
     setIsDialogOpen(true)
   }
 
   const buildPayload = (): AdminClassPayload => ({
-    ma_hoc_phan: Number(formData.ma_hoc_phan),
-    ma_can_bo: Number(formData.ma_can_bo),
-    hoc_ky: Number(formData.hoc_ky),
-    nam_hoc: formData.nam_hoc.trim(),
-    ty_le_chuyen_can_toi_thieu: Number(formData.ty_le_chuyen_can_toi_thieu),
-    trang_thai: formData.trang_thai === "true",
+    course_id: Number(formData.course_id),
+    staff_id: Number(formData.staff_id),
+    semester: Number(formData.semester),
+    academic_year: formData.academic_year.trim(),
+    minimum_attendance_rate: Number(formData.minimum_attendance_rate),
+    status: formData.status === "true",
   })
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -263,14 +263,14 @@ export default function AdminClassesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Hoc phan</Label>
-                  <Select value={formData.ma_hoc_phan} onValueChange={(value) => setFormData({ ...formData, ma_hoc_phan: value })}>
+                  <Select value={formData.course_id} onValueChange={(value) => setFormData({ ...formData, course_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chon hoc phan" />
                     </SelectTrigger>
                     <SelectContent>
                       {subjects.map((subject) => (
-                        <SelectItem key={subject.ma_hoc_phan} value={subject.ma_hoc_phan.toString()}>
-                          {subject.ten_hoc_phan} ({subject.ma_hoc_phan})
+                        <SelectItem key={subject.course_id} value={subject.course_id.toString()}>
+                          {subject.course_name} ({subject.course_id})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -278,14 +278,14 @@ export default function AdminClassesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Giang vien</Label>
-                  <Select value={formData.ma_can_bo} onValueChange={(value) => setFormData({ ...formData, ma_can_bo: value })}>
+                  <Select value={formData.staff_id} onValueChange={(value) => setFormData({ ...formData, staff_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chon giang vien" />
                     </SelectTrigger>
                     <SelectContent>
                       {lecturers.map((lecturer) => (
-                        <SelectItem key={lecturer.ma_can_bo} value={lecturer.ma_can_bo.toString()}>
-                          {lecturer.ho} {lecturer.ten}
+                        <SelectItem key={lecturer.staff_id} value={lecturer.staff_id.toString()}>
+                          {lecturer.last_name} {lecturer.first_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -296,22 +296,22 @@ export default function AdminClassesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="hocKy">Hoc ky</Label>
-                  <Input id="hocKy" type="number" min="1" max="3" value={formData.hoc_ky} onChange={(event) => setFormData({ ...formData, hoc_ky: event.target.value })} required />
+                  <Input id="hocKy" type="number" min="1" max="3" value={formData.semester} onChange={(event) => setFormData({ ...formData, semester: event.target.value })} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="namHoc">Nam hoc</Label>
-                  <Input id="namHoc" value={formData.nam_hoc} onChange={(event) => setFormData({ ...formData, nam_hoc: event.target.value })} required placeholder="2025-2026" />
+                  <Input id="namHoc" value={formData.academic_year} onChange={(event) => setFormData({ ...formData, academic_year: event.target.value })} required placeholder="2025-2026" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="tyLe">Ty le chuyen can toi thieu</Label>
-                  <Input id="tyLe" type="number" min="0" max="1" step="0.05" value={formData.ty_le_chuyen_can_toi_thieu} onChange={(event) => setFormData({ ...formData, ty_le_chuyen_can_toi_thieu: event.target.value })} required />
+                  <Input id="tyLe" type="number" min="0" max="1" step="0.05" value={formData.minimum_attendance_rate} onChange={(event) => setFormData({ ...formData, minimum_attendance_rate: event.target.value })} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Trang thai</Label>
-                  <Select value={formData.trang_thai} onValueChange={(value) => setFormData({ ...formData, trang_thai: value })}>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chon trang thai" />
                     </SelectTrigger>

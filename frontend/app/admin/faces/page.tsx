@@ -83,28 +83,28 @@ export default function AdminFaceManagement() {
       ])
       const users = Array.isArray(response) ? response : response.data || []
       const mapped = users.map((user: any) => {
-        const rawStudentId = user.studentId ?? user.ma_sinh_vien ?? user.id
+        const rawStudentId = user.studentId ?? user.student_id ?? user.id
         const studentIdText = rawStudentId?.toString() || ""
         const latestFace = (faceRecords || [])
-          .filter((face: any) => face.ma_sinh_vien?.toString() === studentIdText)
-          .sort((a: any, b: any) => (b.ma_anh || 0) - (a.ma_anh || 0))[0]
-        const faceStatus = latestFace?.trang_thai_duyet === "DA_DUYET"
+          .filter((face: any) => face.student_id?.toString() === studentIdText)
+          .sort((a: any, b: any) => (b.image_id || 0) - (a.image_id || 0))[0]
+        const faceStatus = latestFace?.review_status === "DA_DUYET"
           ? "approved"
-          : latestFace?.trang_thai_duyet === "CHO_DUYET"
+          : latestFace?.review_status === "CHO_DUYET"
             ? "pending"
-            : latestFace?.trang_thai_duyet === "TU_CHOI"
+            : latestFace?.review_status === "TU_CHOI"
               ? "poor"
               : user.faceDataStatus || "none"
         return {
           id: studentIdText || user.id?.toString(),
-          faceRecordId: latestFace?.ma_anh,
+          faceRecordId: latestFace?.image_id,
           name: user.name,
           studentId: studentIdText ? `SV${studentIdText.padStart(3, "0")}` : `SV${user.id}`,
           status: faceStatus,
-          quality: latestFace?.diem_chat_luong ? Math.round(latestFace.diem_chat_luong * 100) : faceStatus === "approved" ? 92 : undefined,
+          quality: latestFace?.quality_score ? Math.round(latestFace.quality_score * 100) : faceStatus === "approved" ? 92 : undefined,
           lastUpdated: user.createdAt,
           className: "CNTT",
-          imageUrl: toBackendAssetUrl(latestFace?.duong_dan_anh)
+          imageUrl: toBackendAssetUrl(latestFace?.image_path)
         }
       })
       setStudents(mapped)
@@ -137,7 +137,7 @@ export default function AdminFaceManagement() {
 
       const updatedStudents = students.map(s =>
         s.id === selectedStudent.id
-          ? { ...s, faceRecordId: faceRecord.ma_anh, status: "pending" as FaceStatus, quality: Math.round((faceRecord.diem_chat_luong || 0.98) * 100), lastUpdated: new Date().toLocaleDateString("vi-VN"), imageUrl: newImageUrl }
+          ? { ...s, faceRecordId: faceRecord.image_id, status: "pending" as FaceStatus, quality: Math.round((faceRecord.quality_score || 0.98) * 100), lastUpdated: new Date().toLocaleDateString("vi-VN"), imageUrl: newImageUrl }
           : s
       )
       setStudents(updatedStudents)

@@ -153,9 +153,9 @@ export default function LecturerClaimsPage() {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex flex-row lg:flex-col gap-2 shrink-0 border-t lg:border-t-0 lg:border-l border-[#E2E8F0] pt-4 lg:pt-0 lg:pl-4">
-                            <Button 
+                            <Button
                               onClick={() => handleUpdateStatus(claim.id, 'approved')}
                               disabled={processingId === claim.id}
                               className="bg-[#22C55E] hover:bg-[#16A34A] text-white flex-1"
@@ -163,7 +163,7 @@ export default function LecturerClaimsPage() {
                               {processingId === claim.id ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <CheckCircle className="w-4 h-4 mr-2" />}
                               Chấp thuận
                             </Button>
-                            <Button 
+                            <Button
                               onClick={() => handleUpdateStatus(claim.id, 'rejected')}
                               disabled={processingId === claim.id}
                               variant="outline"
@@ -197,8 +197,8 @@ export default function LecturerClaimsPage() {
                         </div>
                         <div>
                           <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                            claim.status === 'approved' 
-                              ? 'bg-[#DCFCE7] text-[#166534]' 
+                            claim.status === 'approved'
+                              ? 'bg-[#DCFCE7] text-[#166534]'
                               : 'bg-[#FEE2E2] text-[#991B1B]'
                           }`}>
                             {claim.status === 'approved' ? 'Đã chấp thuận' : 'Đã từ chối'}

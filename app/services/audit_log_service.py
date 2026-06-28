@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import Request
 from sqlmodel import Session, func, select
 
-from app.models import AuditLog, AuditLogsPublic, TaiKhoan
+from app.models import AuditLog, AuditLogsPublic, Account
 
 
 def request_ip(request: Request | None) -> str | None:
@@ -21,32 +21,37 @@ def request_user_agent(request: Request | None) -> str | None:
 def write_audit_log(
     *,
     session: Session,
-    account: TaiKhoan | None = None,
-    hanh_dong: str,
-    doi_tuong: str | None = None,
-    doi_tuong_id: str | int | None = None,
-    du_lieu_truoc: dict[str, Any] | None = None,
-    du_lieu_sau: dict[str, Any] | None = None,
+    account: Account | None = None,
+    action: str,
+    target_type: str | None = None,
+    target_id: str | int | None = None,
+    before_data: dict[str, Any] | None = None,
+    after_data: dict[str, Any] | None = None,
     request: Request | None = None,
-    trang_thai: str = "SUCCESS",
-    chi_tiet: str | None = None,
+    status: str = "SUCCESS",
+    detail: str | None = None,
 ) -> AuditLog:
     audit_log = AuditLog(
-        ma_tai_khoan=account.ma_tai_khoan if account else None,
-        vai_tro=account.vai_tro if account else None,
-        hanh_dong=hanh_dong,
-        doi_tuong=doi_tuong,
-        doi_tuong_id=str(doi_tuong_id) if doi_tuong_id is not None else None,
-        du_lieu_truoc=du_lieu_truoc,
-        du_lieu_sau=du_lieu_sau,
+        account_id=account.account_id if account else None,
+        role=account.role if account else None,
+        action=action,
+        target_type=target_type,
+        target_id=str(target_id) if target_id is not None else None,
+        before_data=before_data,
+        after_data=after_data,
         ip=request_ip(request),
         user_agent=request_user_agent(request),
-        trang_thai=trang_thai,
-        chi_tiet=chi_tiet,
+        status=status,
+        detail=detail,
     )
-    session.add(audit_log)
-    session.commit()
-    session.refresh(audit_log)
+    try:
+        session.add(audit_log)
+        session.commit()
+        session.refresh(audit_log)
+    except Exception as e:
+        session.rollback()
+        import logging
+        logging.getLogger("app.audit").error("Failed to write audit log: %s", e)
     return audit_log
 
 
@@ -55,25 +60,25 @@ def read_audit_logs(
     session: Session,
     skip: int = 0,
     limit: int = 100,
-    hanh_dong: str | None = None,
-    doi_tuong: str | None = None,
-    ma_tai_khoan: int | None = None,
+    action: str | None = None,
+    target_type: str | None = None,
+    account_id: int | None = None,
 ) -> AuditLogsPublic:
     count_statement = select(func.count()).select_from(AuditLog)
     statement = select(AuditLog)
 
-    if hanh_dong:
-        count_statement = count_statement.where(AuditLog.hanh_dong == hanh_dong)
-        statement = statement.where(AuditLog.hanh_dong == hanh_dong)
-    if doi_tuong:
-        count_statement = count_statement.where(AuditLog.doi_tuong == doi_tuong)
-        statement = statement.where(AuditLog.doi_tuong == doi_tuong)
-    if ma_tai_khoan:
-        count_statement = count_statement.where(AuditLog.ma_tai_khoan == ma_tai_khoan)
-        statement = statement.where(AuditLog.ma_tai_khoan == ma_tai_khoan)
+    if action:
+        count_statement = count_statement.where(AuditLog.action == action)
+        statement = statement.where(AuditLog.action == action)
+    if target_type:
+        count_statement = count_statement.where(AuditLog.target_type == target_type)
+        statement = statement.where(AuditLog.target_type == target_type)
+    if account_id:
+        count_statement = count_statement.where(AuditLog.account_id == account_id)
+        statement = statement.where(AuditLog.account_id == account_id)
 
     count = session.exec(count_statement).one()
     items = session.exec(
-        statement.order_by(AuditLog.thoi_gian.desc()).offset(skip).limit(limit)
+        statement.order_by(AuditLog.timestamp.desc()).offset(skip).limit(limit)
     ).all()
     return AuditLogsPublic(data=items, count=count)

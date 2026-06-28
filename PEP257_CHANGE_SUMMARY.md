@@ -22,9 +22,9 @@ can move toward the convention.
 - Replaced Vietnamese or mojibake docstrings in `app/models` with English
   PEP257-style docstrings.
 - Added English module/function docstrings to:
-  - `app/crud/hocphan_crud.py`
-  - `app/crud/nganh_crud.py`
-  - `app/crud/dangkyhocphan_crud.py`
+  - `app/crud/course_crud.py`
+  - `app/crud/major_crud.py`
+  - `app/crud/course_registration_crud.py`
   - `app/services/auth_token_service.py`
 - Upgraded complex service and route functions to Google Style docstrings with
   `Args`, `Returns`, and `Raises` where applicable:

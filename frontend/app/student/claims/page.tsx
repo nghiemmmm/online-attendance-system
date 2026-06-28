@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { StudentClaim } from "@/types/student"
 import { StudentService } from "@/services/student.service"
-import { Loader2, AlertCircle, MessageSquareWarning, Plus, Clock, CheckCircle, XCircle } from "lucide-react"
+import { Loader2, AlertCircle, MessageSquareWarning, Plus, Minus, Clock, CheckCircle, XCircle } from "lucide-react"
 
 export default function StudentClaimsPage() {
   const [studentUser, setStudentUser] = useState({
@@ -20,15 +20,17 @@ export default function StudentClaimsPage() {
   const [claims, setClaims] = useState<StudentClaim[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
+  // Registered classes for dropdown
+  const [registeredClasses, setRegisteredClasses] = useState<any[]>([])
+  const [loadingClasses, setLoadingClasses] = useState(false)
+
   // Form state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    subjectCode: '',
-    sessionNumber: '',
-    reason: ''
-  })
+  const [selectedClassId, setSelectedClassId] = useState<string>('')
+  const [sessionNumber, setSessionNumber] = useState<number>(1)
+  const [reason, setReason] = useState<string>('')
 
   const fetchClaims = async () => {
     setLoading(true)
@@ -43,6 +45,19 @@ export default function StudentClaimsPage() {
     }
   }
 
+  const loadRegisteredClasses = async () => {
+    try {
+      setLoadingClasses(true)
+      const allClasses = await StudentService.getAvailableClasses()
+      const registered = allClasses.filter((c: any) => c.is_registered)
+      setRegisteredClasses(registered)
+    } catch (err) {
+      console.error("Error loading registered classes for claim:", err)
+    } finally {
+      setLoadingClasses(false)
+    }
+  }
+
   useEffect(() => {
     StudentService.getProfile()
       .then(profile => {
@@ -54,24 +69,36 @@ export default function StudentClaimsPage() {
       })
       .catch(err => console.error("Lỗi tải thông tin sinh viên:", err))
     fetchClaims()
+    loadRegisteredClasses()
   }, [])
+
+  const selectedClass = registeredClasses.find(c => c.class_section_id.toString() === selectedClassId)
+  const maxSessions = selectedClass ? (selectedClass.total_sessions || 15) : 15
 
   const handleSubmitClaim = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.subjectCode || !formData.reason) return
-    
+    if (!selectedClassId || !reason) {
+      alert("Vui lòng chọn môn học và nhập lý do khiếu nại.")
+      return
+    }
+
     setSubmitting(true)
     try {
       const newClaim = await StudentService.submitClaim({
-        subjectCode: formData.subjectCode,
-        sessionNumber: parseInt(formData.sessionNumber) || 1,
-        reason: formData.reason
+        subjectCode: selectedClass?.course_name || `LHP ${selectedClassId}`,
+        subjectName: selectedClass?.course_name || "Môn học đã chọn",
+        class_section_id: Number(selectedClassId),
+        sessionNumber: sessionNumber,
+        reason: reason
       })
       setClaims([newClaim, ...claims])
       setIsDialogOpen(false)
-      setFormData({ subjectCode: '', sessionNumber: '', reason: '' })
-    } catch (err) {
-      alert("Đã xảy ra lỗi khi gửi khiếu nại.")
+      setSelectedClassId('')
+      setSessionNumber(1)
+      setReason('')
+      alert("Gửi khiếu nại thành công!")
+    } catch (err: any) {
+      alert(err.message || "Đã xảy ra lỗi khi gửi khiếu nại.")
     } finally {
       setSubmitting(false)
     }
@@ -105,59 +132,127 @@ export default function StudentClaimsPage() {
             <h1 className="text-2xl font-bold text-[#0F172A]">Lịch sử khiếu nại</h1>
             <p className="text-[#64748B] mt-1">Gửi và theo dõi kết quả xử lý khiếu nại điểm danh của bạn</p>
           </div>
-          
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open)
+            if (open) loadRegisteredClasses()
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white shrink-0">
                 <Plus className="w-4 h-4 mr-2" />
                 Gửi khiếu nại mới
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[480px]">
               <DialogHeader>
-                <DialogTitle>Tạo khiếu nại mới</DialogTitle>
+                <DialogTitle className="text-xl font-bold text-[#0F172A]">Tạo khiếu nại mới</DialogTitle>
                 <DialogDescription>
-                  Gửi yêu cầu xem xét lại kết quả điểm danh cho giảng viên.
+                  Chọn môn học trong học kỳ hiện tại và nhập số buổi học cần khiếu nại.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmitClaim} className="space-y-4 py-4">
+              <form onSubmit={handleSubmitClaim} className="space-y-5 py-2">
                 <div className="space-y-2">
-                  <Label htmlFor="subject">Mã môn học</Label>
-                  <Input 
-                    id="subject" 
-                    placeholder="VD: CS101" 
-                    value={formData.subjectCode}
-                    onChange={(e) => setFormData({...formData, subjectCode: e.target.value})}
+                  <Label htmlFor="subject-select" className="text-[#334155] font-semibold">
+                    Học phần đã đăng ký <span className="text-[#EF4444]">*</span>
+                  </Label>
+                  {loadingClasses ? (
+                    <div className="flex items-center text-sm text-[#64748B] py-2">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2 text-[#0EA5E9]" />
+                      Đang tải danh sách môn học...
+                    </div>
+                  ) : registeredClasses.length > 0 ? (
+                    <select
+                      id="subject-select"
+                      value={selectedClassId}
+                      onChange={(e) => {
+                        setSelectedClassId(e.target.value)
+                        setSessionNumber(1)
+                      }}
+                      className="w-full h-11 px-3.5 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:border-transparent transition-all"
+                      required
+                    >
+                      <option value="">-- Chọn học phần trong học kỳ này --</option>
+                      {registeredClasses.map((cls) => (
+                        <option key={cls.class_section_id} value={cls.class_section_id}>
+                          {cls.course_name} (Lớp {cls.class_section_id} - GV: {cls.lecturer_name})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-3 bg-[#FEF9C3] border border-[#FEF08A] rounded-lg text-xs text-[#92400E]">
+                      Bạn chưa đăng ký lớp học phần nào trong học kỳ này. Vui lòng vào trang <b>Đăng ký học phần</b> trước.
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="session-stepper" className="text-[#334155] font-semibold">
+                    Buổi học số <span className="text-[#EF4444]">*</span>
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0 border-[#CBD5E1] hover:bg-[#F1F5F9] active:scale-95 transition-all"
+                      disabled={!selectedClassId || sessionNumber <= 1}
+                      onClick={() => setSessionNumber(prev => Math.max(1, prev - 1))}
+                    >
+                      <Minus className="w-4 h-4 text-[#0F172A]" />
+                    </Button>
+
+                    <Input
+                      id="session-stepper"
+                      type="number"
+                      min={1}
+                      max={maxSessions}
+                      value={sessionNumber}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value)
+                        if (isNaN(val)) setSessionNumber(1)
+                        else setSessionNumber(Math.min(maxSessions, Math.max(1, val)))
+                      }}
+                      disabled={!selectedClassId}
+                      className="text-center font-bold text-base h-10 w-24 border-[#CBD5E1] focus-visible:ring-[#0EA5E9]"
+                      required
+                    />
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0 border-[#CBD5E1] hover:bg-[#F1F5F9] active:scale-95 transition-all"
+                      disabled={!selectedClassId || sessionNumber >= maxSessions}
+                      onClick={() => setSessionNumber(prev => Math.min(maxSessions, prev + 1))}
+                    >
+                      <Plus className="w-4 h-4 text-[#0F172A]" />
+                    </Button>
+
+                    <span className="text-xs font-medium text-[#64748B]">
+                      {selectedClassId ? `(Phạm vi: 1 - ${maxSessions} buổi)` : "(Hãy chọn môn trước)"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reason" className="text-[#334155] font-semibold">
+                    Lý do khiếu nại chi tiết <span className="text-[#EF4444]">*</span>
+                  </Label>
+                  <textarea
+                    id="reason"
+                    className="w-full min-h-[100px] flex rounded-lg border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm ring-offset-background placeholder:text-[#94A3B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+                    placeholder="Mô tả cụ thể lý do hệ thống điểm danh sai sót (VD: máy quét chưa kịp nhận diện, em đi học đúng giờ...)"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="session">Buổi học số</Label>
-                  <Input 
-                    id="session" 
-                    type="number" 
-                    placeholder="VD: 5" 
-                    value={formData.sessionNumber}
-                    onChange={(e) => setFormData({...formData, sessionNumber: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Lý do khiếu nại</Label>
-                  <textarea 
-                    id="reason" 
-                    className="w-full min-h-[100px] flex rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Trình bày rõ lý do hệ thống điểm danh sai sót..."
-                    value={formData.reason}
-                    onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                    required
-                  />
-                </div>
-                <DialogFooter>
+
+                <DialogFooter className="pt-2">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Hủy</Button>
-                  <Button type="submit" disabled={submitting} className="bg-[#0A2540] hover:bg-[#1A3A5C]">
+                  <Button type="submit" disabled={submitting || !selectedClassId} className="bg-[#0A2540] hover:bg-[#1A3A5C]">
                     {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2"/>}
-                    Gửi yêu cầu
+                    Gửi yêu cầu khiếu nại
                   </Button>
                 </DialogFooter>
               </form>

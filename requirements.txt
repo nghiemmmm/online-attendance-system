@@ -12,10 +12,11 @@ python-multipart>=0.0.9
 pydantic==2.11.7
 python-dotenv==1.0.0
 PyJWT==2.8.0
-sqlmodel
-sqlalchemy
-alembic
-psycopg[binary]
+sqlalchemy>=2.0.0
+sqlmodel>=0.0.14
+alembic>=1.13.0
+psycopg[binary,asyncpg]>=3.1.0
+asyncpg>=0.27.0
 pgvector
 email-validator
 passlib==1.7.4
@@ -37,3 +38,4 @@ Jinja2
 insightface
 onnxruntime
 facenet-pytorch
+ruff==0.6.9

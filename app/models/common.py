@@ -1,9 +1,9 @@
 """Define shared API response models."""
 
-from sqlmodel import SQLModel
+from app.models.base import AppBaseModel
 
 
-class Message(SQLModel):
+class Message(AppBaseModel):
     """Represent a generic API message response."""
 
     message: str

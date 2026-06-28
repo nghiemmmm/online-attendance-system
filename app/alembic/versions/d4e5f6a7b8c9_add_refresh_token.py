@@ -19,8 +19,8 @@ depends_on = None
 def upgrade():
     op.create_table(
         "refresh_token",
-        sa.Column("ma_refresh_token", sa.Integer(), nullable=False),
-        sa.Column("ma_tai_khoan", sa.Integer(), nullable=False),
+        sa.Column("refresh_token_id", sa.Integer(), nullable=False),
+        sa.Column("account_id", sa.Integer(), nullable=False),
         sa.Column(
             "token_hash",
             sqlmodel.sql.sqltypes.AutoString(length=255),
@@ -40,8 +40,8 @@ def upgrade():
             sqlmodel.sql.sqltypes.AutoString(length=45),
             nullable=True,
         ),
-        sa.ForeignKeyConstraint(["ma_tai_khoan"], ["taikhoan.ma_tai_khoan"]),
-        sa.PrimaryKeyConstraint("ma_refresh_token"),
+        sa.ForeignKeyConstraint(["account_id"], ["accounts.account_id"]),
+        sa.PrimaryKeyConstraint("refresh_token_id"),
     )
     op.create_index(
         op.f("ix_refresh_token_expires_at"),
@@ -50,9 +50,9 @@ def upgrade():
         unique=False,
     )
     op.create_index(
-        op.f("ix_refresh_token_ma_tai_khoan"),
+        op.f("ix_refresh_token_account_id"),
         "refresh_token",
-        ["ma_tai_khoan"],
+        ["account_id"],
         unique=False,
     )
     op.create_index(
@@ -72,6 +72,6 @@ def upgrade():
 def downgrade():
     op.drop_index(op.f("ix_refresh_token_token_hash"), table_name="refresh_token")
     op.drop_index(op.f("ix_refresh_token_revoked_at"), table_name="refresh_token")
-    op.drop_index(op.f("ix_refresh_token_ma_tai_khoan"), table_name="refresh_token")
+    op.drop_index(op.f("ix_refresh_token_account_id"), table_name="refresh_token")
     op.drop_index(op.f("ix_refresh_token_expires_at"), table_name="refresh_token")
     op.drop_table("refresh_token")

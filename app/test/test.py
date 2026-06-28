@@ -45,7 +45,7 @@ if not os.path.exists(index_path):
 else:
     index = faiss.read_index(index_path)
     print(f"[INFO] FAISS index loaded: {index.ntotal} embeddings")
-    
+
     with open(metadata_path, "rb") as f:
         names = pickle.load(f)
     print(f"[INFO] Metadata loaded: {len(names)} names")
@@ -59,35 +59,35 @@ if not os.path.exists(image_path):
     print(f"[ERROR] Test image not found at {image_path}")
 else:
     print(f"\n[INFO] Testing with: {image_path}")
-    
+
     # Load and detect face
     img = Image.open(image_path).convert('RGB')
     img_tensor = mtcnn(img)
-    
+
     if img_tensor is None:
         print("[WARNING] No face detected in image")
     else:
         # Ensure proper shape
         if img_tensor.dim() == 3:
             img_tensor = img_tensor.unsqueeze(0)
-        
+
         # Generate embedding
         with torch.no_grad():
             embedding = model(img_tensor.to(device)).cpu().numpy()[0].astype('float32')
-        
+
         print(f"[INFO] Embedding shape: {embedding.shape}")
         print(f"[INFO] Embedding norm: {np.linalg.norm(embedding):.4f}")
-        
+
         # Search in FAISS
         if index.ntotal > 0:
             query = np.expand_dims(embedding, axis=0)
             distances, indices = index.search(query, k=1)
-            
+
             dist = distances[0][0]
             idx = indices[0][0]
             name = names[idx] if idx < len(names) else "unknown"
             matched = dist < 0.6
-            
+
             print(f"\n[RESULT]")
             print(f"  Name: {name}")
             print(f"  Distance: {dist:.4f}")

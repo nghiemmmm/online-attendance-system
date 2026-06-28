@@ -10,7 +10,7 @@ from app.utils.logger import logger
 # To call db we need session
 from app.core.db import engine
 from sqlmodel import Session
-from app.crud.diemdanh_crud import mark_attendance_by_lora
+from app.crud.attendance_crud import mark_attendance_by_lora
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -19,18 +19,18 @@ class VideoTransformTrack(MediaStreamTrack):
 
     kind = "video"
 
-    def __init__(self, track, ma_buoi_hoc: int = None):
+    def __init__(self, track, class_session_id: int = None):
         super().__init__()
         self.track = track
-        self.ma_buoi_hoc = ma_buoi_hoc
+        self.class_session_id = class_session_id
         self.last_process_time = time.time()
         self.process_interval = 3.0  # Xử lý 3 giây 1 lần
 
     async def recv(self):
         frame = await self.track.recv()
-        
+
         current_time = time.time()
-        if self.ma_buoi_hoc and (current_time - self.last_process_time > self.process_interval):
+        if self.class_session_id and (current_time - self.last_process_time > self.process_interval):
             self.last_process_time = current_time
             # Chuyển frame thành ảnh
             img = frame.to_ndarray(format="rgb24")
@@ -38,18 +38,18 @@ class VideoTransformTrack(MediaStreamTrack):
             img_byte_arr = io.BytesIO()
             pil_img.save(img_byte_arr, format='JPEG')
             image_bytes = img_byte_arr.getvalue()
-            
+
             # Chạy nhận diện
             recognized_ids = face_service.recognize_faces(image_bytes)
-            
+
             if recognized_ids:
                 # Ghi điểm danh
                 with Session(engine) as session:
                     result = mark_attendance_by_lora(
                         session=session,
-                        ma_buoi_hoc=self.ma_buoi_hoc,
-                        danh_sach_ma_sinh_vien=recognized_ids,
-                        do_tin_cay_trung_binh=0.8
+                        class_session_id=self.class_session_id,
+                        student_ids=recognized_ids,
+                        average_confidence=0.8
                     )
                     logger.info(f"WebRTC AI Diem danh: {result}")
 

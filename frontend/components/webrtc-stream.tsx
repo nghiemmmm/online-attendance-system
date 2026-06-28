@@ -28,7 +28,7 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
   // WebRTC Simulator States & Refs
   const [videoSource, setVideoSource] = useState<"camera" | "mock">("camera")
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
-  
+
   const mockCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const mockImageRef = useRef<HTMLImageElement | null>(null)
   const animationFrameIdRef = useRef<number | null>(null)
@@ -105,7 +105,7 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
     const file = e.target.files?.[0]
     if (!file) return
     setUploadedFileName(file.name)
-    
+
     const reader = new FileReader()
     reader.onload = (event) => {
       const img = new Image()
@@ -124,15 +124,15 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
     canvas.width = 640
     canvas.height = 480
     const ctx = canvas.getContext("2d")
-    
+
     let angle = 0
     const draw = () => {
       if (!ctx) return
-      
+
       // Background
       ctx.fillStyle = "#070A0F"
       ctx.fillRect(0, 0, 640, 480)
-      
+
       // Grid pattern
       ctx.strokeStyle = "rgba(14, 165, 233, 0.1)"
       ctx.lineWidth = 1
@@ -148,37 +148,37 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
         ctx.lineTo(640, j)
         ctx.stroke()
       }
-      
+
       // Scanner Target Box
       ctx.strokeStyle = "rgba(14, 165, 233, 0.3)"
       ctx.lineWidth = 2
       ctx.strokeRect(170, 90, 300, 300)
-      
+
       // Draw corners of target box
       ctx.strokeStyle = "#0EA5E9"
       ctx.lineWidth = 4
-      
+
       // Top-Left corner
       ctx.beginPath()
       ctx.moveTo(170, 120)
       ctx.lineTo(170, 90)
       ctx.lineTo(200, 90)
       ctx.stroke()
-      
+
       // Top-Right corner
       ctx.beginPath()
       ctx.moveTo(470, 120)
       ctx.lineTo(470, 90)
       ctx.lineTo(440, 90)
       ctx.stroke()
-      
+
       // Bottom-Left corner
       ctx.beginPath()
       ctx.moveTo(170, 360)
       ctx.lineTo(170, 390)
       ctx.lineTo(200, 390)
       ctx.stroke()
-      
+
       // Bottom-Right corner
       ctx.beginPath()
       ctx.moveTo(470, 360)
@@ -193,14 +193,14 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
         // Draw standard face mock silhouette/graphic
         ctx.fillStyle = "rgba(14, 165, 233, 0.05)"
         ctx.fillRect(175, 95, 290, 290)
-        
+
         ctx.fillStyle = "#64748B"
         ctx.font = "13px sans-serif"
         ctx.textAlign = "center"
         ctx.fillText("Chưa tải ảnh test", 320, 230)
         ctx.fillText("(Bấm 'Chọn ảnh test' bên dưới)", 320, 255)
       }
-      
+
       // Scanning line animation
       const scanY = 90 + ((Math.sin(angle) + 1) / 2) * 300
       ctx.strokeStyle = "#22C55E"
@@ -212,19 +212,19 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
       ctx.lineTo(470, scanY)
       ctx.stroke()
       ctx.shadowBlur = 0 // reset shadow
-      
+
       // UI info texts
       ctx.fillStyle = "#0EA5E9"
       ctx.font = "bold 15px monospace"
       ctx.textAlign = "left"
       ctx.fillText("SYSTEM: WEBRTC SIMULATOR FEED", 30, 40)
-      
+
       ctx.fillStyle = "#94A3B8"
       ctx.font = "11px monospace"
       ctx.fillText(`STATUS: TRANSMITTING [FPS: 10]`, 30, 60)
       ctx.fillText(`TARGET ROOM ID: ${maBuoiHoc}`, 30, 75)
       ctx.fillText(`SYSTEM TIME: ${new Date().toLocaleTimeString()}`, 30, 450)
-      
+
       // Draw crosshairs
       ctx.strokeStyle = "rgba(239, 68, 68, 0.4)"
       ctx.lineWidth = 1
@@ -234,13 +234,13 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
       ctx.moveTo(300, 240)
       ctx.lineTo(340, 240)
       ctx.stroke()
-      
+
       angle += 0.04
       animationFrameIdRef.current = requestAnimationFrame(draw)
     }
-    
+
     draw()
-    
+
     // Capture stream at 10 fps
     const c = canvas as any
     if (c.captureStream) return c.captureStream(10)
@@ -372,10 +372,10 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
       }
 
       // Post offer to backend
-      const response = await apiClient.post<any>("/webrtc/offer", {
+      const response = await apiClient.post<any>("/webrtc/offers", {
         sdp: sdp,
         type: localDesc.type,
-        ma_buoi_hoc: maBuoiHoc,
+        class_session_id: maBuoiHoc,
       })
 
       if (!response || !response.sdp || !response.type) {
@@ -485,7 +485,7 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[#64748B] text-xs">
             <Cpu className="w-4 h-4 text-[#0EA5E9]" />
-            <span>Mạng thu thập: <strong className="text-gray-300">{iceGatheringState}</strong></span>
+            <span>Mạng weekday thập: <strong className="text-gray-300">{iceGatheringState}</strong></span>
           </div>
 
           <div className="flex gap-2">

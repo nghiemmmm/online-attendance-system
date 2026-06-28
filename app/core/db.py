@@ -1,29 +1,89 @@
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import Session, create_engine, select
 
 from app import crud
 from app.core.config import settings
-from app.models import TaiKhoan, TaiKhoanCreate
+from app.models import Account, AccountCreate
 
+# ✅ ASYNC engine (for async routes)
+async_engine = create_async_engine(
+    str(settings.SQLALCHEMY_DATABASE_ASYNC_URI),
+    pool_pre_ping=True,
+    echo=False,  # Set to True for SQL debugging
+    future=True,  # Use SQLAlchemy 2.0 style
+)
+
+# ✅ ASYNC sessionmaker
+AsyncSessionFactory = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)
+
+# ⚠️ SYNC engine (temporary, for backward compatibility with existing sync routes)
+# This should be removed once all routes are migrated to async
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 
-def ensure_pgvector_extension(session: Session) -> None:
+async def ensure_pgvector_extension(session: AsyncSession) -> None:
+    """Enable pgvector extension for vector similarity search."""
+    await session.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    await session.commit()
+
+
+async def init_db_async(session: AsyncSession) -> None:
+    """Initialize database with default superuser (async version)."""
+    # await ensure_pgvector_extension(session)
+
+    stmt = select(Account).where(Account.username == settings.FIRST_SUPERUSER)
+    result = await session.execute(stmt)
+    account = result.scalar_one_or_none()
+
+    if not account:
+        account_in = AccountCreate(
+            username=settings.FIRST_SUPERUSER,
+            password=settings.FIRST_SUPERUSER_PASSWORD,
+            role="ADMIN",
+        )
+        # TODO: Implement async version of create_account
+        # For now, creating directly with ORM
+        from app.core.security import get_password_hash
+
+        account = Account(
+            username=account_in.username,
+            password_hash=get_password_hash(account_in.password),
+            role=account_in.role,
+        )
+        session.add(account)
+        await session.commit()
+        await session.refresh(account)
+
+
+# ⚠️ DEPRECATED: Keep for backward compatibility only
+def ensure_pgvector_extension_sync(session) -> None:
+    """DEPRECATED: Use ensure_pgvector_extension instead."""
     session.exec(text("CREATE EXTENSION IF NOT EXISTS vector;"))
     session.commit()
 
 
-def init_db(session: Session) -> None:
-    # ensure_pgvector_extension(session)
+def init_db_sync(session) -> None:
+    """DEPRECATED: Use init_db_async instead."""
+    from sqlmodel import Session, create_engine as sqlmodel_create_engine
+
+    sync_engine = sqlmodel_create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+    with Session(sync_engine) as sync_session:
+        stmt = select(Account).where(Account.username == settings.FIRST_SUPERUSER)
+        account = sync_session.exec(stmt).first()
+        if not account:
+            account_in = AccountCreate(
+                username=settings.FIRST_SUPERUSER,
+                password=settings.FIRST_SUPERUSER_PASSWORD,
+                role="ADMIN",
+            )
+            crud.create_account(session=sync_session, account_create=account_in)
 
 
-    account = session.exec(
-        select(TaiKhoan).where(TaiKhoan.ten_dang_nhap == settings.FIRST_SUPERUSER)
-    ).first()
-    if not account:
-        account_in = TaiKhoanCreate(
-            ten_dang_nhap=settings.FIRST_SUPERUSER,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
-            vai_tro="ADMIN",
-        )
-        crud.create_account(session=session, account_create=account_in)
+init_db = init_db_sync
+

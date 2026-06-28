@@ -45,79 +45,79 @@ def upgrade():
     if not _table_exists(inspector, "auditlog"):
         op.create_table(
             "auditlog",
-            sa.Column("ma_tai_khoan", sa.Integer(), nullable=True),
-            sa.Column("vai_tro", sqlmodel.sql.sqltypes.AutoString(length=20), nullable=True),
-            sa.Column("hanh_dong", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
-            sa.Column("doi_tuong", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
-            sa.Column("doi_tuong_id", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
-            sa.Column("du_lieu_truoc", sa.JSON(), nullable=True),
-            sa.Column("du_lieu_sau", sa.JSON(), nullable=True),
+            sa.Column("account_id", sa.Integer(), nullable=True),
+            sa.Column("role", sqlmodel.sql.sqltypes.AutoString(length=20), nullable=True),
+            sa.Column("action", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
+            sa.Column("target_type", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+            sa.Column("target_id", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+            sa.Column("before_data", sa.JSON(), nullable=True),
+            sa.Column("after_data", sa.JSON(), nullable=True),
             sa.Column("ip", sqlmodel.sql.sqltypes.AutoString(length=45), nullable=True),
             sa.Column("user_agent", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
-            sa.Column("trang_thai", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False),
-            sa.Column("chi_tiet", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
-            sa.Column("ma_audit_log", sa.Integer(), nullable=False),
-            sa.Column("thoi_gian", sa.DateTime(), nullable=False),
-            sa.ForeignKeyConstraint(["ma_tai_khoan"], ["taikhoan.ma_tai_khoan"]),
-            sa.PrimaryKeyConstraint("ma_audit_log"),
+            sa.Column("status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False),
+            sa.Column("detail", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+            sa.Column("audit_log_id", sa.Integer(), nullable=False),
+            sa.Column("timestamp", sa.DateTime(), nullable=False),
+            sa.ForeignKeyConstraint(["account_id"], ["accounts.account_id"]),
+            sa.PrimaryKeyConstraint("audit_log_id"),
         )
         inspector = sa.inspect(bind)
 
     if not _index_exists(inspector, "auditlog", "ix_auditlog_thoi_gian"):
-        op.create_index(op.f("ix_auditlog_thoi_gian"), "auditlog", ["thoi_gian"], unique=False)
+        op.create_index(op.f("ix_auditlog_thoi_gian"), "auditlog", ["timestamp"], unique=False)
 
-    if not _column_exists(inspector, "anhdiemdanh", "do_tin_cay"):
-        op.add_column("anhdiemdanh", sa.Column("do_tin_cay", sa.Float(), nullable=True))
+    if not _column_exists(inspector, "attendance_images", "confidence"):
+        op.add_column("attendance_images", sa.Column("confidence", sa.Float(), nullable=True))
 
-    if not _column_exists(inspector, "anhkhuonmat", "diem_chat_luong"):
-        op.add_column("anhkhuonmat", sa.Column("diem_chat_luong", sa.Float(), nullable=True))
+    if not _column_exists(inspector, "face_images", "quality_score"):
+        op.add_column("face_images", sa.Column("quality_score", sa.Float(), nullable=True))
 
-    if not _column_exists(inspector, "anhkhuonmat", "trang_thai_duyet"):
+    if not _column_exists(inspector, "face_images", "review_status"):
         op.add_column(
-            "anhkhuonmat",
+            "face_images",
             sa.Column(
-                "trang_thai_duyet",
+                "review_status",
                 sqlmodel.sql.sqltypes.AutoString(length=30),
                 nullable=False,
                 server_default="CHO_DUYET",
             ),
         )
-        op.alter_column("anhkhuonmat", "trang_thai_duyet", server_default=None)
+        op.alter_column("face_images", "review_status", server_default=None)
 
-    if not _column_exists(inspector, "anhkhuonmat", "ly_do_tu_choi"):
+    if not _column_exists(inspector, "face_images", "rejection_reason"):
         op.add_column(
-            "anhkhuonmat",
-            sa.Column("ly_do_tu_choi", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
+            "face_images",
+            sa.Column("rejection_reason", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
         )
 
-    if not _column_exists(inspector, "anhkhuonmat", "ma_nguoi_duyet"):
-        op.add_column("anhkhuonmat", sa.Column("ma_nguoi_duyet", sa.Integer(), nullable=True))
+    if not _column_exists(inspector, "face_images", "reviewer_id"):
+        op.add_column("face_images", sa.Column("reviewer_id", sa.Integer(), nullable=True))
 
-    if not _column_exists(inspector, "anhkhuonmat", "thoi_gian_duyet"):
-        op.add_column("anhkhuonmat", sa.Column("thoi_gian_duyet", sa.DateTime(), nullable=True))
+    if not _column_exists(inspector, "face_images", "reviewed_at"):
+        op.add_column("face_images", sa.Column("reviewed_at", sa.DateTime(), nullable=True))
 
     inspector = sa.inspect(bind)
-    if not _fk_exists(inspector, "anhkhuonmat", "fk_anhkhuonmat_ma_nguoi_duyet_taikhoan"):
+    if not _fk_exists(inspector, "face_images", "fk_anhkhuonmat_ma_nguoi_duyet_taikhoan"):
         op.create_foreign_key(
             "fk_anhkhuonmat_ma_nguoi_duyet_taikhoan",
-            "anhkhuonmat",
-            "taikhoan",
-            ["ma_nguoi_duyet"],
-            ["ma_tai_khoan"],
+            "face_images",
+            "accounts",
+            ["reviewer_id"],
+            ["account_id"],
         )
 
 
 def downgrade():
     op.drop_constraint(
         "fk_anhkhuonmat_ma_nguoi_duyet_taikhoan",
-        "anhkhuonmat",
+        "face_images",
         type_="foreignkey",
     )
-    op.drop_column("anhkhuonmat", "thoi_gian_duyet")
-    op.drop_column("anhkhuonmat", "ma_nguoi_duyet")
-    op.drop_column("anhkhuonmat", "ly_do_tu_choi")
-    op.drop_column("anhkhuonmat", "trang_thai_duyet")
-    op.drop_column("anhkhuonmat", "diem_chat_luong")
-    op.drop_column("anhdiemdanh", "do_tin_cay")
+    op.drop_column("face_images", "reviewed_at")
+    op.drop_column("face_images", "reviewer_id")
+    op.drop_column("face_images", "rejection_reason")
+    op.drop_column("face_images", "review_status")
+    op.drop_column("face_images", "quality_score")
+    op.drop_column("attendance_images", "confidence")
     op.drop_index(op.f("ix_auditlog_thoi_gian"), table_name="auditlog")
     op.drop_table("auditlog")

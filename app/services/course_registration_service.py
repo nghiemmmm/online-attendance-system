@@ -2,11 +2,11 @@
 
 from sqlmodel import Session
 
-from app.crud import dangkyhocphan_crud
+from app.crud import course_registration_crud
 from app.models import (
-    DangKyHocPhan,
-    DangKyHocPhanCreate,
-    DangKyHocPhanUpdate,
+    CourseRegistration,
+    CourseRegistrationCreate,
+    CourseRegistrationUpdate,
     Message,
 )
 from app.core.exceptions import CourseRegistrationNotFoundError
@@ -17,9 +17,9 @@ def list_course_registrations(
     session: Session,
     skip: int = 0,
     limit: int = 100,
-) -> tuple[list[DangKyHocPhan], int]:
+) -> tuple[list[CourseRegistration], int]:
     """Return paginated course registrations."""
-    return dangkyhocphan_crud.get_course_registrations(
+    return course_registration_crud.get_course_registrations(
         session=session,
         skip=skip,
         limit=limit,
@@ -29,12 +29,12 @@ def list_course_registrations(
 def get_course_registration_or_404(
     *,
     session: Session,
-    ma_dang_ky: int,
-) -> DangKyHocPhan:
+    registration_id: int,
+) -> CourseRegistration:
     """Return a course registration or raise a 404 error."""
-    item = dangkyhocphan_crud.get_course_registration(
+    item = course_registration_crud.get_course_registration(
         session=session,
-        ma_dang_ky=ma_dang_ky,
+        registration_id=registration_id,
     )
     if not item:
         raise CourseRegistrationNotFoundError()
@@ -44,10 +44,10 @@ def get_course_registration_or_404(
 def create_course_registration(
     *,
     session: Session,
-    item_in: DangKyHocPhanCreate,
-) -> DangKyHocPhan:
+    item_in: CourseRegistrationCreate,
+) -> CourseRegistration:
     """Create a course registration."""
-    return dangkyhocphan_crud.create_course_registration(
+    return course_registration_crud.create_course_registration(
         session=session,
         item_create=item_in,
     )
@@ -56,26 +56,26 @@ def create_course_registration(
 def update_course_registration(
     *,
     session: Session,
-    ma_dang_ky: int,
-    item_in: DangKyHocPhanUpdate,
-) -> DangKyHocPhan:
+    registration_id: int,
+    item_in: CourseRegistrationUpdate,
+) -> CourseRegistration:
     """Update a course registration."""
     item = get_course_registration_or_404(
         session=session,
-        ma_dang_ky=ma_dang_ky,
+        registration_id=registration_id,
     )
-    return dangkyhocphan_crud.update_course_registration(
+    return course_registration_crud.update_course_registration(
         session=session,
         db_item=item,
         item_update=item_in,
     )
 
 
-def delete_course_registration(*, session: Session, ma_dang_ky: int) -> Message:
+def delete_course_registration(*, session: Session, registration_id: int) -> Message:
     """Delete a course registration."""
     item = get_course_registration_or_404(
         session=session,
-        ma_dang_ky=ma_dang_ky,
+        registration_id=registration_id,
     )
-    dangkyhocphan_crud.delete_course_registration(session=session, db_item=item)
+    course_registration_crud.delete_course_registration(session=session, db_item=item)
     return Message(message="Course registration deleted successfully")

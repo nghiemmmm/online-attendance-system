@@ -32,13 +32,13 @@ function CallbackHandler() {
 
     if (token) {
       localStorage.setItem("access_token", token)
-      
+
       // Fetch user info to redirect to appropriate dashboard
       apiClient.get<any>("/users/me")
         .then((user) => {
-          if (user.vai_tro === "SINH_VIEN") {
+          if (user.role === "SINH_VIEN") {
             router.push("/student")
-          } else if (user.vai_tro === "GIANG_VIEN") {
+          } else if (user.role === "GIANG_VIEN") {
             router.push("/lecturer")
           } else {
             router.push("/admin")
@@ -76,13 +76,13 @@ function CallbackHandler() {
         <div>
           <h2 className="text-xl font-bold text-[#991B1B]">Đăng nhập thất bại</h2>
           <p className="text-sm text-[#7F1D1D] mt-2 bg-[#FEF2F2] p-3 rounded-lg border border-[#FCA5A5]/40">
-            {error === "Google email is not registered in the system" 
-              ? "Email Google của bạn chưa được đăng ký trong hệ thống. Vui lòng liên hệ Admin." 
+            {error === "Google email is not registered in the system"
+              ? "Email Google của bạn chưa được đăng ký trong hệ thống. Vui lòng liên hệ Admin."
               : error}
           </p>
         </div>
-        <Button 
-          onClick={() => router.push("/")} 
+        <Button
+          onClick={() => router.push("/")}
           className="w-full bg-[#0A2540] hover:bg-[#1A3A5C] text-white"
         >
           Quay lại trang đăng nhập
@@ -103,8 +103,8 @@ function CallbackHandler() {
             Tài khoản của bạn đã được tạo thành công và đang ở trạng thái chờ kích hoạt. Vui lòng liên hệ quản trị viên để duyệt tài khoản.
           </p>
         </div>
-        <Button 
-          onClick={() => router.push("/")} 
+        <Button
+          onClick={() => router.push("/")}
           className="w-full bg-[#0A2540] hover:bg-[#1A3A5C] text-white"
         >
           Quay lại trang đăng nhập

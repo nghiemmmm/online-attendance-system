@@ -12,8 +12,8 @@ from app.models import (
     Message,
     NewPassword,
     RefreshTokenRequest,
-    TaiKhoanPublic,
-    TaiKhoanUpdate,
+    AccountPublic,
+    AccountUpdate,
     Token,
 )
 from app.services.auth_token_service import (
@@ -23,41 +23,48 @@ from app.services.auth_token_service import (
     refresh_access_token,
 )
 from app.services.audit_log_service import write_audit_log
-from app.utils import verify_password_reset_token
+from app.utils import (
+    verify_password_reset_token,
+    generate_password_reset_token,
+    generate_reset_password_email,
+    send_email,
+)
 
 router = APIRouter(tags=["login"])
 logger = logging.getLogger("app.auth")
 
 
-@router.post("/login/access-token", dependencies=[Depends(login_rate_limiter)])
+@router.post("/auth/access-tokens", dependencies=[Depends(login_rate_limiter)])
 def login_access_token(
     request: Request,
     session: SessionDep,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
-    account = crud.authenticate_account(
-        session=session,
-        ten_dang_nhap=form_data.username,
-        password=form_data.password,
-    )
-    if not account:
-        logger.warning("password_login_failed username=%s", form_data.username)
+    try:
+        account = crud.authenticate_account(
+            session=session,
+            username=form_data.username,
+            password=form_data.password,
+        )
+    except HTTPException as e:
+        logger.warning("password_login_failed username=%s detail=%s", form_data.username, e.detail)
         write_audit_log(
             session=session,
-            hanh_dong="DANG_NHAP",
-            doi_tuong="TaiKhoan",
-            doi_tuong_id=form_data.username,
+            action="DANG_NHAP",
+            target_type="Account",
+            target_id=form_data.username,
             request=request,
-            trang_thai="FAILED",
-            chi_tiet="Sai ten dang nhap hoac mat khau",
+            status="FAILED",
+            detail=e.detail,
         )
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        raise e
+
     write_audit_log(
         session=session,
         account=account,
-        hanh_dong="DANG_NHAP",
-        doi_tuong="TaiKhoan",
-        doi_tuong_id=account.ma_tai_khoan,
+        action="DANG_NHAP",
+        target_type="Account",
+        target_id=account.account_id,
         request=request,
     )
     token = issue_login_tokens(session=session, account=account, remember_me=False)
@@ -65,7 +72,7 @@ def login_access_token(
     return token
 
 
-@router.post("/login/json", dependencies=[Depends(login_rate_limiter)])
+@router.post("/auth/tokens", dependencies=[Depends(login_rate_limiter)])
 def login_json(
     *,
     request: Request,
@@ -78,30 +85,31 @@ def login_json(
     Khi remember_me=True, backend cấp thêm refresh token dài hạn để client có thể
     xin access token mới mà không cần nhập lại mật khẩu.
     """
-    account = crud.authenticate_account(
-        session=session,
-        ten_dang_nhap=body.username,
-        password=body.password,
-    )
-    if not account:
-        logger.warning("json_login_failed username=%s", body.username)
+    try:
+        account = crud.authenticate_account(
+            session=session,
+            username=body.username,
+            password=body.password,
+        )
+    except HTTPException as e:
+        logger.warning("json_login_failed username=%s detail=%s", body.username, e.detail)
         write_audit_log(
             session=session,
-            hanh_dong="DANG_NHAP",
-            doi_tuong="TaiKhoan",
-            doi_tuong_id=body.username,
+            action="DANG_NHAP",
+            target_type="Account",
+            target_id=body.username,
             request=request,
-            trang_thai="FAILED",
-            chi_tiet="Sai ten dang nhap hoac mat khau",
+            status="FAILED",
+            detail=e.detail,
         )
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        raise e
 
     write_audit_log(
         session=session,
         account=account,
-        hanh_dong="DANG_NHAP",
-        doi_tuong="TaiKhoan",
-        doi_tuong_id=account.ma_tai_khoan,
+        action="DANG_NHAP",
+        target_type="Account",
+        target_id=account.account_id,
         request=request,
     )
 
@@ -114,7 +122,7 @@ def login_json(
     )
 
 
-@router.post("/login/refresh")
+@router.post("/auth/token-refreshes")
 def refresh_token(session: SessionDep, body: RefreshTokenRequest) -> Token:
     """Cấp access token mới từ refresh token hợp lệ."""
     return refresh_access_token(
@@ -123,16 +131,16 @@ def refresh_token(session: SessionDep, body: RefreshTokenRequest) -> Token:
     )
 
 
-@router.post("/login/logout", response_model=Message)
+@router.delete("/sessions/current", response_model=Message)
 def logout(session: SessionDep, body: LogoutRequest) -> Message:
-    """Đăng xuất một phiên bằng cách thu hồi refresh token hiện tại."""
+    """Đăng xuất một phiên bằng cách weekday hồi refresh token hiện tại."""
     logout_refresh_token(session=session, raw_refresh_token=body.refresh_token)
     return Message(message="Logged out successfully")
 
 
-@router.post("/login/logout-all", response_model=Message)
+@router.delete("/sessions", response_model=Message)
 def logout_all(session: SessionDep, current_account: CurrentAccount) -> Message:
-    """Đăng xuất khỏi tất cả thiết bị bằng cách thu hồi mọi refresh token."""
+    """Đăng xuất khỏi tất cả thiết bị bằng cách weekday hồi mọi refresh token."""
     revoked_count = logout_all_refresh_tokens(
         session=session,
         account=current_account,
@@ -140,12 +148,31 @@ def logout_all(session: SessionDep, current_account: CurrentAccount) -> Message:
     return Message(message=f"Logged out from {revoked_count} session(s)")
 
 
-@router.post("/login/test-token", response_model=TaiKhoanPublic)
+@router.get("/auth/token", response_model=AccountPublic)
 def test_token(current_account: CurrentAccount) -> Any:
     return current_account
 
 
-@router.post("/reset-password/")
+@router.post("/password-recovery/{email}", response_model=Message)
+def recover_password(email: str, session: SessionDep) -> Message:
+    """Password recovery endpoint."""
+    account = crud.get_account_by_profile_google_email(
+        session=session, google_email=email
+    )
+    if account:
+        password_reset_token = generate_password_reset_token(email=email)
+        email_data = generate_reset_password_email(
+            email_to=email, email=email, token=password_reset_token
+        )
+        send_email(
+            email_to=email,
+            subject=email_data.subject,
+            html_content=email_data.html_content,
+        )
+    return Message(message="Password recovery email sent")
+
+
+@router.post("/password-resets")
 def reset_password(session: SessionDep, body: NewPassword) -> Message:
     email = verify_password_reset_token(token=body.token)
     if not email:
@@ -156,12 +183,12 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
     )
     if not account:
         raise HTTPException(status_code=400, detail="Invalid token")
-    if not account.trang_thai:
+    if not account.status:
         raise HTTPException(status_code=400, detail="Inactive account")
 
     crud.update_account(
         session=session,
         db_account=account,
-        account_in=TaiKhoanUpdate(password=body.new_password),
+        account_in=AccountUpdate(password=body.new_password),
     )
     return Message(message="Password updated successfully")

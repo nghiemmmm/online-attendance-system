@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { CourseClass } from "@/types/class"
 import { ClassService } from "@/services/class.service"
 import { LecturerService } from "@/services/lecturer.service"
@@ -25,27 +26,33 @@ import {
   PlayCircle,
   Trash2,
   Users,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  PlusCircle,
+  CheckCircle2,
 } from "lucide-react"
 
 
 interface SessionForm {
-  ngay_hoc: string
-  gio_bat_dau: string
-  gio_ket_thuc: string
-  so_buoi: string
-  so_phut_muon_toi_da: string
-  nguong_nhan_dien: string
-  ghi_chu: string
+  class_date: string
+  start_time: string
+  end_time: string
+  session_number: string
+  late_grace_minutes: string
+  recognition_threshold: string
+  note: string
 }
 
 const emptySessionForm: SessionForm = {
-  ngay_hoc: "",
-  gio_bat_dau: "",
-  gio_ket_thuc: "",
-  so_buoi: "",
-  so_phut_muon_toi_da: "15",
-  nguong_nhan_dien: "0.6",
-  ghi_chu: "",
+  class_date: "",
+  start_time: "",
+  end_time: "",
+  session_number: "",
+  late_grace_minutes: "15",
+  recognition_threshold: "0.6",
+  note: "",
 }
 
 export default function LecturerClassesPage() {
@@ -63,6 +70,24 @@ export default function LecturerClassesPage() {
   const [students, setStudents] = useState<any[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false)
+
+  // Student Modal Filter & Sort State
+  const [studentSearchTerm, setStudentSearchTerm] = useState("")
+  const [studentSortField, setStudentSortField] = useState<"mssv" | "name">("mssv")
+  const [studentSortOrder, setStudentSortOrder] = useState<"asc" | "desc">("asc")
+
+  // Postpone Modal State
+  const [isPostponeModalOpen, setIsPostponeModalOpen] = useState(false)
+  const [postponingSession, setPostponingSession] = useState<any | null>(null)
+  const [postponeReason, setPostponeReason] = useState("")
+  const [postponeSubmitting, setPostponeSubmitting] = useState(false)
+
+  // Makeup Prompt UI Modal State
+  const [isMakeupPromptModalOpen, setIsMakeupPromptModalOpen] = useState(false)
+  const [postponedSessionForMakeup, setPostponedSessionForMakeup] = useState<any | null>(null)
+
+  // Form Visibility State (Ban đầu vào sẽ ẩn Form)
+  const [isFormOpen, setIsFormOpen] = useState(false)
 
 
   const fetchProfileAndClasses = async () => {
@@ -91,6 +116,7 @@ export default function LecturerClassesPage() {
   const resetSessionForm = () => {
     setEditingSessionId(null)
     setSessionForm(emptySessionForm)
+    setIsFormOpen(false)
   }
 
   const loadClassDetails = async (cls: CourseClass) => {
@@ -112,8 +138,12 @@ export default function LecturerClassesPage() {
   }
 
   const viewClassStudents = async (cls: CourseClass) => {
+    setSelectedClass(cls)
     setIsStudentModalOpen(true)
     setStudentsLoading(true)
+    setStudentSearchTerm("")
+    setStudentSortField("mssv")
+    setStudentSortOrder("asc")
     try {
       const studentData = await LecturerService.getClassStudents(cls.id)
       setStudents(studentData)
@@ -130,15 +160,15 @@ export default function LecturerClassesPage() {
     if (!selectedClass) return
 
     const payload = {
-      ma_lop_hoc_phan: selectedClass.id,
-      ngay_hoc: sessionForm.ngay_hoc,
-      gio_bat_dau: sessionForm.gio_bat_dau || null,
-      gio_ket_thuc: sessionForm.gio_ket_thuc || null,
-      so_buoi: sessionForm.so_buoi ? Number(sessionForm.so_buoi) : null,
-      so_phut_muon_toi_da: Number(sessionForm.so_phut_muon_toi_da) || 15,
-      nguong_nhan_dien: Number(sessionForm.nguong_nhan_dien) || 0.6,
-      ghi_chu: sessionForm.ghi_chu || null,
-      trang_thai: "CHUA_DIEM_DANH",
+      class_section_id: selectedClass.id,
+      class_date: sessionForm.class_date,
+      start_time: sessionForm.start_time || null,
+      end_time: sessionForm.end_time || null,
+      session_number: sessionForm.session_number ? Number(sessionForm.session_number) : null,
+      late_grace_minutes: Number(sessionForm.late_grace_minutes) || 15,
+      recognition_threshold: Number(sessionForm.recognition_threshold) || 0.6,
+      note: sessionForm.note || null,
+      status: "CHUA_DIEM_DANH",
     }
 
     try {
@@ -148,21 +178,24 @@ export default function LecturerClassesPage() {
         await LecturerService.createSession(payload)
       }
       await loadClassDetails(selectedClass)
-    } catch {
-      alert("Khong the luu buoi hoc.")
+    } catch (err: any) {
+      console.error("Lỗi lưu buổi học:", err)
+      const msg = err?.response?.data?.detail || err?.message || "Không thể lưu buổi học."
+      alert(`Lỗi: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`)
     }
   }
 
   const handleEditSession = (session: any) => {
-    setEditingSessionId(session.ma_buoi_hoc)
+    setIsFormOpen(true)
+    setEditingSessionId(session.class_session_id)
     setSessionForm({
-      ngay_hoc: session.ngay_hoc || "",
-      gio_bat_dau: session.gio_bat_dau || "",
-      gio_ket_thuc: session.gio_ket_thuc || "",
-      so_buoi: session.so_buoi?.toString() || "",
-      so_phut_muon_toi_da: session.so_phut_muon_toi_da?.toString() || "15",
-      nguong_nhan_dien: session.nguong_nhan_dien?.toString() || "0.6",
-      ghi_chu: session.ghi_chu || "",
+      class_date: session.class_date || "",
+      start_time: session.start_time || "",
+      end_time: session.end_time || "",
+      session_number: session.session_number?.toString() || "",
+      late_grace_minutes: session.late_grace_minutes?.toString() || "15",
+      recognition_threshold: session.recognition_threshold?.toString() || "0.6",
+      note: session.note || "",
     })
   }
 
@@ -174,6 +207,48 @@ export default function LecturerClassesPage() {
       await loadClassDetails(selectedClass)
     } catch {
       alert("Khong the huy buoi hoc.")
+    }
+  }
+
+  const openPostponeModal = (sessionItem: any) => {
+    setPostponingSession(sessionItem)
+    setPostponeReason("Giảng viên có lịch bận đột xuất")
+    setIsPostponeModalOpen(true)
+  }
+
+  const prepareMakeupSession = (sessionItem: any) => {
+    setIsFormOpen(true)
+    setEditingSessionId(null)
+    setSessionForm({
+      class_date: "",
+      start_time: sessionItem?.start_time || "07:30",
+      end_time: sessionItem?.end_time || "10:00",
+      session_number: sessionItem?.session_number?.toString() || "",
+      late_grace_minutes: "15",
+      recognition_threshold: "0.6",
+      note: `Học bù cho Buổi ${sessionItem?.session_number || ""} ngày ${sessionItem?.class_date || ""} bị hoãn`,
+    })
+    // Scroll smoothly to form
+    window.scrollTo({ top: 400, behavior: "smooth" })
+  }
+
+  const submitPostponeSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedClass || !postponingSession) return
+    setPostponeSubmitting(true)
+    try {
+      const currentPostponed = postponingSession
+      await LecturerService.postponeSession(postponingSession.class_session_id, postponeReason)
+      setIsPostponeModalOpen(false)
+      await loadClassDetails(selectedClass)
+      
+      // Mở UI Modal giao diện hiển thị sự lựa chọn tạo lịch học bù
+      setPostponedSessionForMakeup(currentPostponed)
+      setIsMakeupPromptModalOpen(true)
+    } catch {
+      alert("Không thể hoãn buổi học. Vui lòng thử lại!")
+    } finally {
+      setPostponeSubmitting(false)
     }
   }
 
@@ -235,43 +310,44 @@ export default function LecturerClassesPage() {
         )}
 
         {!loading && !error && classes.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {classes.map((cls) => (
               <Card key={cls.id} className="border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg font-semibold text-[#0F172A] line-clamp-1" title={cls.tenHocPhan}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg font-bold text-[#0F172A] truncate" title={cls.tenHocPhan}>
                         {cls.tenHocPhan}
                       </CardTitle>
-                      <p className="text-sm text-[#64748B] mt-1">Ma lop: {cls.maLop} - {cls.hocKy}</p>
+                      <p className="text-sm text-[#64748B] mt-1">Mã lớp: {cls.maLop} - {cls.hocKy}</p>
                     </div>
-                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-[#DCFCE7] text-[#166534]">
+                    <span className="shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-[#DCFCE7] text-[#166534]">
                       {cls.trangThai}
                     </span>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-2 text-sm text-[#64748B] bg-[#F8FAFC] p-3 rounded-lg">
-                      <Users className="w-5 h-5 text-[#0EA5E9]" />
-                      <span className="font-medium">Si so:</span>
-                      <span>{cls.siSoHienTai} / {cls.siSo} sinh vien</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-[#64748B] bg-[#F8FAFC] p-3 rounded-lg border border-[#F1F5F9]">
+                      <Users className="w-5 h-5 text-[#0EA5E9] shrink-0" />
+                      <span className="font-medium">Sĩ số:</span>
+                      <span className="font-semibold text-[#0F172A]">{cls.siSoHienTai} / {cls.siSo} sinh viên</span>
                     </div>
-                    <div className="flex items-center gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-2.5 pt-1">
                       <Button
-                        className="flex-1 bg-[#0A2540] hover:bg-[#1A3A5C]"
+                        className="w-full bg-[#0A2540] hover:bg-[#1A3A5C] text-xs sm:text-sm px-2"
                         onClick={() => loadClassDetails(cls)}
                       >
-                        <PlayCircle className="w-4 h-4 mr-2" />
-                        Quan ly buoi
+                        <PlayCircle className="w-4 h-4 mr-1.5 shrink-0" />
+                        Quản lý buổi
                       </Button>
                       <Button
                         variant="outline"
-                        className="flex-1 text-[#0A2540] border-[#E2E8F0]"
-                        onClick={() => loadClassDetails(cls)}
+                        className="w-full text-[#0A2540] border-[#CBD5E1] hover:bg-[#F8FAFC] text-xs sm:text-sm px-2 font-medium"
+                        onClick={() => viewClassStudents(cls)}
                       >
-                        Xem chi tiet
+                        <Users className="w-4 h-4 mr-1.5 shrink-0 text-[#0EA5E9]" />
+                        Xem sinh viên
                       </Button>
                     </div>
                   </div>
@@ -282,100 +358,100 @@ export default function LecturerClassesPage() {
         )}
 
         {selectedClass && (
-          <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-6">
-            <Card className="border-[#E2E8F0] shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">{editingSessionId ? "Cap nhat buoi hoc" : "Tao buoi hoc"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4" onSubmit={handleSessionSubmit}>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="space-y-1 text-sm font-medium text-[#334155]">
-                      Ngay hoc
-                      <input
-                        type="date"
-                        required
-                        value={sessionForm.ngay_hoc}
-                        onChange={(e) => setSessionForm({ ...sessionForm, ngay_hoc: e.target.value })}
-                        className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+          <div className={cn("grid grid-cols-1 gap-6", isFormOpen && "xl:grid-cols-[420px_1fr]")}>
+            {isFormOpen && (
+              <Card className="border-[#E2E8F0] shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg">{editingSessionId ? "Cập nhật buổi học bù" : "Tạo buổi học bù / Đổi lịch"}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4" onSubmit={handleSessionSubmit}>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="space-y-1 text-sm font-medium text-[#334155]">
+                        Ngay hoc
+                        <input
+                          type="date"
+                          required
+                          value={sessionForm.class_date}
+                          onChange={(e) => setSessionForm({ ...sessionForm, class_date: e.target.value })}
+                          className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium text-[#334155]">
+                        Buoi so
+                        <input
+                          type="number"
+                          min="1"
+                          value={sessionForm.session_number}
+                          onChange={(e) => setSessionForm({ ...sessionForm, session_number: e.target.value })}
+                          className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="space-y-1 text-sm font-medium text-[#334155]">
+                        Bat dau
+                        <input
+                          type="time"
+                          value={sessionForm.start_time}
+                          onChange={(e) => setSessionForm({ ...sessionForm, start_time: e.target.value })}
+                          className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium text-[#334155]">
+                        Ket thuc
+                        <input
+                          type="time"
+                          value={sessionForm.end_time}
+                          onChange={(e) => setSessionForm({ ...sessionForm, end_time: e.target.value })}
+                          className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="space-y-1 text-sm font-medium text-[#334155]">
+                        Phut muon toi da
+                        <input
+                          type="number"
+                          min="0"
+                          value={sessionForm.late_grace_minutes}
+                          onChange={(e) => setSessionForm({ ...sessionForm, late_grace_minutes: e.target.value })}
+                          className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="space-y-1 text-sm font-medium text-[#334155]">
+                        Nguong AI
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0.1"
+                          max="1.0"
+                          value={sessionForm.recognition_threshold}
+                          onChange={(e) => setSessionForm({ ...sessionForm, recognition_threshold: e.target.value })}
+                          className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
+                        />
+                      </label>
+                    </div>
+                    <label className="space-y-1 text-sm font-medium text-[#334155] block">
+                      Ghi chu
+                      <textarea
+                        value={sessionForm.note}
+                        onChange={(e) => setSessionForm({ ...sessionForm, note: e.target.value })}
+                        className="min-h-[72px] w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
                       />
                     </label>
-                    <label className="space-y-1 text-sm font-medium text-[#334155]">
-                      Buoi so
-                      <input
-                        type="number"
-                        min="1"
-                        value={sessionForm.so_buoi}
-                        onChange={(e) => setSessionForm({ ...sessionForm, so_buoi: e.target.value })}
-                        className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
-                      />
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="space-y-1 text-sm font-medium text-[#334155]">
-                      Bat dau
-                      <input
-                        type="time"
-                        value={sessionForm.gio_bat_dau}
-                        onChange={(e) => setSessionForm({ ...sessionForm, gio_bat_dau: e.target.value })}
-                        className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <label className="space-y-1 text-sm font-medium text-[#334155]">
-                      Ket thuc
-                      <input
-                        type="time"
-                        value={sessionForm.gio_ket_thuc}
-                        onChange={(e) => setSessionForm({ ...sessionForm, gio_ket_thuc: e.target.value })}
-                        className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
-                      />
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="space-y-1 text-sm font-medium text-[#334155]">
-                      Phut muon toi da
-                      <input
-                        type="number"
-                        min="0"
-                        value={sessionForm.so_phut_muon_toi_da}
-                        onChange={(e) => setSessionForm({ ...sessionForm, so_phut_muon_toi_da: e.target.value })}
-                        className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <label className="space-y-1 text-sm font-medium text-[#334155]">
-                      Nguong nhan dien
-                      <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        max="1"
-                        value={sessionForm.nguong_nhan_dien}
-                        onChange={(e) => setSessionForm({ ...sessionForm, nguong_nhan_dien: e.target.value })}
-                        className="w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
-                      />
-                    </label>
-                  </div>
-                  <label className="space-y-1 text-sm font-medium text-[#334155] block">
-                    Ghi chu
-                    <textarea
-                      value={sessionForm.ghi_chu}
-                      onChange={(e) => setSessionForm({ ...sessionForm, ghi_chu: e.target.value })}
-                      className="min-h-[72px] w-full rounded-md border border-[#E2E8F0] px-3 py-2 text-sm"
-                    />
-                  </label>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="bg-[#0A2540] hover:bg-[#1A3A5C]">
-                      {editingSessionId ? "Luu thay doi" : "Tao buoi hoc"}
-                    </Button>
-                    {editingSessionId && (
-                      <Button type="button" variant="outline" onClick={resetSessionForm}>
-                        Huy sua
+                    <div className="flex gap-2 pt-2 border-t border-[#E2E8F0]">
+                      <Button type="submit" className="bg-[#0A2540] hover:bg-[#1A3A5C]">
+                        {editingSessionId ? "Lưu thay đổi" : "Lưu lịch học bù"}
                       </Button>
-                    )}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                      <Button type="button" variant="outline" onClick={resetSessionForm}>
+                        Hủy
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="border-[#E2E8F0] shadow-sm">
               <CardHeader>
@@ -417,38 +493,67 @@ export default function LecturerClassesPage() {
                 ) : (
                   <div className="space-y-3">
                     {sessions.map((session) => (
-                      <div key={session.ma_buoi_hoc} className="flex flex-col gap-3 rounded-lg border border-[#E2E8F0] p-4 md:flex-row md:items-center md:justify-between">
+                      <div key={session.class_session_id} className="flex flex-col gap-3 rounded-lg border border-[#E2E8F0] p-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <div className="flex items-center gap-2 font-semibold text-[#0F172A]">
                             <CalendarDays className="w-4 h-4 text-[#0EA5E9]" />
-                            Buoi {session.so_buoi || "-"} - {session.ngay_hoc}
+                            Buoi {session.session_number || "-"} - {session.class_date}
                           </div>
                           <div className="mt-1 flex flex-wrap gap-3 text-sm text-[#64748B]">
                             <span className="inline-flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5" />
-                              {session.gio_bat_dau || "--:--"} - {session.gio_ket_thuc || "--:--"}
+                              {session.start_time || "--:--"} - {session.end_time || "--:--"}
                             </span>
-                            <span>Muon toi da: {session.so_phut_muon_toi_da} phut</span>
-                            <span>Nguong: {session.nguong_nhan_dien}</span>
-                            <span className="font-medium text-[#0F172A]">{session.trang_thai || "CHUA_DIEM_DANH"}</span>
+                            <span>Muon toi da: {session.late_grace_minutes} phut</span>
+                            <span>Nguong: {session.recognition_threshold}</span>
+                            <span className="font-medium text-[#0F172A]">{session.status || "CHUA_DIEM_DANH"}</span>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" onClick={() => handleStartSession(session.ma_buoi_hoc)} className="bg-[#22C55E] hover:bg-[#16A34A]">
-                            <PlayCircle className="w-4 h-4 mr-1" />
-                            Mo phien
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => window.location.href = `/lecturer/live/${session.ma_buoi_hoc}`}>
-                            Live
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}>
-                            <Pencil className="w-4 h-4 mr-1" />
-                            Sua
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-[#EF4444]" onClick={() => handleCancelSession(session.ma_buoi_hoc)}>
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Huy
-                          </Button>
+                          {session.status === "DA_KET_THUC" || session.status === "COMPLETED" ? (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#DCFCE7] text-[#166534]">
+                              Đã hoàn thành
+                            </span>
+                          ) : session.status === "DA_HUY" || session.status === "CANCELLED" ? (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#FEE2E2] text-[#991B1B]">
+                              Đã hủy
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {session.status === "HOAN_HOC" ? (
+                                <>
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFEDD5] text-[#C2410C] mr-1" title={session.note || ""}>
+                                    Đã hoãn học
+                                  </span>
+                                  <Button size="sm" className="bg-[#0EA5E9] hover:bg-[#0284C7] text-white" onClick={() => prepareMakeupSession(session)}>
+                                    <PlusCircle className="w-4 h-4 mr-1" />
+                                    Tạo lịch bù
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button size="sm" onClick={() => handleStartSession(session.class_session_id)} className="bg-[#22C55E] hover:bg-[#16A34A]">
+                                    <PlayCircle className="w-4 h-4 mr-1" />
+                                    Mở phiên
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => window.location.href = `/lecturer/live/${session.class_session_id}`}>
+                                    Live
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="border-[#F97316] text-[#F97316] hover:bg-[#FFF7ED]" onClick={() => openPostponeModal(session)}>
+                                    Hoãn buổi
+                                  </Button>
+                                </>
+                              )}
+                              <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}>
+                                <Pencil className="w-4 h-4 mr-1" />
+                                Sửa
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-[#EF4444] hover:bg-[#FEE2E2]" onClick={() => handleCancelSession(session.class_session_id)}>
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Hủy
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -467,7 +572,7 @@ export default function LecturerClassesPage() {
                         <thead className="bg-[#F8FAFC] text-left text-[#475569]">
                           <tr>
                             <th className="px-4 py-3">Ma SV</th>
-                            <th className="px-4 py-3">Ho ten</th>
+                            <th className="px-4 py-3">Ho first_name</th>
                             <th className="px-4 py-3">Vang</th>
                             <th className="px-4 py-3">Ty le</th>
                             <th className="px-4 py-3">Trang thai</th>
@@ -475,12 +580,12 @@ export default function LecturerClassesPage() {
                         </thead>
                         <tbody>
                           {warnings.map((warning) => (
-                            <tr key={warning.ma_sinh_vien} className="border-t border-[#E2E8F0]">
-                              <td className="px-4 py-3">SV{String(warning.ma_sinh_vien).padStart(3, "0")}</td>
+                            <tr key={warning.student_id} className="border-t border-[#E2E8F0]">
+                              <td className="px-4 py-3">SV{String(warning.student_id).padStart(3, "0")}</td>
                               <td className="px-4 py-3">{warning.ho_ten}</td>
-                              <td className="px-4 py-3">{warning.so_buoi_vang}/{warning.tong_so_buoi}</td>
-                              <td className="px-4 py-3">{warning.ty_le_vang}%</td>
-                              <td className="px-4 py-3 font-medium text-[#EF4444]">{warning.trang_thai_canh_bao}</td>
+                              <td className="px-4 py-3">{warning.absent_session_count}/{warning.total_sessions}</td>
+                              <td className="px-4 py-3">{warning.absence_rate}%</td>
+                              <td className="px-4 py-3 font-medium text-[#EF4444]">{warning.warning_status}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -495,56 +600,251 @@ export default function LecturerClassesPage() {
       </div>
 
       <Dialog open={isStudentModalOpen} onOpenChange={setIsStudentModalOpen}>
-        <DialogContent className="max-w-2xl bg-white">
+        <DialogContent className="max-w-3xl bg-white">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-[#0F172A]">
-              Danh sách sinh viên lớp {selectedClass?.tenHocPhan}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-[#64748B]">
-              Mã lớp: {selectedClass?.id} | Sĩ số: {students.length} sinh viên
-            </DialogDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
+              <div>
+                <DialogTitle className="text-xl font-bold text-[#0F172A]">
+                  Danh sách sinh viên lớp {selectedClass?.tenHocPhan}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-[#64748B] mt-1">
+                  Mã lớp học phần: <b>LHP{selectedClass?.id}</b>
+                </DialogDescription>
+              </div>
+              <div className="inline-flex items-center px-3 py-1 bg-[#EFF6FF] text-[#0EA5E9] border border-[#BAE6FD] rounded-full text-xs font-semibold shrink-0">
+                Tổng số: {students.length} sinh viên
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="mt-2">
+          <div className="space-y-4 mt-2">
+            {/* Thanh Tìm kiếm & Thiết lập Sắp xếp */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo MSSV hoặc Họ và tên sinh viên..."
+                  value={studentSearchTerm}
+                  onChange={(e) => setStudentSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 h-10 rounded-lg border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0EA5E9]"
+                />
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto text-xs">
+                <span className="text-[#64748B] font-medium shrink-0">Sắp xếp theo:</span>
+                <select
+                  value={`${studentSortField}-${studentSortOrder}`}
+                  onChange={(e) => {
+                    const [field, order] = e.target.value.split("-") as ["mssv" | "name", "asc" | "desc"]
+                    setStudentSortField(field)
+                    setStudentSortOrder(order)
+                  }}
+                  className="h-10 px-3 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0EA5E9]"
+                >
+                  <option value="mssv-asc">Mã sinh viên (Tăng dần)</option>
+                  <option value="mssv-desc">Mã sinh viên (Giảm dần)</option>
+                  <option value="name-asc">Họ và tên (A - Z)</option>
+                  <option value="name-desc">Họ và tên (Z - A)</option>
+                </select>
+              </div>
+            </div>
+
             {studentsLoading ? (
-              <div className="flex flex-col items-center justify-center py-12">
+              <div className="flex flex-col items-center justify-center py-16">
                 <Loader2 className="w-8 h-8 text-[#0EA5E9] animate-spin mb-3" />
                 <p className="text-sm text-[#64748B] font-medium">Đang tải danh sách sinh viên...</p>
               </div>
             ) : students.length === 0 ? (
-              <div className="text-center py-12 text-[#64748B] border border-dashed border-[#CBD5E1] rounded-lg">
-                Chưa có sinh viên nào đăng ký lớp học này.
+              <div className="text-center py-16 text-[#64748B] border border-dashed border-[#CBD5E1] rounded-lg bg-[#F8FAFC]">
+                Chưa có sinh viên nào đăng ký lớp học phần này.
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-[#E2E8F0] max-h-[350px]">
-                <table className="w-full text-sm">
-                  <thead className="bg-[#F8FAFC] text-left text-[#475569] sticky top-0 border-b border-[#E2E8F0]">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Mã SV</th>
-                      <th className="px-4 py-3 font-semibold">Họ và tên</th>
-                      <th className="px-4 py-3 font-semibold">Email</th>
-                      <th className="px-4 py-3 font-semibold">Số điện thoại</th>
-                      <th className="px-4 py-3 font-semibold">Lớp khóa học</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E2E8F0]">
-                    {students.map((student) => (
-                      <tr key={student.ma_sinh_vien} className="hover:bg-[#F8FAFC] transition-colors">
-                        <td className="px-4 py-3 font-medium text-[#0A2540]">
-                          SV{String(student.ma_sinh_vien).padStart(3, "0")}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-[#0F172A]">
-                          {`${student.ho || ""} ${student.ten || ""}`.trim()}
-                        </td>
-                        <td className="px-4 py-3 text-[#475569]">{student.google_email || "N/A"}</td>
-                        <td className="px-4 py-3 text-[#475569]">{student.dien_thoai || "N/A"}</td>
-                        <td className="px-4 py-3 text-[#475569]">{student.lop_khoa_hoc || "N/A"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              (() => {
+                const filteredAndSorted = students
+                  .filter((student) => {
+                    const mssv = String(student.student_id || "")
+                    const fullName = `${student.last_name || ""} ${student.first_name || ""}`.trim()
+                    const term = studentSearchTerm.toLowerCase()
+                    return mssv.includes(term) || fullName.toLowerCase().includes(term)
+                  })
+                  .sort((a, b) => {
+                    let valA = ""
+                    let valB = ""
+                    if (studentSortField === "mssv") {
+                      valA = String(a.student_id || "")
+                      valB = String(b.student_id || "")
+                    } else {
+                      valA = `${a.last_name || ""} ${a.first_name || ""}`.trim()
+                      valB = `${b.last_name || ""} ${b.first_name || ""}`.trim()
+                    }
+
+                    const cmp = valA.localeCompare(valB, "vi", { numeric: true })
+                    return studentSortOrder === "asc" ? cmp : -cmp
+                  })
+
+                if (filteredAndSorted.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-[#64748B] border border-dashed border-[#CBD5E1] rounded-lg bg-[#F8FAFC]">
+                      Không tìm thấy sinh viên nào phù hợp với từ khóa "{studentSearchTerm}".
+                    </div>
+                  )
+                }
+
+                const handleToggleSort = (field: "mssv" | "name") => {
+                  if (studentSortField === field) {
+                    setStudentSortOrder(prev => prev === "asc" ? "desc" : "asc")
+                  } else {
+                    setStudentSortField(field)
+                    setStudentSortOrder("asc")
+                  }
+                }
+
+                return (
+                  <div className="overflow-x-auto rounded-lg border border-[#E2E8F0] max-h-[380px]">
+                    <table className="w-full text-sm">
+                      <thead className="bg-[#F8FAFC] text-left text-[#475569] sticky top-0 border-b border-[#E2E8F0] z-10">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold text-center w-[70px]">STT</th>
+                          <th
+                            className="px-4 py-3 font-semibold cursor-pointer hover:bg-[#F1F5F9] transition-colors select-none"
+                            onClick={() => handleToggleSort("mssv")}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              Mã sinh viên
+                              {studentSortField === "mssv" ? (
+                                studentSortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#0EA5E9]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#0EA5E9]" />
+                              ) : <ArrowUpDown className="w-3.5 h-3.5 text-[#94A3B8]" />}
+                            </div>
+                          </th>
+                          <th
+                            className="px-4 py-3 font-semibold cursor-pointer hover:bg-[#F1F5F9] transition-colors select-none"
+                            onClick={() => handleToggleSort("name")}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              Họ và tên
+                              {studentSortField === "name" ? (
+                                studentSortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#0EA5E9]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#0EA5E9]" />
+                              ) : <ArrowUpDown className="w-3.5 h-3.5 text-[#94A3B8]" />}
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E2E8F0]">
+                        {filteredAndSorted.map((student, index) => (
+                          <tr key={student.student_id} className="hover:bg-[#F8FAFC] transition-colors">
+                            <td className="px-4 py-3 text-center font-medium text-[#64748B]">
+                              {index + 1}
+                            </td>
+                            <td className="px-4 py-3 font-bold text-[#0EA5E9]">
+                              {student.student_id}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-[#0F172A]">
+                              {`${student.last_name || ""} ${student.first_name || ""}`.trim()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Form Nhận Hoãn Buổi Học */}
+      <Dialog open={isPostponeModalOpen} onOpenChange={setIsPostponeModalOpen}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-[#0F172A] flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#F97316]"></span>
+              Xác nhận Hoãn Buổi Học
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#64748B]">
+              Lớp: <b>{selectedClass?.tenHocPhan}</b> — Buổi số <b>{postponingSession?.session_number}</b> ({postponingSession?.class_date})
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={submitPostponeSession} className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-[#334155]">Lý do hoãn buổi học:</label>
+              <textarea
+                rows={3}
+                required
+                placeholder="Nhập chi tiết lý do hoãn học (Ví dụ: Giảng viên bận lịch công tác đột xuất...)"
+                value={postponeReason}
+                onChange={(e) => setPostponeReason(e.target.value)}
+                className="w-full rounded-lg border border-[#E2E8F0] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316] leading-relaxed"
+              />
+            </div>
+
+            <div className="p-3 bg-[#FFF7ED] border border-[#FFEDD5] rounded-lg text-xs text-[#C2410C]">
+              💡 <b>Lưu ý:</b> Sau khi xác nhận hoãn, trạng thái buổi học sẽ chuyển thành <b>Đã hoãn học</b> và hệ thống sẽ thông báo tới tất cả sinh viên thuộc lớp học phần.
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={postponeSubmitting}
+                onClick={() => setIsPostponeModalOpen(false)}
+                className="border-[#CBD5E1] text-[#475569]"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="submit"
+                disabled={postponeSubmitting}
+                className="bg-[#F97316] hover:bg-[#EA580C] text-white"
+              >
+                {postponeSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                Xác nhận Hoãn Buổi
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal UI Gợi ý Lập Lịch Học Bù */}
+      <Dialog open={isMakeupPromptModalOpen} onOpenChange={setIsMakeupPromptModalOpen}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-[#0F172A] flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-[#22C55E]" />
+              Hoãn Buổi Học Thành Công!
+            </DialogTitle>
+            <DialogDescription className="text-sm text-[#475569] mt-1 leading-relaxed">
+              Buổi học số <b>{postponedSessionForMakeup?.session_number}</b> ({postponedSessionForMakeup?.class_date}) môn <b>{selectedClass?.tenHocPhan}</b> đã được chuyển sang trạng thái <b>Đã hoãn học</b>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 bg-[#EFF6FF] border border-[#BAE6FD] rounded-xl my-2 space-y-2">
+            <p className="text-sm font-semibold text-[#0369A1]">📅 Bạn có muốn lên lịch HỌC BÙ ngay bây giờ không?</p>
+            <p className="text-xs text-[#0284C7] leading-relaxed">
+              Hệ thống sẽ tự động điền mẫu thông tin học bù cho buổi này lên Form để bạn chọn ngày giờ mới một cách nhanh chóng.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsMakeupPromptModalOpen(false)}
+              className="border-[#CBD5E1] text-[#64748B] hover:bg-[#F8FAFC]"
+            >
+              Để sau
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setIsMakeupPromptModalOpen(false)
+                prepareMakeupSession(postponedSessionForMakeup)
+              }}
+              className="bg-[#0EA5E9] hover:bg-[#0284C7] text-white"
+            >
+              Lập lịch học bù ngay
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

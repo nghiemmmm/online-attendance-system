@@ -29,9 +29,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { 
-  CalendarCheck, 
-  AlertTriangle, 
+import {
+  CalendarCheck,
+  AlertTriangle,
   TrendingUp,
   Search,
   Download,
@@ -90,25 +90,26 @@ export default function StudentHistory() {
   }, [])
 
   // Calculate unique subjects list for filter dropdown
-  const uniqueSubjects = Array.from(new Set(attendance.map(a => a.ten_hoc_phan || `Lớp ${a.ma_lop_hoc_phan}`)))
+  const uniqueSubjects = Array.from(new Set(attendance.map(a => a.course_name || `Lớp ${a.class_section_id}`)))
 
-  // Calculate statistics
+  // Calculate statistics (Supports both PRESENT/LATE/ABSENT and CO_MAT/DI_MUON/VANG)
   const totalSessions = attendance.length
-  const presentCount = attendance.filter(a => a.trang_thai === "CO_MAT").length
-  const lateCount = attendance.filter(a => a.trang_thai === "DI_MUON").length
-  const absentCount = attendance.filter(a => a.trang_thai === "VANG").length
+  const presentCount = attendance.filter(a => a.status === "PRESENT" || a.status === "CO_MAT").length
+  const lateCount = attendance.filter(a => a.status === "LATE" || a.status === "DI_MUON").length
+  const absentCount = attendance.filter(a => a.status === "ABSENT" || a.status === "VANG").length
   const attendedCount = presentCount + lateCount
-  const attendanceRate = totalSessions > 0 ? ((attendedCount / totalSessions) * 100).toFixed(1) : "0.0"
+  const rawRate = totalSessions > 0 ? (attendedCount / totalSessions) * 100 : 0
+  const attendanceRate = Number.isInteger(rawRate) ? rawRate.toFixed(0) : rawRate.toFixed(1)
 
   // Group absences by class for warning counts
   const absencesByClass: Record<number, { absent: number, total: number }> = {}
   attendance.forEach(a => {
-    const classId = a.ma_lop_hoc_phan
+    const classId = a.class_section_id
     if (!absencesByClass[classId]) {
       absencesByClass[classId] = { absent: 0, total: 0 }
     }
     absencesByClass[classId].total++
-    if (a.trang_thai === "VANG") {
+    if (a.status === "ABSENT" || a.status === "VANG") {
       absencesByClass[classId].absent++
     }
   })
@@ -116,9 +117,9 @@ export default function StudentHistory() {
 
   // Filter records
   const filteredData = attendance.filter((a) => {
-    const subjectName = a.ten_hoc_phan || `Lớp ${a.ma_lop_hoc_phan}`
-    const mappedStatus = a.trang_thai === "CO_MAT" ? "present" : a.trang_thai === "DI_MUON" ? "late" : "absent"
-    
+    const subjectName = a.course_name || `Lớp ${a.class_section_id}`
+    const mappedStatus = (a.status === "PRESENT" || a.status === "CO_MAT") ? "present" : (a.status === "LATE" || a.status === "DI_MUON") ? "late" : "absent"
+
     if (subjectFilter !== "all" && subjectName !== subjectFilter) return false
     if (statusFilter !== "all" && mappedStatus !== statusFilter) return false
     if (searchTerm && !subjectName.toLowerCase().includes(searchTerm.toLowerCase())) return false
@@ -127,14 +128,14 @@ export default function StudentHistory() {
 
   // Format attendance list for rendering
   const mappedRecords = filteredData.map((item, idx) => {
-    const isAbsent = item.trang_thai === "VANG"
-    const isLate = item.trang_thai === "DI_MUON"
-    const mappedStatus = item.trang_thai === "CO_MAT" ? "present" as const : isLate ? "late" as const : "absent" as const
+    const isAbsent = item.status === "ABSENT" || item.status === "VANG"
+    const isLate = item.status === "LATE" || item.status === "DI_MUON"
+    const mappedStatus = (item.status === "PRESENT" || item.status === "CO_MAT") ? "present" as const : isLate ? "late" as const : "absent" as const
     return {
-      id: item.ma_diem_danh || idx,
-      subject: item.ten_hoc_phan || `Lớp học phần ${item.ma_lop_hoc_phan}`,
-      date: item.ngay_hoc ? new Date(item.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
-      session: item.ma_lop_hoc_phan,
+      id: item.attendance_id || idx,
+      subject: item.course_name || `Lớp học phần ${item.class_section_id}`,
+      date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "N/A",
+      session: item.class_section_id,
       status: mappedStatus,
       lateMinutes: isLate ? 10 : 0,
       method: "face" as const,
@@ -145,8 +146,8 @@ export default function StudentHistory() {
 
   // Streak days
   const streakDays = attendance.slice(-10).map((item) => ({
-    date: item.ngay_hoc ? item.ngay_hoc.substring(5, 10).replace("-", "/") : "N/A",
-    status: item.trang_thai === "CO_MAT" ? "present" : item.trang_thai === "DI_MUON" ? "late" : "absent"
+    date: item.class_date ? item.class_date.substring(5, 10).replace("-", "/") : "N/A",
+    status: item.status === "CO_MAT" ? "present" : item.status === "DI_MUON" ? "late" : "absent"
   }))
 
   const handleClaimClick = (record: any) => {
@@ -160,8 +161,8 @@ export default function StudentHistory() {
     try {
       await StudentService.submitClaim({
         reason: claimReason,
-        ma_diem_danh: selectedRecord.id,
-        subjectCode: selectedRecord.raw.ma_lop_hoc_phan,
+        attendance_id: selectedRecord.id,
+        subjectCode: selectedRecord.raw.class_section_id,
         subjectName: selectedRecord.subject,
         sessionNumber: selectedRecord.session,
         currentStatus: selectedRecord.status
@@ -181,9 +182,9 @@ export default function StudentHistory() {
 
   if (loading) {
     return (
-      <AppShell 
-        role="student" 
-        user={{ name: "Đang tải", email: "", avatar: "" }} 
+      <AppShell
+        role="student"
+        user={{ name: "Đang tải", email: "", avatar: "" }}
         breadcrumb="Lịch sử điểm danh"
       >
         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0]">
@@ -195,9 +196,9 @@ export default function StudentHistory() {
   }
 
   return (
-    <AppShell 
-      role="student" 
-      user={profile ? { name: profile.name, email: profile.email, avatar: "" } : { name: "Sinh viên", email: "", avatar: "" }} 
+    <AppShell
+      role="student"
+      user={profile ? { name: profile.name, email: profile.email, avatar: "" } : { name: "Sinh viên", email: "", avatar: "" }}
       breadcrumb="Lịch sử điểm danh"
       notificationCount={warningCount}
     >

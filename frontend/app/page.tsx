@@ -15,39 +15,37 @@ export default function LoginPage() {
       await AuthService.login(data.email, data.password, data.remember);
       // Try to fetch profile to know exactly what the user is
       const user = await apiClient.get<any>("/users/me");
-      if (user.vai_tro === "SINH_VIEN") {
+      if (user.role === "SINH_VIEN") {
+        try {
+          const faces: any = await apiClient.get<any>("/face-images/me");
+          if (!faces || !faces.data || faces.data.length === 0 || faces.count === 0) {
+            alert("Bạn chưa có dữ liệu khuôn mặt. Vui lòng cập nhật hình ảnh khuôn mặt!");
+            router.push("/student/registration");
+            return;
+          }
+        } catch (e) {
+          // Ignore face check error if endpoint differs
+        }
         router.push("/student")
-      } else if (user.vai_tro === "GIANG_VIEN") {
+      } else if (user.role === "GIANG_VIEN") {
         router.push("/lecturer")
       } else {
         router.push("/admin")
       }
     } catch (err: any) {
-      alert("Đăng nhập thất bại: " + (err.message || "Unknown error"));
+      throw err;
     }
   }
 
   const handleRegister = async (data: {
-    ten_dang_nhap: string
+    mssv: number
     email: string
     password: string
-    ho: string
-    ten: string
-    dien_thoai: string
-    gioi_tinh: string
+    otp_code: string
   }) => {
     try {
-      await AuthService.register({
-        ten_dang_nhap: data.ten_dang_nhap,
-        email: data.email,
-        password: data.password,
-        ho: data.ho,
-        ten: data.ten,
-        dien_thoai: data.dien_thoai,
-        gioi_tinh: data.gioi_tinh,
-        vai_tro: "SINH_VIEN",
-      });
-      alert("Đăng ký tài khoản thành công! Hãy đăng nhập.");
+      await AuthService.register(data);
+      alert("Xác thực OTP và Đăng ký tài khoản thành công! Hãy đăng nhập bằng MSSV và Mật khẩu của bạn.");
       setView("login");
     } catch (err: any) {
       alert("Đăng ký thất bại: " + (err.message || "Lỗi không xác định"));
@@ -64,12 +62,12 @@ export default function LoginPage() {
       {/* Right Panel - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         {view === "login" ? (
-          <LoginForm 
+          <LoginForm
             onSubmit={handleLogin}
             onRegisterClick={() => setView("register")}
           />
         ) : (
-          <RegisterForm 
+          <RegisterForm
             onSubmit={handleRegister}
             onLoginClick={() => setView("login")}
           />

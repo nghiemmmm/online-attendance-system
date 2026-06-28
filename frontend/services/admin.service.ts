@@ -2,35 +2,35 @@ import { CourseClass } from "@/types/class";
 import { apiClient } from "@/lib/api-client";
 
 export interface HocPhanOption {
-  ma_hoc_phan: number;
-  ten_hoc_phan: string;
-  mo_ta?: string | null;
-  so_tin_chi?: number | null;
-  trang_thai?: boolean;
+  course_id: number;
+  course_name: string;
+  description?: string | null;
+  credit_count?: number | null;
+  status?: boolean;
 }
 
 export interface CanBoOption {
-  ma_can_bo: number;
-  ho: string;
-  ten: string;
+  staff_id: number;
+  last_name: string;
+  first_name: string;
   google_email?: string | null;
-  chuc_vu?: string | null;
-  trang_thai?: boolean;
+  position?: string | null;
+  status?: boolean;
 }
 
 export interface NganhOption {
-  ma_nganh: number;
-  ten_nganh: string;
-  mo_ta?: string | null;
+  major_id: number;
+  major_name: string;
+  description?: string | null;
 }
 
 export interface AdminClassPayload {
-  ma_hoc_phan: number;
-  ma_can_bo: number;
-  hoc_ky: number;
-  nam_hoc: string;
-  ty_le_chuyen_can_toi_thieu: number;
-  trang_thai: boolean;
+  course_id: number;
+  staff_id: number;
+  semester: number;
+  academic_year: string;
+  minimum_attendance_rate: number;
+  status: boolean;
 }
 
 type EnrichedClass = CourseClass & {
@@ -46,23 +46,23 @@ const formatClass = (
   subjects: HocPhanOption[] = [],
   lecturers: CanBoOption[] = []
 ): EnrichedClass => {
-  const subject = subjects.find((s) => s.ma_hoc_phan === item.ma_hoc_phan);
-  const lecturer = lecturers.find((l) => l.ma_can_bo === item.ma_can_bo);
+  const subject = subjects.find((s) => s.course_id === item.course_id);
+  const lecturer = lecturers.find((l) => l.staff_id === item.staff_id);
 
   return {
-    id: item.ma_lop_hoc_phan || item.id,
-    maLop: item.ma_lop_hoc_phan?.toString() || item.ma_hoc_phan?.toString() || "",
-    tenHocPhan: subject?.ten_hoc_phan || item.ten_hoc_phan || `Hoc phan ${item.ma_hoc_phan}`,
-    giangVien: lecturer ? `${lecturer.ho} ${lecturer.ten}`.trim() : "Chua phan cong",
-    hocKy: `Hoc ky ${item.hoc_ky || ""} - Nam hoc ${item.nam_hoc || ""}`,
+    id: item.class_section_id || item.id,
+    maLop: item.class_section_id?.toString() || item.course_id?.toString() || "",
+    tenHocPhan: subject?.course_name || item.course_name || `Hoc phan ${item.course_id}`,
+    giangVien: lecturer ? `${lecturer.last_name} ${lecturer.first_name}`.trim() : "Chua phan cong",
+    hocKy: `Hoc ky ${item.semester || ""} - Nam hoc ${item.academic_year || ""}`,
     siSo: 50,
-    siSoHienTai: item.si_so_hien_tai || 0,
-    trangThai: item.trang_thai ? "Đang học" : "Đã kết thúc",
-    maHocPhan: item.ma_hoc_phan,
-    maCanBo: item.ma_can_bo,
-    hocKyNumber: item.hoc_ky || 1,
-    namHoc: item.nam_hoc || "",
-    tyLeChuyenCanToiThieu: item.ty_le_chuyen_can_toi_thieu ?? 0.8,
+    siSoHienTai: item.current_students || 0,
+    trangThai: item.status ? "Đang học" : "Đã kết thúc",
+    maHocPhan: item.course_id,
+    maCanBo: item.staff_id,
+    hocKyNumber: item.semester || 1,
+    namHoc: item.academic_year || "",
+    tyLeChuyenCanToiThieu: item.minimum_attendance_rate ?? 0.8,
   };
 };
 
@@ -70,7 +70,7 @@ export const AdminService = {
   getClasses: async (): Promise<EnrichedClass[]> => {
     try {
       const [response, subjects, lecturers] = await Promise.all([
-        apiClient.get<any>("/lop-hoc-phan/"),
+        apiClient.get<any>("/class-sections/"),
         AdminService.getSubjects(),
         AdminService.getLecturers(),
       ]);
@@ -82,7 +82,7 @@ export const AdminService = {
   },
 
   createClass: async (data: AdminClassPayload): Promise<EnrichedClass> => {
-    const response = await apiClient.post<any>("/lop-hoc-phan/", data);
+    const response = await apiClient.post<any>("/class-sections/", data);
     const [subjects, lecturers] = await Promise.all([
       AdminService.getSubjects(),
       AdminService.getLecturers(),
@@ -91,7 +91,7 @@ export const AdminService = {
   },
 
   updateClass: async (id: number, data: Partial<AdminClassPayload>): Promise<EnrichedClass> => {
-    const response = await apiClient.patch<any>(`/lop-hoc-phan/${id}`, data);
+    const response = await apiClient.patch<any>(`/class-sections/${id}`, data);
     const [subjects, lecturers] = await Promise.all([
       AdminService.getSubjects(),
       AdminService.getLecturers(),
@@ -100,57 +100,57 @@ export const AdminService = {
   },
 
   deleteClass: async (id: number): Promise<boolean> => {
-    await apiClient.delete(`/lop-hoc-phan/${id}`);
+    await apiClient.delete(`/class-sections/${id}`);
     return true;
   },
 
   getSubjects: async (): Promise<HocPhanOption[]> => {
-    const response = await apiClient.get<any>("/hocphan/");
+    const response = await apiClient.get<any>("/courses/");
     return response.data || [];
   },
 
   createSubject: async (payload: any): Promise<HocPhanOption> => {
-    return apiClient.post<HocPhanOption>("/hocphan/", payload);
+    return apiClient.post<HocPhanOption>("/courses/", payload);
   },
 
   updateSubject: async (maHocPhan: number, payload: any): Promise<HocPhanOption> => {
-    return apiClient.patch<HocPhanOption>(`/hocphan/${maHocPhan}`, payload);
+    return apiClient.patch<HocPhanOption>(`/courses/${maHocPhan}`, payload);
   },
 
   deleteSubject: async (maHocPhan: number): Promise<boolean> => {
-    await apiClient.delete(`/hocphan/${maHocPhan}`);
+    await apiClient.delete(`/courses/${maHocPhan}`);
     return true;
   },
 
   getDepartments: async (): Promise<NganhOption[]> => {
-    const response = await apiClient.get<any>("/nganh/");
+    const response = await apiClient.get<any>("/majors/");
     return response.data || [];
   },
 
   createDepartment: async (payload: any): Promise<NganhOption> => {
-    return apiClient.post<NganhOption>("/nganh/", payload);
+    return apiClient.post<NganhOption>("/majors/", payload);
   },
 
   updateDepartment: async (maNganh: number, payload: any): Promise<NganhOption> => {
-    return apiClient.patch<NganhOption>(`/nganh/${maNganh}`, payload);
+    return apiClient.patch<NganhOption>(`/majors/${maNganh}`, payload);
   },
 
   deleteDepartment: async (maNganh: number): Promise<boolean> => {
-    await apiClient.delete(`/nganh/${maNganh}`);
+    await apiClient.delete(`/majors/${maNganh}`);
     return true;
   },
 
   getLecturers: async (): Promise<CanBoOption[]> => {
-    const response = await apiClient.get<any>("/canbo/?limit=200");
-    return (response.data || []).filter((item: CanBoOption) => item.trang_thai !== false);
+    const response = await apiClient.get<any>("/staff/?limit=200");
+    return (response.data || []).filter((item: CanBoOption) => item.status !== false);
   },
 
   registerFace: async (studentId: number | string, file: File): Promise<any> => {
     const formData = new FormData();
-    formData.append("ma_sinh_vien", studentId.toString());
+    formData.append("student_id", studentId.toString());
     formData.append("file", file);
 
-    return apiClient.post<any>("/anh-khuon-mat/admin/dang-ky", formData, {
+    return apiClient.post<any>("/face-images/", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -159,8 +159,8 @@ export const AdminService = {
 
   getFaceRecords: async (status?: "CHO_DUYET" | "DA_DUYET" | "TU_CHOI"): Promise<any[]> => {
     try {
-      const query = status ? `?trang_thai_duyet=${status}` : "";
-      const response = await apiClient.get<any>(`/anh-khuon-mat/admin${query}`);
+      const query = status ? `?review_status=${status}` : "";
+      const response = await apiClient.get<any>(`/face-images/${query}`);
       return response.data || [];
     } catch (error) {
       console.error("Lỗi tải dữ liệu khuôn mặt:", error);
@@ -169,18 +169,21 @@ export const AdminService = {
   },
 
   approveFace: async (faceId: number): Promise<any> => {
-    return apiClient.patch<any>(`/anh-khuon-mat/admin/${faceId}/duyet`, {});
+    return apiClient.patch<any>(`/face-images/${faceId}`, {
+      review_status: "approved",
+    });
   },
 
   rejectFace: async (faceId: number, reason: string): Promise<any> => {
-    return apiClient.patch<any>(`/anh-khuon-mat/admin/${faceId}/tu-choi`, {
-      ly_do_tu_choi: reason,
+    return apiClient.patch<any>(`/face-images/${faceId}`, {
+      review_status: "rejected",
+      rejection_reason: reason,
     });
   },
 
   getStats: async (): Promise<any> => {
     try {
-      return await apiClient.get<any>("/he-thong/stats");
+      return await apiClient.get<any>("/system/stats");
     } catch (error) {
       console.error("Loi khi lay so lieu thong ke he thong:", error);
       throw error;
@@ -189,26 +192,26 @@ export const AdminService = {
 
   getLogs: async (): Promise<any[]> => {
     try {
-      const response = await apiClient.get<any>("/he-thong/logs");
+      const response = await apiClient.get<any>("/system/logs");
       const rows = Array.isArray(response) ? response : response?.data || [];
       return rows.map((log: any) => ({
-        id: log.ma_audit_log?.toString() || log.id || `${log.hanh_dong}-${log.thoi_gian}`,
-        user: log.ma_tai_khoan ? `TK #${log.ma_tai_khoan}` : "Hệ thống",
-        action: log.hanh_dong || log.action || "Hoạt động",
-        target: log.doi_tuong_id
-          ? `${log.doi_tuong || "Đối tượng"} #${log.doi_tuong_id}`
-          : log.doi_tuong || log.target || "",
-        time: log.thoi_gian ? new Date(log.thoi_gian).toLocaleString("vi-VN") : log.time || "",
+        id: log.audit_log_id?.toString() || log.id || `${log.action}-${log.timestamp}`,
+        user: log.account_id ? `TK #${log.account_id}` : "Hệ thống",
+        action: log.action || log.action || "Hoạt động",
+        target: log.target_id
+          ? `${log.target_type || "Đối tượng"} #${log.target_id}`
+          : log.target_type || log.target || "",
+        time: log.timestamp ? new Date(log.timestamp).toLocaleString("vi-VN") : log.time || "",
         type:
-          log.trang_thai === "FAILED"
+          log.status === "FAILED"
             ? "edit"
-            : log.hanh_dong?.includes("DUYET")
+            : log.action?.includes("DUYET")
               ? "approve"
-              : log.hanh_dong?.includes("DANG_NHAP")
+              : log.action?.includes("DANG_NHAP")
                 ? "login"
                 : "edit",
-        status: log.trang_thai === "FAILED" ? "error" : "success",
-        details: log.chi_tiet || "",
+        status: log.status === "FAILED" ? "error" : "success",
+        details: log.detail || "",
         raw: log,
       }));
     } catch (error) {
@@ -228,11 +231,11 @@ export const AdminService = {
   },
 
   createUser: async (user: any): Promise<any> => {
-    return apiClient.post<any>("/users/with-profile", user);
+    return apiClient.post<any>("/users/profiles", user);
   },
 
   toggleUserStatus: async (accountId: number): Promise<any> => {
-    return apiClient.patch<any>(`/users/${accountId}/toggle-status`, {});
+    return apiClient.patch<any>(`/users/${accountId}/status`, {});
   },
 
   deleteUser: async (id: number): Promise<boolean> => {
@@ -243,12 +246,12 @@ export const AdminService = {
   getProfile: async (): Promise<{ name: string; email: string }> => {
     const data = await apiClient.get<any>("/users/me/profile");
     return {
-      name: data.tai_khoan?.ten_dang_nhap?.split("@")[0] || "Quan tri vien",
-      email: data.tai_khoan?.ten_dang_nhap || "admin@university.edu.vn",
+      name: data.account?.username?.split("@")[0] || "Quan tri vien",
+      email: data.account?.username || "admin@university.edu.vn",
     };
   },
 
   getReportStats: async (): Promise<any> => {
-    return apiClient.get<any>("/he-thong/reports");
+    return apiClient.get<any>("/system/reports");
   },
 };

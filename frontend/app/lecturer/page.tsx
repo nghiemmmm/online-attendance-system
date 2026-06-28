@@ -5,8 +5,8 @@ import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
-import { 
-  Users, 
+import {
+  Users,
   Clock,
   BookOpen,
   CalendarCheck,
@@ -57,7 +57,7 @@ export default function LecturerDashboard() {
           LecturerService.getLopHocPhanCount(prof.maCanBo),
           LecturerService.getPendingClaimsCount(prof.maCanBo),
           LecturerService.getMonthlyAttendanceSummary(prof.maCanBo),
-          LecturerService.getLichDayToday(),
+          LecturerService.getLichDayToday(prof.maCanBo),
           LecturerService.getRecentSessions(prof.maCanBo),
           LecturerService.getClaims(prof.maCanBo)
         ])
@@ -83,24 +83,29 @@ export default function LecturerDashboard() {
         })
 
         // Map today classes
-        setTodayClasses(todaySched.map((item: any) => ({
-          id: item.ma_buoi_hoc || item.ma_lop_hoc_phan,
-          subject: item.ten_hoc_phan || "Môn học",
-          time: `${item.gio_bat_dau || "N/A"} - ${item.gio_ket_thuc || "N/A"}`,
-          room: "Phòng máy", // Default placeholder
-          students: item.so_sinh_vien_co_mat + item.so_sinh_vien_di_muon + item.so_sinh_vien_vang_mat || 0,
-          session: item.so_buoi || 1,
-          status: item.trang_thai_buoi_hoc === 'DA_KET_THUC' ? 'completed' : 'upcoming'
-        })))
+        setTodayClasses(todaySched.map((item: any) => {
+          const isMakeup = item.note && (item.note.includes("Học bù") || item.note.includes("Hoãn"));
+          return {
+            id: item.class_session_id || item.class_section_id,
+            subject: item.course_name || "Môn học",
+            time: `${item.start_time || "N/A"} - ${item.end_time || "N/A"}`,
+            room: "Phòng A2-301",
+            students: item.present_student_count + item.late_student_count + item.absent_student_count || 0,
+            session: item.session_number || 1,
+            isOfficial: !isMakeup,
+            note: item.note || "",
+            status: item.class_session_status === 'DA_KET_THUC' ? 'completed' : 'upcoming'
+          };
+        }))
 
         // Map recent sessions
         setRecentSessions(recentSess.map((item: any) => ({
-          id: item.ma_lop_hoc_phan,
-          subject: item.ten_hoc_phan || "Môn học",
-          date: item.ngay_hoc ? new Date(item.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
-          present: item.so_sinh_vien_co_mat || 0,
-          late: item.so_sinh_vien_di_muon || 0,
-          absent: item.so_sinh_vien_vang_mat || 0
+          id: item.class_section_id,
+          subject: item.course_name || "Môn học",
+          date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "N/A",
+          present: item.present_student_count || 0,
+          late: item.late_student_count || 0,
+          absent: item.absent_student_count || 0
         })))
 
         // Filter and set pending claims
@@ -143,9 +148,9 @@ export default function LecturerDashboard() {
   const userEmail = profile ? profile.email : "loading..."
 
   return (
-    <AppShell 
-      role="lecturer" 
-      user={{ name: userDisplayName, email: userEmail, avatar: "" }} 
+    <AppShell
+      role="lecturer"
+      user={{ name: userDisplayName, email: userEmail, avatar: "" }}
       breadcrumb="Dashboard"
       notificationCount={pendingClaims.length}
     >
@@ -267,30 +272,42 @@ export default function LecturerDashboard() {
                       todayClasses.map((cls) => (
                         <div
                           key={cls.id}
-                          className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] hover:border-[#0EA5E9] hover:bg-[#EFF6FF]/50 transition-all gap-3"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg bg-[#0A2540] flex items-center justify-center text-white">
-                              <span className="text-xs font-medium">Buổi {cls.session}</span>
+                            <div className="w-12 h-12 rounded-xl bg-[#0A2540] flex flex-col items-center justify-center text-white shrink-0 shadow-xs">
+                              <span className="text-[10px] text-white/70 font-medium uppercase">Tiết</span>
+                              <span className="text-sm font-bold">Buổi {cls.session}</span>
                             </div>
                             <div>
-                              <p className="font-medium text-[#0F172A]">{cls.subject}</p>
-                              <div className="flex items-center gap-2 text-sm text-[#64748B]">
-                                <span>{cls.room}</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-bold text-[#0F172A] text-base">{cls.subject}</p>
+                                {cls.isOfficial ? (
+                                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]">
+                                    ✓ Lịch QTV lập sẵn
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-[#FFEDD5] text-[#C2410C] border border-[#FED7AA]">
+                                    ⚡ Lịch bù / Đổi
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-[#64748B] mt-1">
+                                <span className="font-medium text-[#334155]">{cls.room}</span>
                                 <span>•</span>
-                                <span>{cls.students} SV</span>
+                                <span>{cls.students} Sinh viên đăng ký</span>
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1 text-[#64748B]">
-                              <Clock className="w-4 h-4" />
-                              <span className="text-sm">{cls.time}</span>
+                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5 text-[#475569] bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0] text-xs font-semibold">
+                              <Clock className="w-3.5 h-3.5 text-[#0EA5E9]" />
+                              <span>{cls.time}</span>
                             </div>
                             <Link href={`/lecturer/live/${cls.id}`}>
-                              <Button size="sm" className="bg-[#0A2540] hover:bg-[#1A3A5C]">
-                                <Video className="w-4 h-4 mr-1" />
-                                Mở lớp
+                              <Button size="sm" className="bg-[#0A2540] hover:bg-[#1A3A5C] font-bold text-xs shadow-xs">
+                                <Video className="w-3.5 h-3.5 mr-1" />
+                                Mở lớp Live
                               </Button>
                             </Link>
                           </div>
@@ -308,8 +325,8 @@ export default function LecturerDashboard() {
                     <CardTitle className="text-lg font-semibold text-[#0F172A]">
                       Buổi học gần đây
                     </CardTitle>
-                    <Link 
-                      href="/lecturer/reports" 
+                    <Link
+                      href="/lecturer/reports"
                       className="text-sm text-[#0EA5E9] hover:underline flex items-center gap-1"
                     >
                       Xem tất cả
@@ -364,8 +381,8 @@ export default function LecturerDashboard() {
                       <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
                       Khiếu nại cần xử lý
                     </CardTitle>
-                    <Link 
-                      href="/lecturer/claims" 
+                    <Link
+                      href="/lecturer/claims"
                       className="text-sm text-[#0EA5E9] hover:underline flex items-center gap-1"
                     >
                       Xem tất cả
@@ -394,18 +411,18 @@ export default function LecturerDashboard() {
                         <div className="flex items-center gap-3">
                           <StatusBadge status={claim.currentStatus} />
                           <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-[#22C55E] border-[#22C55E] hover:bg-[#22C55E] hover:text-white"
                               onClick={() => handleClaimStatus(claim.id, 'approved')}
                               disabled={processingClaimId === claim.id}
                             >
                               Chấp thuận
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-[#EF4444] border-[#EF4444] hover:bg-[#EF4444] hover:text-white"
                               onClick={() => handleClaimStatus(claim.id, 'rejected')}
                               disabled={processingClaimId === claim.id}

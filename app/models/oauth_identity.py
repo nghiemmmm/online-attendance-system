@@ -24,10 +24,10 @@ class OAuthIdentity(SQLModel, table=True):
         ),
     )
 
-    ma_oauth_identity: int | None = Field(default=None, primary_key=True)
+    oauth_identity_id: int | None = Field(default=None, primary_key=True)
     provider: str = Field(max_length=30, index=True)
     provider_subject: str = Field(max_length=255, index=True)
     email: EmailStr = Field(max_length=255, index=True)
-    ma_tai_khoan: int = Field(foreign_key="taikhoan.ma_tai_khoan", index=True)
+    account_id: int = Field(foreign_key="accounts.account_id", index=True)
     created_at: datetime = Field(default_factory=get_datetime_utc)
     last_login_at: datetime | None = None

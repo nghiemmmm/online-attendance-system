@@ -9,9 +9,9 @@ from datetime import date
 
 from sqlmodel import Session, select
 
-from app.models import BuoiHoc, DiemDanh, LopHocPhan
+from app.models import ClassSession, Attendance, ClassSection
 
-PRESENT_ATTENDANCE_STATUSES = {"CO_MAT", "DI_MUON"}
+PRESENT_ATTENDANCE_STATUSES = {"PRESENT", "LATE", "CO_MAT", "DI_MUON"}
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class AttendanceCountResult:
 def get_attendance_counts_for_teacher(
     *,
     session: Session,
-    ma_can_bo: int,
+    staff_id: int,
     start_date: date,
     end_date: date,
 ) -> AttendanceCountResult:
@@ -40,7 +40,7 @@ def get_attendance_counts_for_teacher(
 
     Args:
         session: Database session.
-        ma_can_bo: Teacher/staff identifier.
+        staff_id: Teacher/staff identifier.
         start_date: Inclusive start date.
         end_date: Exclusive end date.
 
@@ -48,13 +48,13 @@ def get_attendance_counts_for_teacher(
         AttendanceCountResult containing present and total attendance records.
     """
     base_statement = (
-        select(DiemDanh.trang_thai)
-        .join(BuoiHoc, DiemDanh.ma_buoi_hoc == BuoiHoc.ma_buoi_hoc)
-        .join(LopHocPhan, BuoiHoc.ma_lop_hoc_phan == LopHocPhan.ma_lop_hoc_phan)
+        select(Attendance.status)
+        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
+        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
         .where(
-            LopHocPhan.ma_can_bo == ma_can_bo,
-            BuoiHoc.ngay_hoc >= start_date,
-            BuoiHoc.ngay_hoc < end_date,
+            ClassSection.staff_id == staff_id,
+            ClassSession.class_date >= start_date,
+            ClassSession.class_date < end_date,
         )
     )
     attendance_statuses = session.exec(base_statement).all()

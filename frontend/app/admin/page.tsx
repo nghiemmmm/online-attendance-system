@@ -4,9 +4,9 @@ import { useEffect, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { 
-  Users, 
-  BookOpen, 
+import {
+  Users,
+  BookOpen,
   ScanFace,
   TrendingUp,
   AlertTriangle,
@@ -63,9 +63,9 @@ export default function AdminDashboard() {
   }, [])
 
   return (
-    <AppShell 
-      role="admin" 
-      user={adminUser} 
+    <AppShell
+      role="admin"
+      user={adminUser}
       breadcrumb="Dashboard"
       notificationCount={stats.students_without_face}
     >

@@ -45,15 +45,15 @@ def load_faiss_index(faiss_path, metadata_path):
         if not os.path.exists(faiss_path):
             print(f"[ERROR] FAISS index not found: {faiss_path}")
             return None, None
-        
+
         index = faiss.read_index(faiss_path)
         print(f"[INFO] FAISS index loaded: {faiss_path}")
         print(f"[INFO] Index contains {index.ntotal} embeddings")
-        
+
         with open(metadata_path, 'rb') as f:
             names = pickle.load(f)
         print(f"[INFO] Metadata loaded: {len(names)} names")
-        
+
         return index, names
     except Exception as e:
         print(f"[ERROR] Failed to load FAISS index: {e}")
@@ -68,26 +68,26 @@ def get_face_embedding(image_path):
         if not os.path.exists(image_path):
             print(f"[ERROR] Image not found: {image_path}")
             return None, None
-        
+
         img = Image.open(image_path).convert('RGB')
-        
+
         # Detect face using MTCNN
         img_tensor = mtcnn(img)
         if img_tensor is None:
             print(f"[WARNING] No face detected in {image_path}")
             return None, None
-        
+
         # Ensure proper shape
         if img_tensor.dim() == 3:
             img_tensor = img_tensor.unsqueeze(0)
-        
+
         # Generate embedding
         with torch.no_grad():
             embeddings = model(img_tensor.to(device))
-        
+
         embedding = embeddings[0].cpu().numpy().astype('float32')
         return embedding, img
-        
+
     except Exception as e:
         print(f"[ERROR] Failed to extract embedding: {e}")
         return None, None
@@ -100,17 +100,17 @@ def search_face(embedding, index, names, tolerance=0.6):
     try:
         query_embedding = embedding.reshape(1, -1)
         distances, indices = index.search(query_embedding, k=1)
-        
+
         if len(indices[0]) > 0:
             idx = indices[0][0]
             dist = distances[0][0]
-            
+
             if idx < len(names):
                 name = names[idx]
                 return name, float(dist), dist < tolerance
-        
+
         return "unknown", float('inf'), False
-        
+
     except Exception as e:
         print(f"[ERROR] Failed to search: {e}")
         return "error", float('inf'), False
@@ -132,12 +132,12 @@ def test_image(image_path, index, names, tolerance=0.6, show_distance=False):
     if not os.path.exists(image_path):
         print(f"[ERROR] Image not found: {image_path}")
         return
-    
+
     embedding, img = get_face_embedding(image_path)
     if embedding is None:
         print_result(image_path, "no_face_detected", show_distance=show_distance)
         return
-    
+
     name, distance, matched = search_face(embedding, index, names, tolerance=tolerance)
     print_result(image_path, name, distance, show_distance)
 
@@ -161,11 +161,11 @@ def image_files_in_folder(folder):
 def main(known_people_folder, image_to_check, tolerance, show_distance, index_path, metadata_path):
     """
     Face recognition using FaceNet + FAISS
-    
+
     Usage:
         python face_recognition.py known_people/ test_image.jpg --tolerance 0.6 --show-distance True
     """
-    
+
     print(f"\n{'='*60}")
     print(f"Face Recognition using FaceNet + FAISS")
     print(f"{'='*60}")
@@ -176,18 +176,18 @@ def main(known_people_folder, image_to_check, tolerance, show_distance, index_pa
     print(f"FAISS index: {index_path}")
     print(f"Metadata: {metadata_path}")
     print(f"{'='*60}\n")
-    
+
     # Load FAISS index
     index, names = load_faiss_index(index_path, metadata_path)
     if index is None:
         print(f"[ERROR] Failed to load FAISS index.")
         print(f"[INFO] Run: python app/utils/create_ebedding_faiss.py")
         return
-    
+
     if index.ntotal == 0:
         print(f"[ERROR] FAISS index is empty.")
         return
-    
+
     # Test image(s)
     if os.path.isdir(image_to_check):
         files = image_files_in_folder(image_to_check)
@@ -196,7 +196,7 @@ def main(known_people_folder, image_to_check, tolerance, show_distance, index_pa
             test_image(f, index, names, tolerance, show_distance)
     else:
         test_image(image_to_check, index, names, tolerance, show_distance)
-    
+
     print(f"\n{'='*60}")
 
 if __name__ == "__main__":

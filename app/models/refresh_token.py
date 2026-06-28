@@ -15,8 +15,8 @@ class RefreshToken(SQLModel, table=True):
 
     __tablename__ = "refresh_token"
 
-    ma_refresh_token: int | None = Field(default=None, primary_key=True)
-    ma_tai_khoan: int = Field(foreign_key="taikhoan.ma_tai_khoan", index=True)
+    refresh_token_id: int | None = Field(default=None, primary_key=True)
+    account_id: int = Field(foreign_key="accounts.account_id", index=True)
     token_hash: str = Field(max_length=255, unique=True, index=True)
     expires_at: datetime = Field(index=True)
     created_at: datetime = Field(default_factory=get_datetime_utc)

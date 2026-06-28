@@ -7,7 +7,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.api.deps import get_db
 from app.core.security import get_password_hash
 from app.main import app
-from app.models import RefreshToken, TaiKhoan
+from app.models import RefreshToken, Account
 
 
 def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
@@ -19,15 +19,15 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
     )
     SQLModel.metadata.create_all(
         engine,
-        tables=[TaiKhoan.__table__, RefreshToken.__table__],
+        tables=[Account.__table__, RefreshToken.__table__],
     )
 
     with Session(engine) as session:
-        account = TaiKhoan(
-            ten_dang_nhap="remember_user",
-            mat_khau_hash=get_password_hash("secret123"),
-            vai_tro="SINH_VIEN",
-            trang_thai=True,
+        account = Account(
+            username="remember_user",
+            password_hash=get_password_hash("secret123"),
+            role="SINH_VIEN",
+            status=True,
         )
         session.add(account)
         session.commit()
@@ -46,7 +46,7 @@ def test_login_json_without_remember_me_returns_only_access_token() -> None:
     """Kiểm tra login JSON không remember chỉ trả access token."""
     for client, session in make_test_client():
         response = client.post(
-            "/login/json",
+            "/api/auth/tokens",
             json={
                 "username": "remember_user",
                 "password": "secret123",
@@ -68,7 +68,7 @@ def test_login_refresh_and_logout_flow_with_remember_me() -> None:
     """Kiểm tra đủ luồng login remember, refresh token và logout một phiên."""
     for client, session in make_test_client():
         login_response = client.post(
-            "/login/json",
+            "/api/auth/tokens",
             json={
                 "username": "remember_user",
                 "password": "secret123",
@@ -79,15 +79,16 @@ def test_login_refresh_and_logout_flow_with_remember_me() -> None:
         refresh_token = login_body["refresh_token"]
 
         refresh_response = client.post(
-            "/login/refresh",
+            "/api/auth/token-refreshes",
             json={"refresh_token": refresh_token},
         )
-        logout_response = client.post(
-            "/login/logout",
+        logout_response = client.request(
+            "DELETE",
+            "/api/sessions/current",
             json={"refresh_token": refresh_token},
         )
         refresh_after_logout_response = client.post(
-            "/login/refresh",
+            "/api/auth/token-refreshes",
             json={"refresh_token": refresh_token},
         )
         db_token = session.exec(select(RefreshToken)).first()
@@ -105,10 +106,10 @@ def test_login_refresh_and_logout_flow_with_remember_me() -> None:
 
 
 def test_logout_all_revokes_every_refresh_token() -> None:
-    """Kiểm tra logout-all thu hồi mọi refresh token của tài khoản đang đăng nhập."""
+    """Kiểm tra logout-all weekday hồi mọi refresh token của tài khoản đang đăng nhập."""
     for client, session in make_test_client():
         first_login = client.post(
-            "/login/json",
+            "/api/auth/tokens",
             json={
                 "username": "remember_user",
                 "password": "secret123",
@@ -116,7 +117,7 @@ def test_logout_all_revokes_every_refresh_token() -> None:
             },
         ).json()
         second_login = client.post(
-            "/login/json",
+            "/api/auth/tokens",
             json={
                 "username": "remember_user",
                 "password": "secret123",
@@ -124,16 +125,16 @@ def test_logout_all_revokes_every_refresh_token() -> None:
             },
         ).json()
 
-        logout_all_response = client.post(
-            "/login/logout-all",
+        logout_all_response = client.delete(
+            "/api/sessions",
             headers={"Authorization": f"Bearer {first_login['access_token']}"},
         )
         first_refresh = client.post(
-            "/login/refresh",
+            "/api/auth/token-refreshes",
             json={"refresh_token": first_login["refresh_token"]},
         )
         second_refresh = client.post(
-            "/login/refresh",
+            "/api/auth/token-refreshes",
             json={"refresh_token": second_login["refresh_token"]},
         )
         tokens = session.exec(select(RefreshToken)).all()

@@ -15,7 +15,7 @@ class MonthlyAttendanceSummary(SQLModel):
     difference, and raw attendance counts used for the calculation.
     """
 
-    ma_can_bo: int
+    staff_id: int
     current_month: str
     previous_month: str
     current_month_attendance_rate: float | None

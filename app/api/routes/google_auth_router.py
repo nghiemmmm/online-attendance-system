@@ -12,7 +12,7 @@ from app.api.deps import SessionDep
 from app.core import security
 from app.core.config import settings
 from app.core.security.auth.google_oauth import oauth
-from app.models import GoogleAuthPending, OAuthIdentity, TaiKhoan, TaiKhoanCreate, Token
+from app.models import GoogleAuthPending, OAuthIdentity, Account, AccountCreate, Token
 from app.services.auth_token_service import issue_login_tokens
 
 router = APIRouter(prefix="/auth/google", tags=["google-auth"])
@@ -74,7 +74,7 @@ async def google_callback(
             provider_subject=provider_subject,
         )
         if identity:
-            account = session.get(TaiKhoan, identity.ma_tai_khoan)
+            account = session.get(Account, identity.account_id)
             if not account:
                 raise HTTPException(status_code=404, detail="Account not found")
 
@@ -87,8 +87,8 @@ async def google_callback(
             crud.update_oauth_identity_last_login(session=session, identity=identity)
             logger.info(
                 "google_login_existing_identity account_id=%s identity_id=%s remember_me=%s",
-                account.ma_tai_khoan,
-                identity.ma_oauth_identity,
+                account.account_id,
+                identity.oauth_identity_id,
                 remember_me,
             )
             return RedirectResponse(
@@ -114,7 +114,7 @@ async def google_callback(
 
         if isinstance(result, GoogleAuthPending):
             return RedirectResponse(
-                url=f"{settings.FRONTEND_HOST}/auth/callback?status=pending&ma_tai_khoan={result.ma_tai_khoan}"
+                url=f"{settings.FRONTEND_HOST}/auth/callback?status=pending&account_id={result.account_id}"
             )
         else:
             return RedirectResponse(
@@ -181,7 +181,7 @@ def handle_existing_account_login(
     )
     logger.info(
         "google_identity_linked account_id=%s email_domain=%s",
-        account.ma_tai_khoan,
+        account.account_id,
         get_email_domain(email),
     )
     token = create_login_token_for_account(
@@ -224,17 +224,17 @@ def handle_auto_register_login(
         crud.update_oauth_identity_last_login(session=session, identity=identity)
         logger.info(
             "google_auto_register_existing_profile account_id=%s email_domain=%s remember_me=%s",
-            account.ma_tai_khoan,
+            account.account_id,
             get_email_domain(email),
             remember_me,
         )
         return token
 
-    account_create = TaiKhoanCreate(
-        ten_dang_nhap=build_google_username(provider_subject),
+    account_create = AccountCreate(
+        username=build_google_username(provider_subject),
         password=secrets.token_urlsafe(32),
-        vai_tro="SINH_VIEN",
-        trang_thai=False,
+        role="SINH_VIEN",
+        status=False,
     )
     account = crud.create_account(session=session, account_create=account_create)
     create_google_identity_for_account(
@@ -245,13 +245,13 @@ def handle_auto_register_login(
     )
     logger.info(
         "google_auto_register_pending account_id=%s email_domain=%s",
-        account.ma_tai_khoan,
+        account.account_id,
         get_email_domain(email),
     )
 
     return GoogleAuthPending(
         message="Account created and waiting for approval",
-        ma_tai_khoan=account.ma_tai_khoan,
+        account_id=account.account_id,
     )
 
 
@@ -272,9 +272,9 @@ def build_google_username(provider_subject: str) -> str:
 
 
 def create_google_identity_for_account(
-    *, session: Session, provider_subject: str, email: str, account: TaiKhoan
+    *, session: Session, provider_subject: str, email: str, account: Account
 ) -> OAuthIdentity:
-    if account.ma_tai_khoan is None:
+    if account.account_id is None:
         raise HTTPException(status_code=400, detail="Account has no id")
 
     return crud.create_oauth_identity(
@@ -282,14 +282,14 @@ def create_google_identity_for_account(
         provider=GOOGLE_PROVIDER,
         provider_subject=provider_subject,
         email=email,
-        ma_tai_khoan=account.ma_tai_khoan,
+        account_id=account.account_id,
     )
 
 
 def create_login_token_for_account(
     *,
     session: Session,
-    account: TaiKhoan,
+    account: Account,
     remember_me: bool = False,
     request: Request | None = None,
 ) -> Token:

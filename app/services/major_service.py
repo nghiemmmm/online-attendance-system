@@ -2,8 +2,8 @@
 
 from sqlmodel import Session
 
-from app.crud import nganh_crud
-from app.models import Message, Nganh, NganhCreate, NganhUpdate
+from app.crud import major_crud
+from app.models import Message, Major, MajorCreate, MajorUpdate
 from app.core.exceptions import MajorNotFoundError
 
 
@@ -12,41 +12,41 @@ def list_majors(
     session: Session,
     skip: int = 0,
     limit: int = 100,
-) -> tuple[list[Nganh], int]:
+) -> tuple[list[Major], int]:
     """Return paginated academic majors."""
-    return nganh_crud.get_majors(session=session, skip=skip, limit=limit)
+    return major_crud.get_majors(session=session, skip=skip, limit=limit)
 
 
-def get_major_or_404(*, session: Session, ma_nganh: int) -> Nganh:
+def get_major_or_404(*, session: Session, major_id: int) -> Major:
     """Return an academic major or raise a 404 error."""
-    item = nganh_crud.get_major(session=session, ma_nganh=ma_nganh)
+    item = major_crud.get_major(session=session, major_id=major_id)
     if not item:
         raise MajorNotFoundError()
     return item
 
 
-def create_major(*, session: Session, item_in: NganhCreate) -> Nganh:
+def create_major(*, session: Session, item_in: MajorCreate) -> Major:
     """Create an academic major."""
-    return nganh_crud.create_major(session=session, item_create=item_in)
+    return major_crud.create_major(session=session, item_create=item_in)
 
 
 def update_major(
     *,
     session: Session,
-    ma_nganh: int,
-    item_in: NganhUpdate,
-) -> Nganh:
+    major_id: int,
+    item_in: MajorUpdate,
+) -> Major:
     """Update an academic major."""
-    item = get_major_or_404(session=session, ma_nganh=ma_nganh)
-    return nganh_crud.update_major(
+    item = get_major_or_404(session=session, major_id=major_id)
+    return major_crud.update_major(
         session=session,
         db_item=item,
         item_update=item_in,
     )
 
 
-def delete_major(*, session: Session, ma_nganh: int) -> Message:
+def delete_major(*, session: Session, major_id: int) -> Message:
     """Delete an academic major."""
-    item = get_major_or_404(session=session, ma_nganh=ma_nganh)
-    nganh_crud.delete_major(session=session, db_item=item)
+    item = get_major_or_404(session=session, major_id=major_id)
+    major_crud.delete_major(session=session, db_item=item)
     return Message(message="Major deleted successfully")

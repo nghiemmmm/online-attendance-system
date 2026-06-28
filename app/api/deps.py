@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from typing import Annotated
 
 import jwt
@@ -6,26 +6,48 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import Session, create_engine, select
 
 from app.core import security
 from app.core.config import settings
-from app.core.db import engine
-from app.models import TaiKhoan, TokenPayload
+from app.core.db import AsyncSessionFactory, AsyncSessionFactory
+from app.models import Account, TokenPayload
 
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/login/access-token")
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/access-tokens")
 
+# ⚠️ TEMPORARY: Use sync session for backward compatibility
+# Migration to AsyncSession happens per-route basis
+sync_engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 def get_db() -> Generator[Session, None, None]:
-    with Session(engine) as session:
+    """Sync database session dependency for existing routes.
+
+    TODO: Migrate to async_get_db() for new/updated routes.
+    """
+    with Session(sync_engine) as session:
+        yield session
+
+
+async def async_get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Async database session dependency for FastAPI async routes.
+
+    Use this for new routes or when migrating from sync to async.
+    """
+    async with AsyncSessionFactory() as session:
         yield session
 
 
 SessionDep = Annotated[Session, Depends(get_db)]
+AsyncSessionDep = Annotated[AsyncSession, Depends(async_get_db)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-def get_current_account(session: SessionDep, token: TokenDep) -> TaiKhoan:
+def get_current_account(session: SessionDep, token: TokenDep) -> Account:
+    """Retrieve and validate current account from JWT token (sync version).
+
+    TODO: Create async_get_current_account() for async routes.
+    """
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
@@ -51,19 +73,68 @@ def get_current_account(session: SessionDep, token: TokenDep) -> TaiKhoan:
             detail="Could not validate credentials",
         )
 
-    account = session.get(TaiKhoan, account_id)
+    # Sync database query
+    account = session.get(Account, account_id)
+
     if not account:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Account not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not account.trang_thai:
+    if not account.status:
         raise HTTPException(status_code=400, detail="Inactive account")
     return account
 
 
-CurrentAccount = Annotated[TaiKhoan, Depends(get_current_account)]
+async def async_get_current_account(session: AsyncSessionDep, token: TokenDep) -> Account:
+    """Retrieve and validate current account from JWT token (async version).
+
+    Use this for async routes that need async database access.
+    """
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+
+    if not token_data.sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+
+    try:
+        account_id = int(token_data.sub)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+
+    # ✅ Async database query
+    stmt = select(Account).where(Account.account_id == account_id)
+    result = await session.execute(stmt)
+    account = result.scalar_one_or_none()
+
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not account.status:
+        raise HTTPException(status_code=400, detail="Inactive account")
+    return account
+
+
+CurrentAccount = Annotated[Account, Depends(get_current_account)]
+AsyncCurrentAccount = Annotated[Account, Depends(async_get_current_account)]
 CurrentUser = CurrentAccount
 
 
@@ -88,27 +159,56 @@ def normalize_role(role: str | None) -> str:
     return role_aliases.get(normalized, normalized)
 
 
-def get_current_active_superuser(current_account: CurrentAccount) -> TaiKhoan:
-    if normalize_role(current_account.vai_tro) != "ADMIN":
+def get_current_active_superuser(current_account: CurrentAccount) -> Account:
+    if normalize_role(current_account.role) != "ADMIN":
         raise HTTPException(
             status_code=403,
-            detail=f"Yeu cau vai tro ADMIN, tai khoan hien tai la {current_account.vai_tro}",
+            detail=f"Yeu cau vai tro ADMIN, tai khoan hien tai la {current_account.role}",
         )
     return current_account
 
-def get_current_active_student(current_account: CurrentAccount) -> TaiKhoan:
-    if normalize_role(current_account.vai_tro) != "SINH_VIEN":
+def get_current_active_student(current_account: CurrentAccount) -> Account:
+    if normalize_role(current_account.role) != "SINH_VIEN":
         raise HTTPException(
             status_code=403,
-            detail=f"Yeu cau vai tro SINH_VIEN, tai khoan hien tai la {current_account.vai_tro}",
+            detail=f"Yeu cau vai tro SINH_VIEN, tai khoan hien tai la {current_account.role}",
         )
     return current_account
 
-def get_current_active_lecturer(current_account: CurrentAccount) -> TaiKhoan:
-    if normalize_role(current_account.vai_tro) != "GIANG_VIEN":
+def get_current_active_lecturer(current_account: CurrentAccount) -> Account:
+    if normalize_role(current_account.role) != "GIANG_VIEN":
         raise HTTPException(
             status_code=403,
-            detail=f"Yeu cau vai tro GIANG_VIEN, tai khoan hien tai la {current_account.vai_tro}",
+            detail=f"Yeu cau vai tro GIANG_VIEN, tai khoan hien tai la {current_account.role}",
+        )
+    return current_account
+
+
+# Async role checkers for use with async routes
+async def get_current_active_superuser_async(current_account: AsyncCurrentAccount) -> Account:
+    """Async version - check superuser role."""
+    if normalize_role(current_account.role) != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail=f"Yeu cau vai tro ADMIN, tai khoan hien tai la {current_account.role}",
+        )
+    return current_account
+
+async def get_current_active_student_async(current_account: AsyncCurrentAccount) -> Account:
+    """Async version - check student role."""
+    if normalize_role(current_account.role) != "SINH_VIEN":
+        raise HTTPException(
+            status_code=403,
+            detail=f"Yeu cau vai tro SINH_VIEN, tai khoan hien tai la {current_account.role}",
+        )
+    return current_account
+
+async def get_current_active_lecturer_async(current_account: AsyncCurrentAccount) -> Account:
+    """Async version - check lecturer role."""
+    if normalize_role(current_account.role) != "GIANG_VIEN":
+        raise HTTPException(
+            status_code=403,
+            detail=f"Yeu cau vai tro GIANG_VIEN, tai khoan hien tai la {current_account.role}",
         )
     return current_account
 
@@ -142,4 +242,3 @@ class RateLimiter:
 
 
 login_rate_limiter = RateLimiter(times=5, seconds=60)
-

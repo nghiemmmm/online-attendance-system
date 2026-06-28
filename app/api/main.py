@@ -1,46 +1,47 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
-    canbo,
-    canhbaohoc_tap,
-    diemdanh,
+    academic_warnings,
+    appeals,
+    attendance,
+    class_sections,
+    class_sessions,
+    course_registrations,
+    courses,
+    face_images,
     google_auth_router,
-    khieunai,
-    ketnoi_router,
-    lichhoc,
     login,
-    sinhvien,
+    majors,
+    reports,
+    schedules,
+    staff,
+    students,
+    system,
     system_router,
+    timetables,
     user,
-    lophocphan,
-    buoihoc,
-    nganh,
-    hocphan,
-    dangkyhocphan,
-    thoikhoabieu,
-    anhkhuonmat,
-    baocao,
-    hethong,
+    webrtc_router,
 )
 
 api_router = APIRouter()
 api_router.include_router(system_router.router)
-api_router.include_router(ketnoi_router.router)
+api_router.include_router(webrtc_router.router)
 api_router.include_router(google_auth_router.router)
 api_router.include_router(user.router)
 api_router.include_router(login.router)
-api_router.include_router(canbo.router)
-api_router.include_router(canhbaohoc_tap.router)
-api_router.include_router(diemdanh.router)
-api_router.include_router(khieunai.router)
-api_router.include_router(sinhvien.router)
-api_router.include_router(lichhoc.router)
-api_router.include_router(lophocphan.router)
-api_router.include_router(buoihoc.router)
-api_router.include_router(nganh.router)
-api_router.include_router(hocphan.router)
-api_router.include_router(dangkyhocphan.router)
-api_router.include_router(thoikhoabieu.router)
-api_router.include_router(anhkhuonmat.router)
-api_router.include_router(baocao.router)
-api_router.include_router(hethong.router)
+api_router.include_router(staff.router)
+api_router.include_router(academic_warnings.router)
+api_router.include_router(attendance.router)
+api_router.include_router(appeals.router)
+api_router.include_router(students.router)
+api_router.include_router(schedules.router)
+api_router.include_router(class_sections.router)
+api_router.include_router(class_sessions.router)
+api_router.include_router(majors.router)
+api_router.include_router(courses.router)
+api_router.include_router(course_registrations.router)
+api_router.include_router(timetables.router)
+api_router.include_router(face_images.router)
+api_router.include_router(face_images.verification_router)
+api_router.include_router(reports.router)
+api_router.include_router(system.router)

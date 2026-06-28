@@ -11,7 +11,9 @@ def random_lower_string() -> str:
 
 
 def random_email() -> str:
-    return f"{random_lower_string()}@{random_lower_string()}.com"
+    username_part = "".join(random.choices(string.ascii_lowercase, k=12))
+    domain_part = "".join(random.choices(string.ascii_lowercase, k=12))
+    return f"{username_part}@{domain_part}.com"
 
 
 def get_superuser_token_headers(client: TestClient) -> dict[str, str]:
@@ -19,7 +21,7 @@ def get_superuser_token_headers(client: TestClient) -> dict[str, str]:
         "username": settings.FIRST_SUPERUSER,
         "password": settings.FIRST_SUPERUSER_PASSWORD,
     }
-    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    r = client.post(f"{settings.API_V1_STR}/auth/access-tokens", data=login_data)
     tokens = r.json()
     a_token = tokens["access_token"]
     headers = {"Authorization": f"Bearer {a_token}"}

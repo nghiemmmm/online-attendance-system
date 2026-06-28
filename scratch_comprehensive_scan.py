@@ -83,7 +83,7 @@ for filepath in py_files:
                         called = ast.unparse(subnode.func)
                         if any(x in called for x in ["session.add", "session.commit", "session.delete", "session.refresh", "session.exec", "session.get"]):
                             db_access.append(f"DB call: {code_str}")
-                        elif "crud." in called or "sinhvien_crud." in called or "canbo_crud." in called or "buoihoc_crud." in called:
+                        elif "crud." in called or "student_crud." in called or "staff_crud." in called or "class_session_crud." in called:
                             db_access.append(f"CRUD call: {code_str}")
                 
                 if db_access:

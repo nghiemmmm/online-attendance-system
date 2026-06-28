@@ -11,6 +11,7 @@ from typing import Any
 from sqlmodel import Session
 
 from app.crud.attendance_summary_crud import get_attendance_counts_for_teacher
+from app.core.exceptions import ClassSectionNotFoundError, PermissionDeniedError
 from app.models import MonthlyAttendanceSummary
 
 
@@ -134,7 +135,7 @@ def build_change_description(
 def get_monthly_attendance_summary(
     *,
     session: Session,
-    ma_can_bo: int,
+    staff_id: int,
     reference_date: date,
 ) -> MonthlyAttendanceSummary:
     """
@@ -142,7 +143,7 @@ def get_monthly_attendance_summary(
 
     Args:
         session: Database session.
-        ma_can_bo: Teacher/staff identifier.
+        staff_id: Teacher/staff identifier.
         reference_date: Date used to determine current and previous month.
 
     Returns:
@@ -153,13 +154,13 @@ def get_monthly_attendance_summary(
 
     current_counts = get_attendance_counts_for_teacher(
         session=session,
-        ma_can_bo=ma_can_bo,
+        staff_id=staff_id,
         start_date=current_start,
         end_date=current_end,
     )
     previous_counts = get_attendance_counts_for_teacher(
         session=session,
-        ma_can_bo=ma_can_bo,
+        staff_id=staff_id,
         start_date=previous_start,
         end_date=previous_end,
     )
@@ -175,7 +176,7 @@ def get_monthly_attendance_summary(
     change_percentage = calculate_change_percentage(current_rate, previous_rate)
 
     return MonthlyAttendanceSummary(
-        ma_can_bo=ma_can_bo,
+        staff_id=staff_id,
         current_month=format_month(current_start),
         previous_month=format_month(previous_start),
         current_month_attendance_rate=current_rate,
@@ -197,63 +198,71 @@ def get_attendance_report_df(
     *,
     session: Session,
     current_account: Any,
-    ma_lop_hoc_phan: int,
+    class_section_id: int,
     unsigned: bool = False,
 ) -> tuple[Any, int]:
     """Retrieve and format attendance records as a pandas DataFrame for exporting."""
-    from app.models import LopHocPhan, BuoiHoc, DiemDanh, SinhVien, DangKyHocPhan
-    from app.crud import canbo_crud
-    from fastapi import HTTPException
+    from app.models import ClassSection, ClassSession, Attendance, Student, CourseRegistration
+    from app.crud import staff_crud
     from sqlmodel import select
     import pandas as pd
 
     # Check class section
-    lhp = session.get(LopHocPhan, ma_lop_hoc_phan)
-    if not lhp:
-        raise HTTPException(status_code=404, detail="Lớp học phần không tồn tại")
-        
+    class_section = session.get(ClassSection, class_section_id)
+    if not class_section:
+        raise ClassSectionNotFoundError("Lớp học phần không tồn tại")
+
     # Check permissions
-    can_bo = canbo_crud.get_staff_member_by_account_id(session=session, ma_tai_khoan=current_account.ma_tai_khoan)
-    if current_account.vai_tro != "ADMIN" and (not can_bo or lhp.ma_can_bo != can_bo.ma_can_bo):
-        raise HTTPException(status_code=403, detail="Không có quyền truy cập dữ liệu lớp này")
+    staff = staff_crud.get_staff_member_by_account_id(session=session, account_id=current_account.account_id)
+    if current_account.role != "ADMIN" and (
+        not staff or class_section.staff_id != staff.staff_id
+    ):
+        raise PermissionDeniedError("Không có quyền truy cập dữ liệu lớp này")
 
     # Get enrolled students
-    statement_sv = select(SinhVien).join(DangKyHocPhan).where(DangKyHocPhan.ma_lop_hoc_phan == ma_lop_hoc_phan)
-    danh_sach_sv = session.exec(statement_sv).all()
+    student_statement = select(Student).join(CourseRegistration).where(CourseRegistration.class_section_id == class_section_id)
+    students = session.exec(student_statement).all()
 
     # Get lessons
-    statement_bh = select(BuoiHoc).where(BuoiHoc.ma_lop_hoc_phan == ma_lop_hoc_phan).order_by(BuoiHoc.ngay_hoc, BuoiHoc.gio_bat_dau)
-    danh_sach_bh = session.exec(statement_bh).all()
+    class_session_statement = select(ClassSession).where(ClassSession.class_section_id == class_section_id).order_by(ClassSession.class_date, ClassSession.start_time)
+    class_sessions = session.exec(class_session_statement).all()
 
     # Optimize query: fetch all attendance records in ONE query
-    bh_ids = [bh.ma_buoi_hoc for bh in danh_sach_bh]
-    if bh_ids:
-        statement_dd = select(DiemDanh).where(DiemDanh.ma_buoi_hoc.in_(bh_ids))
-        danh_sach_dd = session.exec(statement_dd).all()
-        # Map to dict: (ma_buoi_hoc, ma_sinh_vien) -> trang_thai
-        dd_map = {(dd.ma_buoi_hoc, dd.ma_sinh_vien): dd.trang_thai for dd in danh_sach_dd}
+    class_session_ids = [
+        class_session.class_session_id for class_session in class_sessions
+    ]
+    if class_session_ids:
+        attendance_statement = select(Attendance).where(Attendance.class_session_id.in_(class_session_ids))
+        attendances = session.exec(attendance_statement).all()
+        # Map to dict: (class_session_id, student_id) -> status
+        attendance_map = {
+            (attendance.class_session_id, attendance.student_id): attendance.status
+            for attendance in attendances
+        }
     else:
-        dd_map = {}
+        attendance_map = {}
 
-    col_sid = "Ma sinh vien" if unsigned else "Mã sinh viên"
-    col_name = "Ho ten" if unsigned else "Họ tên"
+    col_sid = "Student ID" if unsigned else "Mã sinh viên"
+    col_name = "Full name" if unsigned else "Họ tên"
     unmarked_status = "CHUA_DIEM_DANH" if unsigned else "CHƯA_ĐIỂM_DANH"
 
     data = []
-    for sv in danh_sach_sv:
+    for student in students:
         row = {
-            col_sid: sv.ma_sinh_vien,
-            col_name: f"{sv.ho} {sv.ten}".strip(),
+            col_sid: student.student_id,
+            col_name: f"{student.last_name} {student.first_name}".strip(),
         }
-        for bh in danh_sach_bh:
-            ngay_str = bh.ngay_hoc.strftime("%d/%m/%Y")
-            trang_thai = dd_map.get((bh.ma_buoi_hoc, sv.ma_sinh_vien), unmarked_status)
-            row[ngay_str] = trang_thai
+        for class_session in class_sessions:
+            date_label = class_session.class_date.strftime("%d/%m/%Y")
+            status = attendance_map.get(
+                (class_session.class_session_id, student.student_id),
+                unmarked_status,
+            )
+            row[date_label] = status
         data.append(row)
 
     df = pd.DataFrame(data)
     if df.empty:
         df = pd.DataFrame(columns=[col_sid, col_name])
 
-    return df, ma_lop_hoc_phan
-
+    return df, class_section_id

@@ -4,10 +4,10 @@ from fastapi.testclient import TestClient
 from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlmodel import Session
 
+from app import crud
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
-from app.crud import create_user
-from app.models import TaiKhoan, TaiKhoanCreate
+from app.models import Account, AccountCreate
 from app.utils import generate_password_reset_token
 from tests.utils.user import user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
@@ -18,7 +18,7 @@ def test_get_access_token(client: TestClient) -> None:
         "username": settings.FIRST_SUPERUSER,
         "password": settings.FIRST_SUPERUSER_PASSWORD,
     }
-    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    r = client.post(f"{settings.API_V1_STR}/auth/access-tokens", data=login_data)
     tokens = r.json()
     assert r.status_code == 200
     assert "access_token" in tokens
@@ -30,20 +30,20 @@ def test_get_access_token_incorrect_password(client: TestClient) -> None:
         "username": settings.FIRST_SUPERUSER,
         "password": "incorrect",
     }
-    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    r = client.post(f"{settings.API_V1_STR}/auth/access-tokens", data=login_data)
     assert r.status_code == 400
 
 
 def test_use_access_token(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
-    r = client.post(
-        f"{settings.API_V1_STR}/login/test-token",
+    r = client.get(
+        f"{settings.API_V1_STR}/auth/token",
         headers=superuser_token_headers,
     )
     result = r.json()
     assert r.status_code == 200
-    assert "ten_dang_nhap" in result
+    assert "username" in result
 
 
 def test_recovery_password(
@@ -84,20 +84,19 @@ def test_reset_password(client: TestClient, db: Session) -> None:
     password = random_lower_string()
     new_password = random_lower_string()
 
-    user_create = TaiKhoanCreate(
-        ten_dang_nhap=email,
-        full_name="Test User",
+    user_create = AccountCreate(
+        username=email,
         password=password,
-        trang_thai=True,
-        is_superuser=False,
+        status=True,
+        role="SINH_VIEN",
     )
-    user = create_user(session=db, user_create=user_create)
-    token = generate_password_reset_token(ten_dang_nhap=email)
-    headers = user_authentication_headers(client=client, ten_dang_nhap=email, password=password)
+    user = crud.create_account(session=db, account_create=user_create)
+    token = generate_password_reset_token(email=email)
+    headers = user_authentication_headers(client=client, email=email, password=password)
     data = {"new_password": new_password, "token": token}
 
     r = client.post(
-        f"{settings.API_V1_STR}/reset-password/",
+        f"{settings.API_V1_STR}/password-resets",
         headers=headers,
         json=data,
     )
@@ -106,7 +105,7 @@ def test_reset_password(client: TestClient, db: Session) -> None:
     assert r.json() == {"message": "Password updated successfully"}
 
     db.refresh(user)
-    verified, _ = verify_password(new_password, user.hashed_password)
+    verified, _ = verify_password(new_password, user.password_hash)
     assert verified
 
 
@@ -115,15 +114,15 @@ def test_reset_password_invalid_token(
 ) -> None:
     data = {"new_password": "changethis", "token": "invalid"}
     r = client.post(
-        f"{settings.API_V1_STR}/reset-password/",
+        f"{settings.API_V1_STR}/password-resets",
         headers=superuser_token_headers,
         json=data,
     )
     response = r.json()
 
-    assert "detail" in response
+    assert "message" in response
     assert r.status_code == 400
-    assert response["detail"] == "Invalid token"
+    assert response["message"] == "Invalid token"
 
 
 def test_login_with_bcrypt_password_upgrades_to_argon2(
@@ -138,15 +137,15 @@ def test_login_with_bcrypt_password_upgrades_to_argon2(
     bcrypt_hash = bcrypt_hasher.hash(password)
     assert bcrypt_hash.startswith("$2")  # bcrypt hashes start with $2
 
-    user = TaiKhoan(ten_dang_nhap=email, hashed_password=bcrypt_hash, trang_thai=True)
+    user = Account(username=email, password_hash=bcrypt_hash, status=True)
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    assert user.hashed_password.startswith("$2")
+    assert user.password_hash.startswith("$2")
 
     login_data = {"username": email, "password": password}
-    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    r = client.post(f"{settings.API_V1_STR}/auth/access-tokens", data=login_data)
     assert r.status_code == 200
     tokens = r.json()
     assert "access_token" in tokens
@@ -154,9 +153,9 @@ def test_login_with_bcrypt_password_upgrades_to_argon2(
     db.refresh(user)
 
     # Verify the hash was upgraded to argon2
-    assert user.hashed_password.startswith("$argon2")
+    assert user.password_hash.startswith("$argon2")
 
-    verified, updated_hash = verify_password(password, user.hashed_password)
+    verified, updated_hash = verify_password(password, user.password_hash)
     assert verified
     # Should not need another update since it's already argon2
     assert updated_hash is None
@@ -172,20 +171,20 @@ def test_login_with_argon2_password_keeps_hash(client: TestClient, db: Session) 
     assert argon2_hash.startswith("$argon2")
 
     # Create user with argon2 hash
-    user = TaiKhoan(ten_dang_nhap=email, hashed_password=argon2_hash, trang_thai=True)
+    user = Account(username=email, password_hash=argon2_hash, status=True)
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    original_hash = user.hashed_password
+    original_hash = user.password_hash
 
     login_data = {"username": email, "password": password}
-    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    r = client.post(f"{settings.API_V1_STR}/auth/access-tokens", data=login_data)
     assert r.status_code == 200
     tokens = r.json()
     assert "access_token" in tokens
 
     db.refresh(user)
 
-    assert user.hashed_password == original_hash
-    assert user.hashed_password.startswith("$argon2")
+    assert user.password_hash == original_hash
+    assert user.password_hash.startswith("$argon2")

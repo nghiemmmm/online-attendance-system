@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import {
-  CalendarCheck, 
-  AlertTriangle, 
+  CalendarCheck,
+  AlertTriangle,
   TrendingUp,
   Clock,
   BookOpen,
@@ -27,18 +27,63 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [notificationsList, setNotificationsList] = useState<any[]>([])
+
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [profileData, scheduleData, attendanceData] = await Promise.all([
+        const [profileData, scheduleData, attendanceData, warningsData, claimsData] = await Promise.all([
           StudentService.getProfile(),
           StudentService.getSchedule(),
-          StudentService.getAttendance()
+          StudentService.getAttendance(),
+          StudentService.getWarnings().catch(() => []),
+          StudentService.getClaims().catch(() => [])
         ])
         setProfile(profileData)
         setSchedule(scheduleData)
         setAttendance(attendanceData)
+
+        // Construct dynamic real-time notification items
+        const notifs: any[] = []
+
+        // 1. Absence warning notifications
+        if (warningsData && warningsData.length > 0) {
+          warningsData.forEach((w: any, idx: number) => {
+            notifs.push({
+              id: `warn-${idx}`,
+              type: "warning",
+              title: "[CẢNH BÁO NGUY CƠ CẤM THI]",
+              description: `Môn ${w.course_name || 'Học phần'}: Bạn đã vắng ${w.absent_session_count}/${w.total_class_sessions} buổi. Hãy chú ý chuyên cần!`
+            })
+          })
+        }
+
+        // 2. Claim response notifications
+        if (claimsData && claimsData.length > 0) {
+          claimsData.slice(0, 2).forEach((c: any, idx: number) => {
+            if (c.status === "approved") {
+              notifs.push({
+                id: `claim-${idx}`,
+                type: "info",
+                title: "[KẾT QUẢ KHIẾU NẠI]",
+                description: `Khiếu nại môn ${c.subjectName} đã được Giảng viên CHẤP THUẬN. Dữ liệu điểm danh đã cập nhật.`
+              })
+            }
+          })
+        }
+
+        // 3. Fallback reminder if no warnings
+        if (notifs.length === 0) {
+          notifs.push({
+            id: "system-welcome",
+            type: "info",
+            title: "[NHẮC NHỞ CHUYÊN CẦN]",
+            description: "Chào mừng bạn trở lại! Hãy chú ý điểm danh đầy đủ bằng nhận diện khuôn mặt AI cho các buổi học."
+          })
+        }
+
+        setNotificationsList(notifs)
       } catch (err: any) {
         console.error("Error loading dashboard data:", err)
         setError(err.message || "Đã xảy ra lỗi khi tải dữ liệu.")
@@ -51,9 +96,9 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <AppShell 
-        role="student" 
-        user={{ name: "Đang tải", email: "", avatar: "" }} 
+      <AppShell
+        role="student"
+        user={{ name: "Đang tải", email: "", avatar: "" }}
         breadcrumb="Dashboard"
       >
         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0]">
@@ -67,93 +112,98 @@ export default function StudentDashboard() {
   const userDisplayName = profile?.name || "Sinh viên"
   const userEmail = profile?.email || ""
 
-  // Calculate statistics
+  // Calculate statistics (Supports both English PRESENT/LATE/ABSENT and Vietnamese CO_MAT/DI_MUON/VANG)
   const totalSessions = attendance.length
-  const presentCount = attendance.filter(a => a.trang_thai === "CO_MAT").length
-  const lateCount = attendance.filter(a => a.trang_thai === "DI_MUON").length
-  const absentCount = attendance.filter(a => a.trang_thai === "VANG").length
-  
+  const presentCount = attendance.filter(a => a.status === "PRESENT" || a.status === "CO_MAT").length
+  const lateCount = attendance.filter(a => a.status === "LATE" || a.status === "DI_MUON").length
+  const absentCount = attendance.filter(a => a.status === "ABSENT" || a.status === "VANG").length
+
+  // Standard attendance rate: (Present + Late) / Total
   const attendedCount = presentCount + lateCount
-  const attendanceRate = totalSessions > 0 ? ((attendedCount / totalSessions) * 100).toFixed(1) : "0.0"
+  const rawRate = totalSessions > 0 ? (attendedCount / totalSessions) * 100 : 0
+  const attendanceRate = Number.isInteger(rawRate) ? rawRate.toFixed(0) : rawRate.toFixed(1)
 
   // Absence warnings (absent count per class > 20% limit or just count absents)
   const absencesByClass: Record<number, { absent: number, total: number, name: string }> = {}
   attendance.forEach(a => {
-    const classId = a.ma_lop_hoc_phan
-    const className = a.ten_hoc_phan || `Lớp ${classId}`
+    const classId = a.class_section_id
+    const className = a.course_name || `Lớp ${classId}`
     if (!absencesByClass[classId]) {
       absencesByClass[classId] = { absent: 0, total: 0, name: className }
     }
     absencesByClass[classId].total++
-    if (a.trang_thai === "VANG") {
+    if (a.status === "ABSENT" || a.status === "VANG") {
       absencesByClass[classId].absent++
     }
   })
 
   // Warning classes list (classes where student missed >= 20% sessions)
   const warningClasses = Object.values(absencesByClass).filter(c => c.absent / c.total >= 0.2)
-  const warningText = warningClasses.length > 0 
-    ? `${warningClasses.length} môn` 
+  const warningText = warningClasses.length > 0
+    ? `${warningClasses.length} môn`
     : "Không có"
 
   // Find active session
-  const activeSession = schedule.find(item => item.trang_thai === "DANG_DIEN_RA")
+  const activeSession = schedule.find(item => item.status === "DANG_DIEN_RA" || item.status === "ONGOING")
 
-  // Map schedule items
-  const upcomingClasses = schedule.slice(0, 3).map((item, idx) => ({
-    id: item.ma_buoi_hoc || item.ma_lop_hoc_phan || idx,
-    maBuoiHoc: item.ma_buoi_hoc,
-    subject: item.ten_hoc_phan || `Lớp học phần ${item.ma_lop_hoc_phan}`,
-    date: item.ngay_hoc ? new Date(item.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
-    time: `${item.gio_bat_dau?.substring(0, 5) || "08:00"} - ${item.gio_ket_thuc?.substring(0, 5) || "10:00"}`,
-    room: "A" + (100 + (item.ma_lop_hoc_phan % 10)), // Simulated room code
-    status: item.trang_thai || "CHUA_DIEM_DANH"
-  }))
+  // Map schedule items (Lọc bỏ các buổi học đã kết thúc hoặc đã hủy)
+  const upcomingClasses = schedule
+    .filter(item => item.status !== "DA_KET_THUC" && item.status !== "COMPLETED" && item.status !== "DA_HUY")
+    .slice(0, 5)
+    .map((item, idx) => ({
+      id: item.class_session_id || item.class_section_id || idx,
+      maBuoiHoc: item.class_session_id,
+      subject: item.course_name || `Lớp học phần ${item.class_section_id}`,
+      date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "Hôm nay",
+      time: `${item.start_time?.substring(0, 5) || "08:00"} - ${item.end_time?.substring(0, 5) || "10:00"}`,
+      room: item.phong_hoc || "Phòng A2-301",
+      status: item.status || "CHUA_DIEM_DANH"
+    }))
 
   const getScheduleStatusText = (status: string) => {
-    if (status === "DANG_DIEN_RA") return "Dang mo diem danh"
-    if (status === "DA_KET_THUC") return "Da ket thuc"
-    if (status === "DA_HUY") return "Da huy"
-    return "Chua mo diem danh"
+    if (status === "DANG_DIEN_RA" || status === "ONGOING") return "Đang mở điểm danh"
+    if (status === "DA_KET_THUC" || status === "COMPLETED") return "Đã kết thúc"
+    if (status === "DA_HUY" || status === "CANCELLED") return "Đã hủy"
+    return "Chưa mở điểm danh"
   }
 
   const handleOpenSchedule = (item: typeof upcomingClasses[number]) => {
     if (!item.maBuoiHoc) {
-      alert("Buoi hoc nay chua co ma phien diem danh.")
+      alert("Buổi học này chưa có mã phiên điểm danh.")
       return
     }
 
-    if (item.status === "DANG_DIEN_RA") {
+    if (item.status === "DANG_DIEN_RA" || item.status === "ONGOING") {
       router.push(`/student/live?id=${item.maBuoiHoc}`)
       return
     }
 
-    if (item.status === "DA_KET_THUC") {
-      alert("Buoi hoc nay da ket thuc. Ban co the xem ket qua trong lich su diem danh.")
+    if (item.status === "DA_KET_THUC" || item.status === "COMPLETED") {
+      alert("Buổi học này đã kết thúc. Bạn có thể xem kết quả trong lịch sử điểm danh.")
       router.push("/student/history")
       return
     }
 
-    if (item.status === "DA_HUY") {
-      alert("Buoi hoc nay da bi huy.")
+    if (item.status === "DA_HUY" || item.status === "CANCELLED") {
+      alert("Buổi học này đã bị hủy.")
       return
     }
 
-    alert("Giang vien chua mo phien diem danh cho buoi hoc nay.")
+    alert("Giảng viên chưa mở phiên điểm danh cho buổi học này.")
   }
 
   // Map attendance items (most recent first)
   const recentAttendance = [...attendance].reverse().slice(0, 5).map((item, idx) => ({
-    id: item.ma_diem_danh || idx,
-    subject: item.ten_hoc_phan || `Lớp học phần ${item.ma_lop_hoc_phan}`,
-    date: item.ngay_hoc ? new Date(item.ngay_hoc).toLocaleDateString("vi-VN") : "N/A",
-    status: item.trang_thai === "CO_MAT" ? "present" as const : item.trang_thai === "DI_MUON" ? "late" as const : "absent" as const
+    id: item.attendance_id || idx,
+    subject: item.course_name || `Lớp học phần ${item.class_section_id}`,
+    date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "N/A",
+    status: (item.status === "PRESENT" || item.status === "CO_MAT") ? "present" as const : (item.status === "LATE" || item.status === "DI_MUON") ? "late" as const : "absent" as const
   }))
 
   // Map streak items (last 10 records)
   const streakDays = attendance.slice(-10).map((item) => ({
-    date: item.ngay_hoc ? item.ngay_hoc.substring(5, 10).replace("-", "/") : "N/A",
-    status: item.trang_thai === "CO_MAT" ? "present" : item.trang_thai === "DI_MUON" ? "late" : "absent"
+    date: item.class_date ? item.class_date.substring(5, 10).replace("-", "/") : "N/A",
+    status: item.status === "CO_MAT" ? "present" : item.status === "DI_MUON" ? "late" : "absent"
   }))
 
   // Map warning classes to detailed notification items
@@ -165,11 +215,11 @@ export default function StudentDashboard() {
   }))
 
   return (
-    <AppShell 
-      role="student" 
-      user={{ name: userDisplayName, email: userEmail, avatar: "" }} 
+    <AppShell
+      role="student"
+      user={{ name: userDisplayName, email: userEmail, avatar: "" }}
       breadcrumb="Dashboard"
-      notifications={studentNotifications}
+      notifications={notificationsList.length > 0 ? notificationsList : studentNotifications}
     >
       <div className="space-y-6">
         {/* Welcome */}
@@ -281,9 +331,9 @@ export default function StudentDashboard() {
                 <p className="text-sm text-[#64748B] text-center py-6">Không có lịch học nào được xếp.</p>
               )}
               {activeSession ? (
-                <Link href={`/student/live?id=${activeSession.ma_buoi_hoc}`}>
+                <Link href={`/student/live?id=${activeSession.class_session_id}`}>
                   <Button className="w-full mt-4 bg-[#22C55E] hover:bg-[#16A34A] text-white font-semibold animate-pulse border border-[#22C55E]">
-                    Vào điểm danh: {activeSession.ten_hoc_phan}
+                    Vào điểm danh: {activeSession.course_name}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
@@ -305,8 +355,8 @@ export default function StudentDashboard() {
                 <CardTitle className="text-lg font-semibold text-[#0F172A]">
                   Điểm danh gần đây
                 </CardTitle>
-                <Link 
-                  href="/student/history" 
+                <Link
+                  href="/student/history"
                   className="text-sm text-[#0EA5E9] hover:underline flex items-center gap-1"
                 >
                   Xem tất cả

@@ -16,7 +16,7 @@ export default function StudentProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({ phone: '', email: '' })
-  
+
   const fetchProfile = async () => {
     setLoading(true)
     setError(null)
@@ -96,7 +96,7 @@ export default function StudentProfilePage() {
                   <p className="text-[#64748B] font-medium mt-1">{profile.studentId}</p>
                   <div className="mt-4 px-3 py-1 bg-[#F1F5F9] rounded-full text-sm text-[#475569] flex items-center">
                     <Building2 className="w-4 h-4 mr-2" />
-                    {profile.department}
+                    {profile.majorName || profile.department}
                   </div>
                 </CardContent>
               </Card>
@@ -141,7 +141,44 @@ export default function StudentProfilePage() {
             </div>
 
             {/* Main Form: Profile Info */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-6">
+              <Card className="border-[#E2E8F0] shadow-sm">
+                <CardHeader className="border-b border-[#E2E8F0] pb-4">
+                  <CardTitle>Thông tin lý lịch sinh viên</CardTitle>
+                  <CardDescription>Thông tin hồ sơ chính thức lưu trữ trong hệ thống đào tạo nhà trường</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <span className="text-[#64748B] block text-xs font-medium mb-1">Họ và Tên</span>
+                      <span className="font-semibold text-[#0F172A]">{profile.name}</span>
+                    </div>
+                    <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <span className="text-[#64748B] block text-xs font-medium mb-1">Mã số sinh viên (MSSV)</span>
+                      <span className="font-semibold text-[#0EA5E9]">{profile.studentId}</span>
+                    </div>
+                    <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <span className="text-[#64748B] block text-xs font-medium mb-1">Chuyên ngành đào tạo</span>
+                      <span className="font-semibold text-[#0F172A]">{profile.majorName}</span>
+                    </div>
+                    <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <span className="text-[#64748B] block text-xs font-medium mb-1">Ngày sinh</span>
+                      <span className="font-medium text-[#0F172A]">{profile.birthDate}</span>
+                    </div>
+                    <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <span className="text-[#64748B] block text-xs font-medium mb-1">Giới tính</span>
+                      <span className="font-medium text-[#0F172A]">{profile.gender}</span>
+                    </div>
+                    <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <span className="text-[#64748B] block text-xs font-medium mb-1">Trạng thái học tập</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#DCFCE7] text-[#166534]">
+                        {profile.academicStatus}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="border-[#E2E8F0] shadow-sm">
                 <CardHeader className="border-b border-[#E2E8F0] pb-4">
                   <CardTitle>Thông tin liên hệ</CardTitle>
@@ -153,22 +190,22 @@ export default function StudentProfilePage() {
                       <Label htmlFor="email" className="text-[#334155] font-medium flex items-center">
                         <Mail className="w-4 h-4 mr-2 text-[#64748B]"/> Email liên hệ
                       </Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
+                      <Input
+                        id="email"
+                        type="email"
                         value={editForm.email}
                         onChange={(e) => setEditForm({...editForm, email: e.target.value})}
                         className="focus-visible:ring-[#0EA5E9]"
                       />
                     </div>
-                    
+
                     <div className="grid gap-2">
                       <Label htmlFor="phone" className="text-[#334155] font-medium flex items-center">
                         <Phone className="w-4 h-4 mr-2 text-[#64748B]"/> Số điện thoại
                       </Label>
-                      <Input 
-                        id="phone" 
-                        type="tel" 
+                      <Input
+                        id="phone"
+                        type="tel"
                         value={editForm.phone}
                         onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
                         className="focus-visible:ring-[#0EA5E9]"
@@ -177,8 +214,8 @@ export default function StudentProfilePage() {
                   </div>
 
                   <div className="pt-4 border-t border-[#E2E8F0] flex justify-end">
-                    <Button 
-                      onClick={handleSave} 
+                    <Button
+                      onClick={handleSave}
                       disabled={saving || (editForm.email === profile.email && editForm.phone === profile.phone)}
                       className="bg-[#0A2540] hover:bg-[#1A3A5C] min-w-[120px]"
                     >
