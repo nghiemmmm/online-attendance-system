@@ -44,6 +44,7 @@ class TeachingScheduleItem(SQLModel):
     class_session_status: str | None = None
     note: str | None = None
     session_number: int | None = None
+    student_count: int = 0
 
 
 class TeachingSchedulesPublic(SQLModel):

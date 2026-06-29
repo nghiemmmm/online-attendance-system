@@ -186,5 +186,15 @@ export const StudentService = {
       console.error("Error cancelling class registration:", error);
       return false;
     }
+  },
+
+  getClassSessions: async (classSectionId: number): Promise<any[]> => {
+    try {
+      const response = await apiClient.get<any>(`/class-sessions/class-sections/${classSectionId}`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching class sessions:", error);
+      return [];
+    }
   }
 };

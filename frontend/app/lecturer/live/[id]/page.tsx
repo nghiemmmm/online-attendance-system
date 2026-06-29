@@ -28,7 +28,7 @@ import {
   AlertCircle,
   ArrowLeft
 } from "lucide-react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api-client"
 import { LecturerService } from "@/services/lecturer.service"
 import { WebRTCStream } from "@/components/webrtc-stream"
@@ -47,6 +47,7 @@ interface StudentTile {
 
 export default function LecturerLiveClassroom() {
   const params = useParams()
+  const router = useRouter()
   const maBuoiHoc = parseInt(params?.id as string)
 
   const [sessionActive, setSessionActive] = useState(false)
@@ -94,20 +95,25 @@ export default function LecturerLiveClassroom() {
     return () => clearInterval(timer)
   }, [sessionActive])
 
-  // Active polling of student recognition statuses
+  // Active real-time polling of student recognition statuses
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (sessionActive && maBuoiHoc) {
+    if (maBuoiHoc) {
+      // Fetch immediately on mount or status change
+      LecturerService.getLiveAttendance(maBuoiHoc)
+        .then(data => setStudents(data))
+        .catch(err => console.error("Lỗi cập nhật danh sách điểm danh:", err))
+
       interval = setInterval(() => {
         LecturerService.getLiveAttendance(maBuoiHoc)
           .then(data => setStudents(data))
           .catch(err => console.error("Lỗi cập nhật danh sách điểm danh:", err))
-      }, 5000)
+      }, 2500)
     }
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [sessionActive, maBuoiHoc])
+  }, [maBuoiHoc, sessionActive])
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
@@ -127,6 +133,11 @@ export default function LecturerLiveClassroom() {
   const handleStartSession = async () => {
     if (!maBuoiHoc) return
     try {
+      try {
+        await apiClient.patch(`/class-sessions/${maBuoiHoc}`, { late_grace_minutes: lateMinutes })
+      } catch (e) {
+        console.warn("Could not patch late_grace_minutes:", e)
+      }
       await LecturerService.moDiemDanh(maBuoiHoc)
       setSessionActive(true)
       setSessionTime(0)
@@ -212,7 +223,7 @@ export default function LecturerLiveClassroom() {
             )}
             <Button
               variant="outline"
-              onClick={() => window.location.href = "/lecturer/live"}
+              onClick={() => router.push("/lecturer/live")}
               className="border-[#30363D] bg-[#161B22] text-[#C9D1D9] hover:bg-[#21262D] hover:text-white"
             >
               <ArrowLeft className="w-4 h-4 mr-1.5" />
@@ -415,31 +426,50 @@ export default function LecturerLiveClassroom() {
           {/* Settings */}
           <div className="pt-3 border-t border-[#2D3748] space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#94A3B8]">Phút muộn tối đa:</span>
+              <span className="text-sm text-[#94A3B8] flex items-center gap-1">
+                {sessionActive && <span className="text-xs text-[#F59E0B]">🔒</span>}
+                Phút muộn tối đa:
+              </span>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
                   value={lateMinutes}
+                  disabled={sessionActive}
                   onChange={(e) => setLateMinutes(Number(e.target.value))}
-                  className="w-16 h-8 bg-[#0D1117] border-[#2D3748] text-center"
+                  className={cn(
+                    "w-16 h-8 bg-[#0D1117] border-[#2D3748] text-center font-bold",
+                    sessionActive && "opacity-60 cursor-not-allowed bg-[#161B22] text-[#94A3B8]"
+                  )}
                 />
                 <span className="text-sm text-[#64748B]">phút</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#94A3B8]">Số lần kiểm tra:</span>
+              <span className="text-sm text-[#94A3B8] flex items-center gap-1">
+                {sessionActive && <span className="text-xs text-[#F59E0B]">🔒</span>}
+                Số lần kiểm tra:
+              </span>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
                   value={checkCount}
+                  disabled={sessionActive}
                   onChange={(e) => setCheckCount(Number(e.target.value))}
-                  className="w-16 h-8 bg-[#0D1117] border-[#2D3748] text-center"
+                  className={cn(
+                    "w-16 h-8 bg-[#0D1117] border-[#2D3748] text-center font-bold",
+                    sessionActive && "opacity-60 cursor-not-allowed bg-[#161B22] text-[#94A3B8]"
+                  )}
                   min={1}
                   max={10}
                 />
                 <span className="text-sm text-[#64748B]">lần</span>
               </div>
             </div>
+            {sessionActive && (
+              <p className="text-[11px] text-[#F59E0B] italic text-right mt-1">
+                🔒 Đã khóa cấu hình trong thời gian mở điểm danh.
+              </p>
+            )}
           </div>
         </div>
 

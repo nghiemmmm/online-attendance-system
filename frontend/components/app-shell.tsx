@@ -52,7 +52,8 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { icon: Video, label: "Phòng học trực tiếp", href: "/lecturer/live" },
     { icon: BookOpen, label: "Quản lý lớp học", href: "/lecturer/classes" },
     { icon: BarChart3, label: "Thống kê & Báo cáo", href: "/lecturer/reports" },
-    { icon: CheckSquare, label: "Duyệt khiếu nại", href: "/lecturer/claims" }
+    { icon: CheckSquare, label: "Duyệt khiếu nại", href: "/lecturer/claims" },
+    { icon: User, label: "Hồ sơ thông tin", href: "/lecturer/profile" }
   ],
   admin: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },

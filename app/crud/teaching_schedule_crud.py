@@ -68,8 +68,19 @@ def build_teaching_schedule_item(
     course: Course | None,
     timetable: Timetable | None = None,
     class_session: ClassSession | None = None,
+    db_session: Session | None = None,
 ) -> TeachingScheduleItem:
     """Ghép dữ liệu lớp học phần, học phần, thời khóa biểu và buổi học thành response."""
+    st_count = 0
+    if db_session:
+        from app.models import CourseRegistration
+        from sqlalchemy import func
+        st_count = db_session.exec(
+            select(func.count(CourseRegistration.student_id)).where(
+                CourseRegistration.class_section_id == class_section.class_section_id
+            )
+        ).first() or 0
+
     return TeachingScheduleItem(
         staff_id=class_section.staff_id,
         class_section_id=class_section.class_section_id,
@@ -103,6 +114,7 @@ def build_teaching_schedule_item(
         class_session_status=class_session.status if class_session else None,
         note=class_session.note if class_session else None,
         session_number=class_session.session_number if class_session else None,
+        student_count=st_count,
     )
 
 
@@ -237,6 +249,7 @@ def get_teaching_schedule_by_staff_member(
                         course=course,
                         timetable=matched_timetable,
                         class_session=class_session,
+                        db_session=session,
                     )
                 )
         else:
@@ -246,6 +259,7 @@ def get_teaching_schedule_by_staff_member(
                         class_section=class_section,
                         course=course,
                         timetable=timetable,
+                        db_session=session,
                     )
                 )
 

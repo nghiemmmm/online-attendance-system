@@ -44,12 +44,17 @@ def mark_attendance_by_lora(
 
     for student_id in student_ids:
         if student_id in existing_map:
-            if existing_map[student_id].attendance_id is not None:
-                attendance_ids.append(existing_map[student_id].attendance_id)
-            # Nếu đã điểm danh rồi thì có thể không ghi đè, hoặc chỉ cập nhật nếu trạng thái hiện tại tốt hơn
-            # Ví dụ: nếu đã là MUON, giờ lại quét được thì vẫn là MUON hoặc CO_MAT?
-            # Thường thì lấy lần quét đầu tiên làm chuẩn. Hoặc nếu muốn cập nhật thì làm như sau:
-            pass # Ở đây chúng ta bảo toàn record đầu tiên quét được
+            att_rec = existing_map[student_id]
+            if att_rec.attendance_id is not None:
+                attendance_ids.append(att_rec.attendance_id)
+            if att_rec.status in {"CHUA_DIEM_DANH", "VANG", "ABSENT", None}:
+                att_rec.status = current_status
+                att_rec.method = "KHUON_MAT"
+                att_rec.confidence = average_confidence
+                att_rec.attendance_time = current_time
+                session.add(att_rec)
+                session.commit()
+                session.refresh(att_rec)
         else:
             new_dd = Attendance(
                 student_id=student_id,
@@ -66,7 +71,7 @@ def mark_attendance_by_lora(
         session.commit()
         for record in new_records:
             session.refresh(record)
-            if record.attendance_id is not None:
+            if record.attendance_id is not None and record.attendance_id not in attendance_ids:
                 attendance_ids.append(record.attendance_id)
 
     return {

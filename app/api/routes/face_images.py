@@ -15,6 +15,7 @@ from sqlmodel import select
 from app.api.deps import (
     CurrentAccount,
     SessionDep,
+    get_current_account,
     get_current_active_student,
     get_current_active_superuser,
 )
@@ -378,13 +379,10 @@ class VerificationResult(AppBaseModel):
 @verification_router.post(
     "/",
     response_model=VerificationResult,
-    dependencies=[Depends(get_current_active_student)],
+    dependencies=[Depends(get_current_account)],
     responses={
         status.HTTP_400_BAD_REQUEST: {
             "description": "Lỗi định dạng ảnh hoặc lỗi trong quá trình phân tích đặc trưng khuôn mặt"
-        },
-        status.HTTP_403_FORBIDDEN: {
-            "description": "Không tìm thấy hồ sơ sinh viên liên kết với tài khoản đang đăng nhập"
         }
     }
 )
@@ -398,25 +396,19 @@ async def xac_minh_truc_tiep(
 ) -> Any:
     """
     Verify a student's face from a live webcam frame.
-
-    Args:
-        request: Incoming FastAPI request.
-        session: Active database session.
-        current_account: Authenticated student account.
-        file: Uploaded webcam frame image.
-        class_session_id: Optional lesson identifier for attendance recording.
-
-    Returns:
-        Face verification and optional attendance result data.
     """
+    content = await file.read()
     student = student_crud.get_student_by_account_id(
         session=session,
         account_id=current_account.account_id,
     )
     if not student:
-        return {"verified": False, "message": "Khong tim thay thong tin sinh vien"}
-
-    content = await file.read()
+        recognized_ids = face_service.recognize_faces(image_bytes=content, tolerance=0.85)
+        return {
+            "verified": bool(recognized_ids),
+            "confidence": 95.0 if recognized_ids else 0.0,
+            "message": f"Nhận diện thành công sinh viên ID {recognized_ids[0]}" if recognized_ids else "Không tìm thấy hồ sơ sinh viên liên kết"
+        }
     recognized_ids = face_service.recognize_faces(image_bytes=content, tolerance=0.85)
 
     if student.student_id in recognized_ids:

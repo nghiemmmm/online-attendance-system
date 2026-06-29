@@ -90,7 +90,7 @@ export default function LecturerDashboard() {
             subject: item.course_name || "Môn học",
             time: `${item.start_time || "N/A"} - ${item.end_time || "N/A"}`,
             room: "Phòng A2-301",
-            students: item.present_student_count + item.late_student_count + item.absent_student_count || 0,
+            students: item.student_count !== undefined ? item.student_count : (item.present_student_count + item.late_student_count + item.absent_student_count || 0),
             session: item.session_number || 1,
             isOfficial: !isMakeup,
             note: item.note || "",
@@ -251,72 +251,78 @@ export default function LecturerDashboard() {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Today's Classes */}
-              <Card className="border-[#E2E8F0] shadow-sm">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold text-[#0F172A]">
-                      Lịch giảng hôm nay
+            {/* Today's Classes - Full Width Prominent Section */}
+            <Card className="border-[#0EA5E9]/30 bg-gradient-to-r from-white via-[#F8FAFC] to-[#F0F9FF] shadow-md">
+              <CardHeader className="pb-3 border-b border-[#E2E8F0]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#0EA5E9] animate-pulse" />
+                    <CardTitle className="text-xl font-bold text-[#0F172A]">
+                      Lịch Giảng Dạy Hôm Nay
                     </CardTitle>
-                    <span className="text-sm text-[#64748B]">{new Date().toLocaleDateString("vi-VN")}</span>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {todayClasses.length === 0 ? (
-                      <div className="text-center py-6 text-[#64748B] text-sm">
-                        Hôm nay không có lịch giảng dạy.
-                      </div>
-                    ) : (
-                      todayClasses.map((cls) => (
-                        <div
-                          key={cls.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] hover:border-[#0EA5E9] hover:bg-[#EFF6FF]/50 transition-all gap-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-[#0A2540] flex flex-col items-center justify-center text-white shrink-0 shadow-xs">
-                              <span className="text-[10px] text-white/70 font-medium uppercase">Tiết</span>
-                              <span className="text-sm font-bold">Buổi {cls.session}</span>
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-bold text-[#0F172A] text-base">{cls.subject}</p>
-                                {cls.isOfficial ? (
-                                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]">
-                                    ✓ Lịch QTV lập sẵn
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-[#FFEDD5] text-[#C2410C] border border-[#FED7AA]">
-                                    ⚡ Lịch bù / Đổi
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-[#64748B] mt-1">
-                                <span className="font-medium text-[#334155]">{cls.room}</span>
-                                <span>•</span>
-                                <span>{cls.students} Sinh viên đăng ký</span>
-                              </div>
-                            </div>
+                  <span className="text-sm font-semibold text-[#0EA5E9] bg-[#E0F2FE] px-3 py-1 rounded-full">
+                    📅 {new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' })}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-4">
+                  {todayClasses.length === 0 ? (
+                    <div className="text-center py-8 text-[#64748B] text-base bg-white rounded-xl border border-dashed border-[#CBD5E1]">
+                      🎉 Hôm nay bạn không có lịch giảng dạy nào. Tận hưởng thời gian nghỉ ngơi!
+                    </div>
+                  ) : (
+                    todayClasses.map((cls) => (
+                      <div
+                        key={cls.id}
+                        className="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white rounded-2xl border-2 border-[#E2E8F0] hover:border-[#0EA5E9] hover:shadow-md transition-all gap-4"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-[#0A2540] flex flex-col items-center justify-center text-white shrink-0 shadow-sm border border-[#1A3A5C]">
+                            <span className="text-[11px] text-[#93C5FD] font-semibold uppercase tracking-wider">Tiết học</span>
+                            <span className="text-base font-extrabold">Buổi {cls.session}</span>
                           </div>
-                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                            <div className="flex items-center gap-1.5 text-[#475569] bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0] text-xs font-semibold">
-                              <Clock className="w-3.5 h-3.5 text-[#0EA5E9]" />
-                              <span>{cls.time}</span>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <h3 className="font-extrabold text-[#0F172A] text-lg">{cls.subject}</h3>
+                              {cls.isOfficial ? (
+                                <span className="px-3 py-1 text-xs font-bold rounded-lg bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] flex items-center gap-1">
+                                  ✓ Buổi chính khóa (QTV lập sẵn)
+                                </span>
+                              ) : (
+                                <span className="px-3 py-1 text-xs font-bold rounded-lg bg-[#FFEDD5] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1">
+                                  ⚡ Buổi học bù / Đổi lịch
+                                </span>
+                              )}
                             </div>
-                            <Link href={`/lecturer/live/${cls.id}`}>
-                              <Button size="sm" className="bg-[#0A2540] hover:bg-[#1A3A5C] font-bold text-xs shadow-xs">
-                                <Video className="w-3.5 h-3.5 mr-1" />
-                                Mở lớp Live
-                              </Button>
-                            </Link>
+                            <div className="flex items-center gap-3 text-sm text-[#475569] pt-0.5">
+                              <span className="font-bold text-[#0A2540] bg-[#F1F5F9] px-2.5 py-0.5 rounded-md border border-[#E2E8F0]">🏛️ {cls.room}</span>
+                              <span>•</span>
+                              <span className="font-semibold text-[#0284C7]">👥 {cls.students} Sinh viên đăng ký</span>
+                            </div>
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                        <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#F1F5F9]">
+                          <div className="flex items-center gap-2 text-[#0F172A] bg-[#F8FAFC] px-4 py-2 rounded-xl border border-[#E2E8F0] text-sm font-bold shadow-xs">
+                            <Clock className="w-4 h-4 text-[#0EA5E9]" />
+                            <span>{cls.time}</span>
+                          </div>
+                          <Link href={`/lecturer/live/${cls.id}`}>
+                            <Button size="lg" className="bg-[#0EA5E9] hover:bg-[#0284C7] text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-all hover:scale-102">
+                              <Video className="w-4 h-4 mr-2" />
+                              Mở phòng Live
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
               {/* Recent Sessions */}
               <Card className="border-[#E2E8F0] shadow-sm">

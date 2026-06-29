@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 from app.api.deps import (
     CurrentAccount,
     SessionDep,
+    get_current_account,
     get_current_active_lecturer,
     get_current_active_superuser,
 )
@@ -31,7 +32,7 @@ def read_class_sessions(
 
 @router.get(
     "/class-sections/{class_section_id}",
-    dependencies=[Depends(get_current_active_lecturer)],
+    dependencies=[Depends(get_current_account)],
 )
 def read_class_sessions_by_class_section(
     session: SessionDep,

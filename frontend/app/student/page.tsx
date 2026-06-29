@@ -24,6 +24,7 @@ export default function StudentDashboard() {
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [schedule, setSchedule] = useState<any[]>([])
   const [attendance, setAttendance] = useState<any[]>([])
+  const [registeredCourses, setRegisteredCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,16 +34,18 @@ export default function StudentDashboard() {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [profileData, scheduleData, attendanceData, warningsData, claimsData] = await Promise.all([
+        const [profileData, scheduleData, attendanceData, warningsData, claimsData, availableClassesData] = await Promise.all([
           StudentService.getProfile(),
           StudentService.getSchedule(),
           StudentService.getAttendance(),
           StudentService.getWarnings().catch(() => []),
-          StudentService.getClaims().catch(() => [])
+          StudentService.getClaims().catch(() => []),
+          StudentService.getAvailableClasses().catch(() => [])
         ])
         setProfile(profileData)
         setSchedule(scheduleData)
         setAttendance(attendanceData)
+        setRegisteredCourses(availableClassesData.filter((c: any) => c.is_registered))
 
         // Construct dynamic real-time notification items
         const notifs: any[] = []
@@ -146,19 +149,32 @@ export default function StudentDashboard() {
   // Find active session
   const activeSession = schedule.find(item => item.status === "DANG_DIEN_RA" || item.status === "ONGOING")
 
-  // Map schedule items (Lọc bỏ các buổi học đã kết thúc hoặc đã hủy)
-  const upcomingClasses = schedule
-    .filter(item => item.status !== "DA_KET_THUC" && item.status !== "COMPLETED" && item.status !== "DA_HUY")
-    .slice(0, 5)
-    .map((item, idx) => ({
-      id: item.class_session_id || item.class_section_id || idx,
-      maBuoiHoc: item.class_session_id,
-      subject: item.course_name || `Lớp học phần ${item.class_section_id}`,
-      date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "Hôm nay",
-      time: `${item.start_time?.substring(0, 5) || "08:00"} - ${item.end_time?.substring(0, 5) || "10:00"}`,
-      room: item.phong_hoc || "Phòng A2-301",
-      status: item.status || "CHUA_DIEM_DANH"
-    }))
+  // Map registered course classes and schedule items
+  const upcomingClasses = (registeredCourses.length > 0
+    ? registeredCourses.map(rc => {
+        const matchSched = schedule.find(s => s.class_section_id === rc.class_section_id || s.course_name === rc.course_name)
+        return {
+          id: matchSched?.class_session_id || rc.class_section_id,
+          maBuoiHoc: matchSched?.class_session_id,
+          subject: rc.course_name || `Lớp HP ${rc.class_section_id}`,
+          date: matchSched?.class_date ? new Date(matchSched.class_date).toLocaleDateString("vi-VN") : `Học kỳ ${rc.semester || 1}`,
+          time: matchSched ? `${matchSched.start_time?.substring(0, 5) || "07:30"} - ${matchSched.end_time?.substring(0, 5) || "11:30"}` : "07:30 - 11:30",
+          room: matchSched?.phong_hoc || "Phòng A2-301",
+          status: matchSched?.status || "CHUA_DIEM_DANH",
+          lecturer: rc.lecturer_name || "Giảng viên"
+        }
+      })
+    : schedule.map((item, idx) => ({
+        id: item.class_session_id || item.class_section_id || idx,
+        maBuoiHoc: item.class_session_id,
+        subject: item.course_name || `Lớp HP ${item.class_section_id}`,
+        date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "Hôm nay",
+        time: `${item.start_time?.substring(0, 5) || "07:30"} - ${item.end_time?.substring(0, 5) || "11:30"}`,
+        room: item.phong_hoc || "Phòng A2-301",
+        status: item.status || "CHUA_DIEM_DANH",
+        lecturer: "Giảng viên"
+      }))
+  ).slice(0, 5)
 
   const getScheduleStatusText = (status: string) => {
     if (status === "DANG_DIEN_RA" || status === "ONGOING") return "Đang mở điểm danh"
@@ -302,25 +318,27 @@ export default function StudentDashboard() {
                       key={cls.id}
                       type="button"
                       onClick={() => handleOpenSchedule(cls)}
-                      className="flex w-full items-center justify-between p-3 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]"
+                      className="flex w-full items-center justify-between p-3.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] hover:bg-[#EFF6FF] hover:border-[#0EA5E9] transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#0A2540] flex items-center justify-center text-white font-semibold text-sm">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-[#0A2540] flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
                           LHP
                         </div>
                         <div>
-                          <p className="font-medium text-[#0F172A]">{cls.subject}</p>
-                          <p className="text-sm text-[#64748B]">{cls.date}</p>
-                          <p className={cls.status === "DANG_DIEN_RA" ? "text-xs font-medium text-[#16A34A]" : "text-xs text-[#64748B]"}>
-                            {getScheduleStatusText(cls.status)}
-                          </p>
-                          <p className="text-sm text-[#64748B]">Phòng {cls.room}</p>
+                          <p className="font-bold text-[#0F172A] text-base">{cls.subject}</p>
+                          <p className="text-xs text-[#475569] mt-0.5">👨‍🏫 {cls.lecturer} • 🏛️ {cls.room}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={cls.status === "DANG_DIEN_RA" ? "px-2 py-0.5 text-[11px] font-bold bg-[#DCFCE7] text-[#15803D] rounded-md border border-[#86EFAC]" : "px-2 py-0.5 text-[11px] font-medium bg-[#E2E8F0] text-[#475569] rounded-md"}>
+                              {getScheduleStatusText(cls.status)}
+                            </span>
+                            <span className="text-xs text-[#64748B]">{cls.date}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-[#64748B]">
-                          <Clock className="w-4 h-4" />
-                          <span className="text-sm">{cls.time}</span>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5 text-[#0F172A] bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0] text-xs font-semibold">
+                          <Clock className="w-3.5 h-3.5 text-[#0EA5E9]" />
+                          <span>{cls.time}</span>
                         </div>
                         <ArrowRight className="w-4 h-4 text-[#94A3B8]" />
                       </div>
@@ -339,8 +357,8 @@ export default function StudentDashboard() {
                 </Link>
               ) : (
                 <Link href="/student/live">
-                  <Button className="w-full mt-4 bg-[#64748B] hover:bg-[#475569] text-white">
-                    Vào phòng học trực tuyến (Giả lập)
+                  <Button className="w-full mt-4 bg-[#0A2540] hover:bg-[#1A3A5C] text-white font-semibold shadow-xs">
+                    📹 Thử nghiệm Camera & Nhận diện AI
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>

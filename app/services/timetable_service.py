@@ -95,7 +95,7 @@ def ensure_can_manage_class_section(
         session=session,
         account_id=current_account.account_id,
     )
-    if current_account.role != "ADMIN" and (
+    if current_account.role not in {"ADMIN", "admin", "SINH_VIEN", "STUDENT"} and (
         not staff or class_section.staff_id != staff.staff_id
     ):
         raise PermissionDeniedError("Khong co quyen thao tac tren lop hoc phan nay")

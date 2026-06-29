@@ -30,6 +30,10 @@ class AppSettings(BaseSettings):
     GOOGLE_ALLOWED_EMAIL_DOMAIN: str = ""
     BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
 
+    CLOUDINARY_CLOUD_NAME: str = "dtdkqzqvo"
+    CLOUDINARY_API_KEY: str = "825222872657695"
+    CLOUDINARY_API_SECRET: str = "1L8MGyewiyKcNscDbxhwUX25PlM"
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:

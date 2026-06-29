@@ -68,6 +68,26 @@ export default function StudentHistory() {
   const [claimFile, setClaimFile] = useState<File | null>(null)
   const [submittingClaim, setSubmittingClaim] = useState(false)
 
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [selectedCourseName, setSelectedCourseName] = useState("")
+  const [classSessionsList, setClassSessionsList] = useState<any[]>([])
+  const [loadingSessions, setLoadingSessions] = useState(false)
+
+  const handleViewFullSchedule = async (classSectionId: number, courseName: string) => {
+    setSelectedCourseName(courseName)
+    setScheduleModalOpen(true)
+    setLoadingSessions(true)
+    try {
+      const sessions = await StudentService.getClassSessions(classSectionId)
+      setClassSessionsList(sessions)
+    } catch (err) {
+      console.error("Lỗi tải thời khóa biểu môn:", err)
+      setClassSessionsList([])
+    } finally {
+      setLoadingSessions(false)
+    }
+  }
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -136,6 +156,7 @@ export default function StudentHistory() {
       subject: item.course_name || `Lớp học phần ${item.class_section_id}`,
       date: item.class_date ? new Date(item.class_date).toLocaleDateString("vi-VN") : "N/A",
       session: item.class_section_id,
+      sessionNumber: item.session_number || (idx + 1),
       status: mappedStatus,
       lateMinutes: isLate ? 10 : 0,
       method: "face" as const,
@@ -280,6 +301,19 @@ export default function StudentHistory() {
                 </SelectContent>
               </Select>
 
+              {subjectFilter !== "all" && (
+                <Button
+                  onClick={() => {
+                    const matchRec = attendance.find(a => (a.course_name || `Lớp ${a.class_section_id}`) === subjectFilter)
+                    if (matchRec) handleViewFullSchedule(matchRec.class_section_id, subjectFilter)
+                  }}
+                  className="bg-[#0EA5E9] hover:bg-[#0284C7] text-white font-semibold text-xs gap-1.5 shadow-xs"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  Xem thời khóa biểu tất cả các buổi môn này
+                </Button>
+              )}
+
               <div className="flex bg-[#F1F5F9] rounded-lg p-1">
                 {["all", "present", "late", "absent"].map((status) => (
                   <button
@@ -351,8 +385,9 @@ export default function StudentHistory() {
                   <TableRow>
                     <TableHead className="w-[50px]">STT</TableHead>
                     <TableHead>Môn học</TableHead>
+                    <TableHead>Buổi thứ</TableHead>
                     <TableHead>Ngày học</TableHead>
-                    <TableHead>Lớp học phần</TableHead>
+                    <TableHead>Mã LHP</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead>Phút muộn</TableHead>
                     <TableHead>Phương thức</TableHead>
@@ -364,8 +399,9 @@ export default function StudentHistory() {
                     <TableRow key={record.id} className={index % 2 === 0 ? "bg-[#F8FAFC]" : ""}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell className="font-medium">{record.subject}</TableCell>
+                      <TableCell><span className="px-2 py-0.5 bg-[#E0F2FE] text-[#0369A1] font-bold rounded-md text-xs">Buổi {record.sessionNumber}</span></TableCell>
                       <TableCell>{record.date}</TableCell>
-                      <TableCell>Mã: {record.session}</TableCell>
+                      <TableCell>LHP#{record.session}</TableCell>
                       <TableCell>
                         <StatusBadge status={record.status} />
                       </TableCell>
@@ -524,6 +560,71 @@ export default function StudentHistory() {
             >
               {submittingClaim && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Gửi khiếu nại
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Thời khóa biểu chi tiết toàn bộ các buổi học */}
+      <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-[#0F172A] flex items-center gap-2">
+              <CalendarCheck className="w-5 h-5 text-[#0EA5E9]" />
+              Thời Khóa Biểu Chi Tiết Các Buổi Học
+            </DialogTitle>
+            <p className="text-xs text-[#64748B]">Môn học: <span className="font-bold text-[#0F172A]">{selectedCourseName}</span></p>
+          </DialogHeader>
+
+          {loadingSessions ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-[#0EA5E9] animate-spin mb-2" />
+              <p className="text-xs text-[#64748B]">Đang tải thời khóa biểu các buổi học...</p>
+            </div>
+          ) : classSessionsList.length === 0 ? (
+            <div className="text-center py-8 text-[#64748B] text-xs">
+              Chưa có dữ liệu danh sách các buổi học cho môn này.
+            </div>
+          ) : (
+            <div className="max-h-[360px] overflow-y-auto pr-1 space-y-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Buổi số</TableHead>
+                    <TableHead>Ngày học</TableHead>
+                    <TableHead>Thời gian</TableHead>
+                    <TableHead>Phòng học</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {classSessionsList.map((sess, i) => (
+                    <TableRow key={sess.class_session_id || i}>
+                      <TableCell className="font-bold text-[#0369A1]">Buổi {sess.session_number || i + 1}</TableCell>
+                      <TableCell className="font-medium">{sess.class_date ? new Date(sess.class_date).toLocaleDateString("vi-VN") : "N/A"}</TableCell>
+                      <TableCell className="text-xs">{sess.start_time?.substring(0,5) || "07:30"} - {sess.end_time?.substring(0,5) || "10:00"}</TableCell>
+                      <TableCell className="text-xs text-[#475569]">{sess.phong_hoc || "Phòng A2-301"}</TableCell>
+                      <TableCell>
+                        {sess.status === "DANG_DIEN_RA" ? (
+                          <span className="px-2 py-0.5 text-[11px] font-bold bg-[#DCFCE7] text-[#166534] rounded-full">🟢 Đang mở ĐĐ</span>
+                        ) : sess.status === "DA_KET_THUC" ? (
+                          <span className="px-2 py-0.5 text-[11px] font-medium bg-[#F1F5F9] text-[#64748B] rounded-full">Đã kết thúc</span>
+                        ) : sess.status === "HOAN_HOC" ? (
+                          <span className="px-2 py-0.5 text-[11px] font-medium bg-[#FFEDD5] text-[#C2410C] rounded-full">Đã hoãn</span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-[11px] font-medium bg-[#E0F2FE] text-[#0369A1] rounded-full">Chưa diễn ra</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleModalOpen(false)}>
+              Đóng
             </Button>
           </DialogFooter>
         </DialogContent>

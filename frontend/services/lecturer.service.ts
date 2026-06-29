@@ -2,14 +2,19 @@ import { Claim, AttendanceReport } from "@/types/lecturer";
 import { apiClient } from "@/lib/api-client";
 
 export const LecturerService = {
-  getProfile: async (): Promise<{ name: string; email: string; maCanBo: number }> => {
+  getProfile: async (): Promise<any> => {
     try {
       const data = await apiClient.get<any>("/users/me/profile");
       const profile = data.profile || {};
       return {
+        id: profile.staff_id?.toString() || data.account?.account_id?.toString() || "unknown",
         name: `${profile.last_name || ""} ${profile.first_name || ""}`.trim() || data.account?.username || "Giảng viên",
         email: profile.google_email || data.account?.username || "Unknown",
+        phone: profile.phone || "Chưa cập nhật",
         maCanBo: profile.staff_id || 0,
+        academicDegree: profile.academic_degree || "TS.",
+        username: data.account?.username || "",
+        role: "Giảng viên Khoa CNTT"
       };
     } catch (error) {
       console.error("Lỗi tải thông tin cá nhân giảng viên:", error);
