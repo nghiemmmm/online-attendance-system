@@ -145,10 +145,11 @@ export const AdminService = {
     return (response.data || []).filter((item: CanBoOption) => item.status !== false);
   },
 
-  registerFace: async (studentId: number | string, file: File): Promise<any> => {
+  registerFace: async (studentId: number | string, file: File, imageType: string = "chinh_dien"): Promise<any> => {
     const formData = new FormData();
     formData.append("student_id", studentId.toString());
     formData.append("file", file);
+    formData.append("image_type", imageType);
 
     return apiClient.post<any>("/face-images/", formData, {
       headers: {

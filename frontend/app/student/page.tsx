@@ -18,6 +18,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { StudentService } from "@/services/student.service"
 import { StudentProfile } from "@/types/student"
+import { cn } from "@/lib/utils"
 
 export default function StudentDashboard() {
   const router = useRouter()
@@ -248,51 +249,63 @@ export default function StudentDashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-[#E2E8F0] shadow-sm">
+          <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Tỷ lệ chuyên cần</p>
+                  <p className="text-sm text-[#64748B] font-medium">Tỷ lệ chuyên cần</p>
                   <p className="text-3xl font-bold text-[#0A2540] mt-1">{attendanceRate}%</p>
-                  <p className="text-xs text-[#22C55E] mt-1 flex items-center gap-1">
+                  <p className="text-xs text-[#22C55E] mt-1.5 flex items-center gap-1 font-semibold">
                     <TrendingUp className="w-3 h-3" />
                     Toàn học kỳ
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-[#E8F5E9] flex items-center justify-center">
                   <CalendarCheck className="w-6 h-6 text-[#22C55E]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-[#E2E8F0] shadow-sm">
+          <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Tổng buổi đi học</p>
+                  <p className="text-sm text-[#64748B] font-medium">Tổng buổi đi học</p>
                   <p className="text-3xl font-bold text-[#0A2540] mt-1">{attendedCount}/{totalSessions}</p>
-                  <p className="text-xs text-[#64748B] mt-1">Số buổi có mặt + đi muộn</p>
+                  <p className="text-xs text-[#64748B] mt-1.5">Số buổi có mặt + đi muộn</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-[#DBEAFE] flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-[#3B82F6]" />
+                <div className="w-12 h-12 rounded-full bg-[#E0F2FE] flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-[#0EA5E9]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-[#E2E8F0] shadow-sm">
+          <Card className={cn(
+            "border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200",
+            warningClasses.length > 0 ? "border-l-4 border-l-[#EF4444] bg-red-50/10" : "border-l-4 border-l-[#22C55E]"
+          )}>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Cảnh báo vắng</p>
-                  <p className="text-3xl font-bold text-[#F59E0B] mt-1">{warningText}</p>
-                  <p className="text-xs text-[#F59E0B] mt-1">
+                  <p className="text-sm text-[#64748B] font-medium">Cảnh báo vắng</p>
+                  <p className={cn(
+                    "text-3xl font-bold mt-1",
+                    warningClasses.length > 0 ? "text-[#EF4444]" : "text-[#22C55E]"
+                  )}>{warningText}</p>
+                  <p className={cn(
+                    "text-xs mt-1.5 font-medium",
+                    warningClasses.length > 0 ? "text-[#EF4444]" : "text-slate-500"
+                  )}>
                     {warningClasses.length > 0 ? "Vượt quá 20% giới hạn vắng" : "Đạt yêu cầu chuyên cần"}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-[#FEF9C3] flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-[#F59E0B]" />
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center",
+                  warningClasses.length > 0 ? "bg-red-100" : "bg-[#E8F5E9]"
+                )}>
+                  <AlertTriangle className={cn("w-6 h-6", warningClasses.length > 0 ? "text-[#EF4444]" : "text-[#22C55E]")} />
                 </div>
               </div>
             </CardContent>
@@ -348,17 +361,10 @@ export default function StudentDashboard() {
               ) : (
                 <p className="text-sm text-[#64748B] text-center py-6">Không có lịch học nào được xếp.</p>
               )}
-              {activeSession ? (
+              {activeSession && (
                 <Link href={`/student/live?id=${activeSession.class_session_id}`}>
                   <Button className="w-full mt-4 bg-[#22C55E] hover:bg-[#16A34A] text-white font-semibold animate-pulse border border-[#22C55E]">
                     Vào điểm danh: {activeSession.course_name}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/student/live">
-                  <Button className="w-full mt-4 bg-[#0A2540] hover:bg-[#1A3A5C] text-white font-semibold shadow-xs">
-                    📹 Thử nghiệm Camera & Nhận diện AI
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>

@@ -115,21 +115,21 @@ export default function AdminReportsPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Bao cao & Thong ke</h1>
-            <p className="text-sm text-muted-foreground">
-              Phan tich du lieu diem danh toan truong
+            <h1 className="text-2xl font-bold text-[#0F172A]">Báo cáo & Thống kê</h1>
+            <p className="text-sm text-[#64748B]">
+              Phân tích dữ liệu điểm danh toàn trường
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchReportStats} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={fetchReportStats} disabled={loading} className="text-slate-600 hover:text-slate-900 border-[#E2E8F0]">
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Làm mới
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="text-slate-600 hover:text-slate-900 border-[#E2E8F0]">
               <Printer className="mr-2 h-4 w-4" />
               In báo cáo
             </Button>
-            <Button size="sm" className="bg-primary text-primary-foreground">
+            <Button size="sm" className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white">
               <Download className="mr-2 h-4 w-4" />
               Xuất Excel
             </Button>
@@ -196,114 +196,109 @@ export default function AdminReportsPage() {
 
             {/* Summary Stats */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+              <Card className="border-[#E2E8F0] shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Tổng sinh viên</p>
-                      <p className="text-2xl font-bold text-foreground">{summary.total_students.toLocaleString()}</p>
-                      <p className="flex items-center gap-1 text-xs text-success">
+                      <p className="text-sm font-semibold text-[#64748B]">Tổng sinh viên</p>
+                      <p className="text-3xl font-extrabold text-[#0F172A] mt-1">{summary.total_students.toLocaleString()}</p>
+                      <p className="flex items-center gap-1 text-xs text-[#22C55E] mt-1.5 font-medium">
                         <TrendingUp className="h-3 w-3" />
                         +2.5% so với tháng trước
                       </p>
                     </div>
-                    <div className="rounded-full bg-primary/10 p-3">
-                      <Users className="h-6 w-6 text-primary" />
+                    <div className="rounded-full bg-slate-100 p-3">
+                      <Users className="h-6 w-6 text-slate-600" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-[#E2E8F0] shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Tỉ lệ chuyên cần TB</p>
-                      <p className="text-2xl font-bold text-foreground">{summary.avg_attendance_rate}%</p>
-                      <p className="flex items-center gap-1 text-xs text-success">
+                      <p className="text-sm font-semibold text-[#64748B]">Tỉ lệ chuyên cần TB</p>
+                      <p className="text-3xl font-extrabold text-[#22C55E] mt-1">{summary.avg_attendance_rate}%</p>
+                      <p className="flex items-center gap-1 text-xs text-[#22C55E] mt-1.5 font-medium">
                         <TrendingUp className="h-3 w-3" />
                         +1.2% so với tháng trước
                       </p>
                     </div>
-                    <div className="rounded-full bg-success/10 p-3">
-                      <CheckCircle2 className="h-6 w-6 text-success" />
+                    <div className="rounded-full bg-[#E8F5E9] p-3">
+                      <CheckCircle2 className="h-6 w-6 text-[#22C55E]" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-[#E2E8F0] shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Tổng buổi học</p>
-                      <p className="text-2xl font-bold text-foreground">{summary.total_sessions.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Đã kết thúc
+                      <p className="text-sm font-semibold text-[#64748B]">Tổng buổi học</p>
+                      <p className="text-3xl font-extrabold text-[#0EA5E9] mt-1">{summary.total_sessions.toLocaleString()}</p>
+                      <p className="text-xs text-[#64748B] mt-1.5 font-medium">
+                        Đã hoàn thành và lưu trữ
                       </p>
                     </div>
-                    <div className="rounded-full bg-accent/10 p-3">
-                      <Calendar className="h-6 w-6 text-accent" />
+                    <div className="rounded-full bg-sky-50 p-3">
+                      <Calendar className="h-6 w-6 text-[#0EA5E9]" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-[#E2E8F0] shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Cảnh báo chuyên cần</p>
-                      <p className="text-2xl font-bold text-destructive">{summary.attendance_warnings}</p>
-                      <p className="flex items-center gap-1 text-xs text-destructive">
+                      <p className="text-sm font-semibold text-[#64748B]">Cảnh báo chuyên cần</p>
+                      <p className="text-3xl font-extrabold text-[#EF4444] mt-1">{summary.attendance_warnings}</p>
+                      <p className="flex items-center gap-1 text-xs text-[#EF4444] mt-1.5 font-medium">
                         <TrendingDown className="h-3 w-3" />
                         Vắng từ 3 buổi trở lên
                       </p>
                     </div>
-                    <div className="rounded-full bg-destructive/10 p-3">
-                      <AlertTriangle className="h-6 w-6 text-destructive" />
+                    <div className="rounded-full bg-[#FFEBEE] p-3">
+                      <AlertTriangle className="h-6 w-6 text-[#EF4444]" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-        {/* Charts */}
-        <div className="flex border-b border-border space-x-6 mb-4">
-          <button
-            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "overview" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
-            onClick={() => setActiveTab("overview")}
-          >
-            Tổng quan
-          </button>
-          <button
-            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "departments" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
-            onClick={() => setActiveTab("departments")}
-          >
-            Theo khoa
-          </button>
-          <button
-            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "trends" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
-            onClick={() => setActiveTab("trends")}
-          >
-            Hiệu suất & Xu hướng
-          </button>
-          <button
-            className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "alerts" ? "border-primary border-b-2 text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
-            onClick={() => setActiveTab("alerts")}
-          >
-            Cảnh báo
-          </button>
+        {/* Charts Navigation Tabs */}
+        <div className="flex bg-slate-100 p-1 rounded-xl w-fit gap-1 mb-6 border border-slate-200/50">
+          {[
+            { id: "overview", label: "Tổng quan" },
+            { id: "departments", label: "Theo khoa" },
+            { id: "trends", label: "Hiệu suất & Xu hướng" },
+            { id: "alerts", label: "Cảnh báo" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
+                activeTab === tab.id
+                  ? "bg-white text-[#0A2540] shadow-sm"
+                  : "text-slate-600 hover:text-[#0A2540]"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {activeTab === "overview" && (
           <div className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
               {/* Attendance Distribution */}
-              <Card>
+              <Card className="border-[#E2E8F0] shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-base">Phan bo trang thai diem danh</CardTitle>
-                  <CardDescription>Thang 01/2024</CardDescription>
+                  <CardTitle className="text-base text-[#0F172A]">Phân bổ trạng thái điểm danh</CardTitle>
+                  <CardDescription>Thống kê tháng hiện tại</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -313,19 +308,26 @@ export default function AdminReportsPage() {
                           data={statusDistribution}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
+                          innerRadius={65}
+                          outerRadius={95}
+                          paddingAngle={3}
                           dataKey="value"
                         >
                           {statusDistribution.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                         <Tooltip
-                           formatter={(value: any) => [value?.toLocaleString() || "0", "Lượt"]}
-                         />
-                        <Legend />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "rgba(255, 255, 255, 0.95)",
+                            backdropFilter: "blur(8px)",
+                            borderRadius: "12px",
+                            border: "1px solid #E2E8F0",
+                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)"
+                          }}
+                          formatter={(value: any) => [value?.toLocaleString() || "0", "Lượt"]}
+                        />
+                        <Legend iconType="circle" />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -333,30 +335,44 @@ export default function AdminReportsPage() {
               </Card>
 
               {/* Weekly Trend */}
-              <Card>
+              <Card className="border-[#E2E8F0] shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-base">Ti le chuyen can theo ngay</CardTitle>
-                  <CardDescription>Tuan hien tai</CardDescription>
+                  <CardTitle className="text-base text-[#0F172A]">Tỉ lệ chuyên cần theo ngày</CardTitle>
+                  <CardDescription>Tuần hiện tại</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={weeklyTrend}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="week" className="text-xs" />
-                        <YAxis domain={[70, 100]} className="text-xs" />
-                         <Tooltip
-                           formatter={(value: any, name: any) => [
-                             name === "rate" ? `${value}%` : value?.toLocaleString() || "0",
-                             name === "rate" ? "Tỉ lệ" : "Sinh viên"
-                           ]}
-                         />
+                        <defs>
+                          <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                        <XAxis dataKey="week" className="text-xs text-slate-500 font-medium" />
+                        <YAxis domain={[70, 100]} className="text-xs text-slate-500 font-medium" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "rgba(255, 255, 255, 0.95)",
+                            backdropFilter: "blur(8px)",
+                            borderRadius: "12px",
+                            border: "1px solid #E2E8F0",
+                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)"
+                          }}
+                          formatter={(value: any, name: any) => [
+                            name === "rate" ? `${value}%` : value?.toLocaleString() || "0",
+                            name === "rate" ? "Tỉ lệ" : "Sinh viên"
+                          ]}
+                        />
                         <Area
                           type="monotone"
                           dataKey="rate"
-                          stroke="hsl(var(--primary))"
-                          fill="hsl(var(--primary))"
-                          fillOpacity={0.2}
+                          stroke="#0EA5E9"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#colorRate)"
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -366,36 +382,47 @@ export default function AdminReportsPage() {
             </div>
 
             {/* Monthly Comparison */}
-            <Card>
+            <Card className="border-[#E2E8F0] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">So sanh chuyen can theo thang</CardTitle>
-                <CardDescription>Nam 2024 vs 2023</CardDescription>
+                <CardTitle className="text-base text-[#0F172A]">So sánh chuyên cần theo tháng</CardTitle>
+                <CardDescription>Xu hướng so sánh năm nay vs năm ngoái</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={monthlyComparison}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis dataKey="month" className="text-xs" />
-                      <YAxis domain={[80, 95]} className="text-xs" />
-                       <Tooltip formatter={(value: any) => [`${value}%`, ""]} />
-                      <Legend />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                      <XAxis dataKey="month" className="text-xs text-slate-500 font-medium" />
+                      <YAxis domain={[80, 95]} className="text-xs text-slate-500 font-medium" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          backdropFilter: "blur(8px)",
+                          borderRadius: "12px",
+                          border: "1px solid #E2E8F0",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)"
+                        }}
+                        formatter={(value: any) => [`${value}%`, ""]}
+                      />
+                      <Legend iconType="circle" />
                       <Line
                         type="monotone"
                         dataKey="thisYear"
-                        name="2024"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{ fill: "hsl(var(--primary))" }}
+                        name="Năm nay"
+                        stroke="#0A2540"
+                        strokeWidth={3}
+                        dot={{ fill: "#0A2540", r: 4 }}
+                        activeDot={{ r: 6 }}
                       />
                       <Line
                         type="monotone"
                         dataKey="lastYear"
-                        name="2023"
-                        stroke="hsl(var(--muted-foreground))"
-                        strokeWidth={2}
+                        name="Năm ngoái"
+                        stroke="#94A3B8"
+                        strokeWidth={2.5}
                         strokeDasharray="5 5"
-                        dot={{ fill: "hsl(var(--muted-foreground))" }}
+                        dot={{ fill: "#94A3B8", r: 3 }}
+                        activeDot={{ r: 5 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -407,23 +434,31 @@ export default function AdminReportsPage() {
 
         {activeTab === "departments" && (
           <div className="space-y-4">
-            <Card>
+            <Card className="border-[#E2E8F0] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Chuyen can theo khoa</CardTitle>
-                <CardDescription>Thong ke chi tiet theo tung khoa</CardDescription>
+                <CardTitle className="text-base text-[#0F172A]">Chuyên cần theo khoa</CardTitle>
+                <CardDescription>Thống kê chi tiết số lượt theo từng khoa</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={attendanceByDepartment} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis type="number" className="text-xs" />
-                      <YAxis dataKey="department" type="category" className="text-xs" width={60} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="present" name="Co mat" fill="#22c55e" stackId="a" />
-                      <Bar dataKey="late" name="Di tre" fill="#f59e0b" stackId="a" />
-                      <Bar dataKey="absent" name="Vang mat" fill="#ef4444" stackId="a" />
+                    <BarChart data={attendanceByDepartment} layout="vertical" barSize={16}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                      <XAxis type="number" className="text-xs text-slate-500 font-medium" />
+                      <YAxis dataKey="department" type="category" className="text-xs text-slate-500 font-medium" width={80} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          backdropFilter: "blur(8px)",
+                          borderRadius: "12px",
+                          border: "1px solid #E2E8F0",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)"
+                        }}
+                      />
+                      <Legend iconType="circle" />
+                      <Bar dataKey="present" name="Có mặt" fill="#22c55e" stackId="a" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="late" name="Đi trễ" fill="#f59e0b" stackId="a" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="absent" name="Vắng mặt" fill="#ef4444" stackId="a" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -431,20 +466,20 @@ export default function AdminReportsPage() {
             </Card>
 
             {/* Department Table */}
-            <Card>
+            <Card className="border-[#E2E8F0] shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Chi tiet theo khoa</CardTitle>
+                <CardTitle className="text-base text-[#0F172A]">Chi tiết theo khoa</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Khoa</th>
-                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Co mat</th>
-                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Di tre</th>
-                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Vang mat</th>
-                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ti le</th>
+                      <tr className="border-b border-slate-200 bg-[#F8FAFC]">
+                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Khoa</th>
+                        <th className="px-4 py-3 text-right font-semibold text-slate-700">Có mặt</th>
+                        <th className="px-4 py-3 text-right font-semibold text-slate-700">Đi trễ</th>
+                        <th className="px-4 py-3 text-right font-semibold text-slate-700">Vắng mặt</th>
+                        <th className="px-4 py-3 text-right font-semibold text-slate-700">Tỉ lệ</th>
                       </tr>
                     </thead>
                     <tbody>

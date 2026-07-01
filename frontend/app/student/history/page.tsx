@@ -48,9 +48,9 @@ import { StudentProfile } from "@/types/student"
 type AttendanceStatus = "present" | "late" | "absent"
 
 const methodLabels = {
-  face: { label: "Khuôn mặt", bgClass: "bg-blue-100", textClass: "text-blue-700" },
-  manual: { label: "Thủ công", bgClass: "bg-gray-100", textClass: "text-gray-700" },
-  claim: { label: "Sau khiếu nại", bgClass: "bg-purple-100", textClass: "text-purple-700" }
+  face: { label: "Khuôn mặt", bgClass: "bg-sky-50 text-sky-600 border border-sky-200/50" },
+  manual: { label: "Thủ công", bgClass: "bg-slate-100 text-slate-600 border border-slate-200" },
+  claim: { label: "Sau khiếu nại", bgClass: "bg-[#F3E8FF] text-[#7C3AED] border border-[#7C3AED]/15" }
 }
 
 export default function StudentHistory() {
@@ -236,46 +236,46 @@ export default function StudentHistory() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-[#E2E8F0] shadow-sm">
+          <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Tỷ lệ chuyên cần</p>
+                  <p className="text-sm text-[#64748B] font-medium">Tỷ lệ chuyên cần</p>
                   <p className="text-3xl font-bold text-[#0A2540] mt-1">{attendanceRate}%</p>
-                  <p className="text-xs text-[#22C55E] mt-1 flex items-center gap-1">
+                  <p className="text-xs text-[#22C55E] mt-1 flex items-center gap-1 font-semibold">
                     <TrendingUp className="w-3 h-3" />
                     Toàn học kỳ
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-[#E8F5E9] flex items-center justify-center">
                   <CalendarCheck className="w-6 h-6 text-[#22C55E]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-[#E2E8F0] shadow-sm">
+          <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Tổng buổi đi học</p>
+                  <p className="text-sm text-[#64748B] font-medium">Tổng buổi đi học</p>
                   <p className="text-3xl font-bold text-[#22C55E] mt-1">{attendedCount}/{totalSessions}</p>
                   <p className="text-xs text-[#64748B] mt-1">Số buổi có mặt + đi muộn</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-[#DBEAFE] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-[#E0F2FE] flex items-center justify-center">
                   <CalendarCheck className="w-6 h-6 text-[#3B82F6]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-[#E2E8F0] shadow-sm">
+          <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Cảnh báo vắng</p>
+                  <p className="text-sm text-[#64748B] font-medium">Cảnh báo vắng</p>
                   <p className="text-3xl font-bold text-[#F59E0B] mt-1">{warningCount} môn</p>
-                  <p className="text-xs text-[#F59E0B] mt-1">Vượt quá 20% giới hạn vắng</p>
+                  <p className="text-xs text-[#F59E0B] mt-1 font-medium">Vượt quá 20% giới hạn vắng</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-[#FEF9C3] flex items-center justify-center">
                   <AlertTriangle className="w-6 h-6 text-[#F59E0B]" />
@@ -290,7 +290,7 @@ export default function StudentHistory() {
           <CardContent className="pt-6">
             <div className="flex flex-wrap gap-4">
               <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[200px] border-[#E2E8F0]">
                   <SelectValue placeholder="Tất cả môn học" />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,7 +337,7 @@ export default function StudentHistory() {
                   placeholder="Tìm theo môn học..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 border-[#E2E8F0] focus-visible:ring-[#0EA5E9]"
                 />
               </div>
             </div>
@@ -377,63 +377,66 @@ export default function StudentHistory() {
         )}
 
         {/* Data Table */}
-        <Card className="border-[#E2E8F0] shadow-sm">
-          <CardContent className="pt-6">
+        <Card className="border-[#E2E8F0] shadow-sm overflow-hidden">
+          <CardContent className="p-0">
             {mappedRecords.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">STT</TableHead>
-                    <TableHead>Môn học</TableHead>
-                    <TableHead>Buổi thứ</TableHead>
-                    <TableHead>Ngày học</TableHead>
-                    <TableHead>Mã LHP</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Phút muộn</TableHead>
-                    <TableHead>Phương thức</TableHead>
-                    <TableHead>Hành động</TableHead>
+              <Table className="w-full text-sm text-left">
+                <TableHeader className="bg-[#F8FAFC]">
+                  <TableRow className="border-b border-[#E2E8F0]">
+                    <TableHead className="w-[60px] px-6 py-4 font-semibold text-slate-700">STT</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Môn học</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Buổi thứ</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Ngày học</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Mã LHP</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Trạng thái</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Phút muộn</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Phương thức</TableHead>
+                    <TableHead className="px-6 py-4 text-center font-semibold text-slate-700">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className="divide-y divide-[#E2E8F0]">
                   {mappedRecords.map((record, index) => (
-                    <TableRow key={record.id} className={index % 2 === 0 ? "bg-[#F8FAFC]" : ""}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell className="font-medium">{record.subject}</TableCell>
-                      <TableCell><span className="px-2 py-0.5 bg-[#E0F2FE] text-[#0369A1] font-bold rounded-md text-xs">Buổi {record.sessionNumber}</span></TableCell>
-                      <TableCell>{record.date}</TableCell>
-                      <TableCell>LHP#{record.session}</TableCell>
-                      <TableCell>
+                    <TableRow key={record.id} className="bg-white hover:bg-slate-50/80 transition-colors">
+                      <TableCell className="px-6 py-4 font-medium text-slate-500">{index + 1}</TableCell>
+                      <TableCell className="px-6 py-4 font-semibold text-[#0F172A]">{record.subject}</TableCell>
+                      <TableCell className="px-6 py-4">
+                        <span className="px-2 py-0.5 bg-[#E0F2FE] text-[#0369A1] font-bold rounded-md text-xs border border-[#E0F2FE]">
+                          Buổi {record.sessionNumber}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-slate-600">{record.date}</TableCell>
+                      <TableCell className="px-6 py-4 font-bold text-[#0A2540]">LHP{record.session}</TableCell>
+                      <TableCell className="px-6 py-4">
                         <StatusBadge status={record.status} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-6 py-4">
                         {record.lateMinutes > 0 ? (
-                          <span className="text-[#F59E0B]">{record.lateMinutes} phút</span>
+                          <span className="text-[#F59E0B] font-semibold">{record.lateMinutes} phút</span>
                         ) : (
-                          <span className="text-[#64748B]">-</span>
+                          <span className="text-slate-400">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-6 py-4">
                         <span className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                          methodLabels[record.method].bgClass,
-                          methodLabels[record.method].textClass
+                          "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border",
+                          methodLabels[record.method].bgClass
                         )}>
                           {methodLabels[record.method].label}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-6 py-4 text-center">
                         {record.canClaim ? (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleClaimClick(record)}
-                            className="text-[#0EA5E9] hover:text-[#0A2540] hover:bg-[#EFF6FF]"
+                            className="text-[#0EA5E9] hover:text-[#0A2540] hover:bg-[#EFF6FF] h-8 font-semibold"
                           >
                             <FileText className="w-4 h-4 mr-1" />
                             Gửi khiếu nại
                           </Button>
                         ) : (
-                          <span className="text-xs text-[#64748B]">-</span>
+                          <span className="text-xs text-slate-400">-</span>
                         )}
                       </TableCell>
                     </TableRow>

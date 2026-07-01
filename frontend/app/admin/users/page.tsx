@@ -35,6 +35,7 @@ import {
   Download,
   Search,
   Eye,
+  EyeOff,
   Lock,
   Unlock,
   Trash2,
@@ -79,11 +80,13 @@ export default function AdminUserManagement() {
 
   // Form states
   const [formName, setFormName] = useState("")
+  const [formUsername, setFormUsername] = useState("")
   const [formEmail, setFormEmail] = useState("")
   const [formRole, setFormRole] = useState("student")
   const [formGender, setFormGender] = useState("Nam")
   const [formPhone, setFormPhone] = useState("")
   const [formPassword, setFormPassword] = useState("password")
+  const [showPassword, setShowPassword] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -139,8 +142,8 @@ export default function AdminUserManagement() {
   }
 
   const handleCreateUser = async () => {
-    if (!formName.trim() || !formEmail.trim() || !formPassword.trim()) {
-      alert("Vui lòng điền đầy đủ các thông tin bắt buộc.")
+    if (!formName.trim() || !formUsername.trim() || !formPassword.trim()) {
+      alert("Vui lòng điền đầy đủ các thông tin bắt buộc (Họ tên, Tên đăng nhập và Mật khẩu).")
       return
     }
     setSubmitting(true)
@@ -150,7 +153,8 @@ export default function AdminUserManagement() {
       const first_name = nameParts.length > 0 ? nameParts[nameParts.length - 1] : ""
 
       const payload = {
-        username: formEmail.trim(),
+        username: formUsername.trim(),
+        email: formEmail.trim() || null,
         password: formPassword,
         role: formRole,
         last_name,
@@ -165,9 +169,11 @@ export default function AdminUserManagement() {
         setCreateUserOpen(false)
         // Reset form
         setFormName("")
+        setFormUsername("")
         setFormEmail("")
         setFormPhone("")
         setFormPassword("password")
+        setShowPassword(false)
         // Reload list
         fetchUsers()
       }
@@ -426,35 +432,49 @@ export default function AdminUserManagement() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-2">
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
                 Họ và tên <span className="text-red-500">*</span>
               </label>
               <Input
                 placeholder="VD: Nguyễn Văn C"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
+                className="border-[#E2E8F0]"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-2">
-                Email / Tên đăng nhập <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                Tên đăng nhập <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="VD: nguyen_van_c"
+                value={formUsername}
+                onChange={(e) => setFormUsername(e.target.value)}
+                className="border-[#E2E8F0]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                Gmail
               </label>
               <Input
                 type="email"
                 placeholder="VD: c.nguyen@student.edu.vn"
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
+                className="border-[#E2E8F0]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
                   Giới tính
                 </label>
                 <Select value={formGender} onValueChange={setFormGender}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-[#E2E8F0]">
                     <SelectValue placeholder="Chọn giới tính" />
                   </SelectTrigger>
                   <SelectContent>
@@ -465,24 +485,25 @@ export default function AdminUserManagement() {
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
                   Số điện thoại
                 </label>
                 <Input
                   placeholder="VD: 0987654321"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
+                  className="border-[#E2E8F0]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
                   Vai trò <span className="text-red-500">*</span>
                 </label>
                 <Select value={formRole} onValueChange={setFormRole}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-[#E2E8F0]">
                     <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
                   <SelectContent>
@@ -494,26 +515,40 @@ export default function AdminUserManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">
+                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
                   Mật khẩu <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  type="password"
-                  placeholder="Mật khẩu"
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Mật khẩu"
+                    value={formPassword}
+                    onChange={(e) => setFormPassword(e.target.value)}
+                    className="border-[#E2E8F0] pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateUserOpen(false)} disabled={submitting}>
+            <Button variant="outline" onClick={() => setCreateUserOpen(false)} disabled={submitting} className="border-[#E2E8F0] text-slate-600">
               Hủy
             </Button>
             <Button
               onClick={handleCreateUser}
-              className="bg-[#0A2540] hover:bg-[#1A3A5C]"
+              className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white"
               disabled={submitting}
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : null}

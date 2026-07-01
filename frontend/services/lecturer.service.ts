@@ -238,7 +238,7 @@ export const LecturerService = {
 
   postponeSession: async (maBuoiHoc: number, reason: string): Promise<any> => {
     try {
-      return await apiClient.post<any>(`/class-sessions/${maBuoiHoc}/postpone?reason=${encodeURIComponent(reason)}`);
+      return await apiClient.post<any>(`/class-sessions/${maBuoiHoc}/postpone?reason=${encodeURIComponent(reason)}`, {});
     } catch (error) {
       console.error("Lỗi hoãn buổi học:", error);
       throw error;

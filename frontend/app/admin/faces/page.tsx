@@ -40,13 +40,14 @@ interface StudentFace {
   lastUpdated?: string
   className?: string
   imageUrl?: string
+  email?: string
 }
 
-const statusConfig: Record<FaceStatus, { label: string; bgClass: string; textClass: string }> = {
-  approved: { label: "Đã duyệt", bgClass: "bg-[#DCFCE7]", textClass: "text-[#166534]" },
-  pending: { label: "Chờ duyệt", bgClass: "bg-[#FEF9C3]", textClass: "text-[#92400E]" },
-  none: { label: "Chưa đăng ký", bgClass: "bg-[#FEE2E2]", textClass: "text-[#991B1B]" },
-  poor: { label: "Chất lượng kém", bgClass: "bg-[#FEF9C3]", textClass: "text-[#92400E]" },
+const statusConfig: Record<FaceStatus, { label: string; className: string }> = {
+  approved: { label: "Đã duyệt", className: "bg-[#E8F5E9] text-[#22C55E] border border-[#22C55E]/15" },
+  pending: { label: "Chờ duyệt", className: "bg-[#FFF3E0] text-[#F59E0B] border border-[#F59E0B]/15" },
+  none: { label: "Chưa đăng ký", className: "bg-slate-100 text-slate-500 border border-slate-200" },
+  poor: { label: "Chất lượng kém", className: "bg-[#FFEBEE] text-[#EF4444] border border-[#EF4444]/15" },
 }
 
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api").replace(/\/api\/?$/, "")
@@ -56,6 +57,14 @@ const toBackendAssetUrl = (path?: string) => {
   if (/^https?:\/\//i.test(path)) return path
   return `${API_ORIGIN}/${path.replaceAll("\\", "/").replace(/^\/+/, "")}`
 }
+
+const FACE_ANGLES = [
+  { id: "chinh_dien", label: "Chính diện" },
+  { id: "goc_trai", label: "Góc trái" },
+  { id: "goc_phai", label: "Góc phải" },
+  { id: "goc_tren", label: "Góc trên" },
+  { id: "goc_duoi", label: "Góc dưới" },
+]
 
 export default function AdminFaceManagement() {
   const [adminUser, setAdminUser] = useState({
@@ -72,6 +81,8 @@ export default function AdminFaceManagement() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [allFaceRecords, setAllFaceRecords] = useState<any[]>([])
+  const [activeUploadAngle, setActiveUploadAngle] = useState<string | null>(null)
 
   const fetchStudents = async () => {
     setIsLoading(true)
@@ -81,13 +92,14 @@ export default function AdminFaceManagement() {
         AdminService.getUsers("student", "all", ""),
         AdminService.getFaceRecords(),
       ])
+      setAllFaceRecords(faceRecords || [])
       const users = Array.isArray(response) ? response : response.data || []
       const mapped = users.map((user: any) => {
         const rawStudentId = user.studentId ?? user.student_id ?? user.id
         const studentIdText = rawStudentId?.toString() || ""
-        const latestFace = (faceRecords || [])
-          .filter((face: any) => face.student_id?.toString() === studentIdText)
-          .sort((a: any, b: any) => (b.image_id || 0) - (a.image_id || 0))[0]
+        const studentFaces = (faceRecords || []).filter((face: any) => face.student_id?.toString() === studentIdText)
+        const frontalFace = studentFaces.find((face: any) => face.image_type === "chinh_dien")
+        const latestFace = frontalFace || studentFaces.sort((a: any, b: any) => (b.image_id || 0) - (a.image_id || 0))[0]
         const faceStatus = latestFace?.review_status === "DA_DUYET"
           ? "approved"
           : latestFace?.review_status === "CHO_DUYET"
@@ -102,9 +114,12 @@ export default function AdminFaceManagement() {
           studentId: studentIdText ? `SV${studentIdText.padStart(3, "0")}` : `SV${user.id}`,
           status: faceStatus,
           quality: latestFace?.quality_score ? Math.round(latestFace.quality_score * 100) : faceStatus === "approved" ? 92 : undefined,
-          lastUpdated: user.createdAt,
+          lastUpdated: latestFace?.reviewed_at
+            ? new Date(latestFace.reviewed_at).toLocaleString("vi-VN")
+            : undefined,
           className: "CNTT",
-          imageUrl: toBackendAssetUrl(latestFace?.image_path)
+          imageUrl: toBackendAssetUrl(latestFace?.image_path),
+          email: user.email || user.google_email || ""
         }
       })
       setStudents(mapped)
@@ -124,24 +139,15 @@ export default function AdminFaceManagement() {
     fetchStudents()
   }, [])
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, targetAngle: string = "chinh_dien") => {
     if (!selectedStudent) return
     setIsUploading(true)
     try {
       const studentDbId = parseInt(selectedStudent.id)
-      const faceRecord = await AdminService.registerFace(studentDbId, file)
+      const faceRecord = await AdminService.registerFace(studentDbId, file, targetAngle)
 
-      const newImageUrl = URL.createObjectURL(file)
-
-      alert("Đăng ký khuôn mặt thành công!")
-
-      const updatedStudents = students.map(s =>
-        s.id === selectedStudent.id
-          ? { ...s, faceRecordId: faceRecord.image_id, status: "pending" as FaceStatus, quality: Math.round((faceRecord.quality_score || 0.98) * 100), lastUpdated: new Date().toLocaleDateString("vi-VN"), imageUrl: newImageUrl }
-          : s
-      )
-      setStudents(updatedStudents)
-      setSelectedStudent(updatedStudents.find(s => s.id === selectedStudent.id) || null)
+      alert(`Đăng ký khuôn mặt (${targetAngle}) thành công!`)
+      fetchStudents()
     } catch (err: any) {
       alert("Có lỗi xảy ra: " + (err.response?.data?.detail || err.message))
     } finally {
@@ -151,7 +157,13 @@ export default function AdminFaceManagement() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
-    uploadFile(e.target.files[0])
+    uploadFile(e.target.files[0], activeUploadAngle || "chinh_dien")
+  }
+
+  const handleAngleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !activeUploadAngle) return
+    uploadFile(e.target.files[0], activeUploadAngle)
+    e.target.value = ""
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -170,7 +182,7 @@ export default function AdminFaceManagement() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0]
       if (file.type.startsWith("image/")) {
-        uploadFile(file)
+        uploadFile(file, activeUploadAngle || "chinh_dien")
       } else {
         alert("Vui lòng tải lên file ảnh (JPEG/PNG).")
       }
@@ -241,8 +253,6 @@ export default function AdminFaceManagement() {
                   <SelectContent>
                     <SelectItem value="all">Tất cả</SelectItem>
                     <SelectItem value="approved">Đã duyệt</SelectItem>
-                    <SelectItem value="pending">Chờ duyệt</SelectItem>
-                    <SelectItem value="none">Chưa đăng ký</SelectItem>
                     <SelectItem value="poor">Chất lượng kém</SelectItem>
                   </SelectContent>
                 </Select>
@@ -313,14 +323,13 @@ export default function AdminFaceManagement() {
                   {/* Status Badge */}
                   <div className="flex justify-center mb-4">
                     <span className={cn(
-                      "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium",
-                      statusConfig[student.status].bgClass,
-                      statusConfig[student.status].textClass
+                      "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border",
+                      statusConfig[student.status].className
                     )}>
-                      {student.status === "approved" && <Check className="w-3 h-3" />}
+                      {student.status === "approved" && <Check className="w-3.5 h-3.5" />}
                       {student.status === "pending" && <span className="w-2 h-2 rounded-full bg-current animate-pulse" />}
-                      {student.status === "none" && <X className="w-3 h-3" />}
-                      {student.status === "poor" && <AlertTriangle className="w-3 h-3" />}
+                      {student.status === "none" && <X className="w-3.5 h-3.5" />}
+                      {student.status === "poor" && <AlertTriangle className="w-3.5 h-3.5" />}
                       {statusConfig[student.status].label}
                     </span>
                   </div>
@@ -349,30 +358,18 @@ export default function AdminFaceManagement() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 mt-4">
+                  <div className="mt-4">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
+                      className="w-full text-xs text-[#0A2540] border-[#0A2540]/20 hover:bg-[#0A2540]/5"
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedStudent(student)
                       }}
                     >
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      Cập nhật
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedStudent(student)
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Chi tiết
+                      <Eye className="w-3.5 h-3.5 mr-1" />
+                      Xem chi tiết
                     </Button>
                   </div>
                 </CardContent>
@@ -384,156 +381,136 @@ export default function AdminFaceManagement() {
 
         {/* Detail Drawer */}
         {selectedStudent && (
-          <div className="w-[400px] bg-white border border-[#E2E8F0] rounded-lg shadow-lg overflow-hidden">
-            <div className="p-4 border-b border-[#E2E8F0] bg-[#F8FAFC]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-[#0F172A]">{selectedStudent.name}</p>
-                  <p className="text-sm text-[#64748B]">{selectedStudent.studentId} • {selectedStudent.className}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSelectedStudent(null)}
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-4 space-y-6">
-              {/* Side-by-side comparison */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-[#64748B] mb-2">Ảnh đăng ký gốc</p>
-                  <div className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-[#1A3A5C] to-[#0A2540] flex items-center justify-center">
-                    {selectedStudent.imageUrl ? (
-                      <img src={selectedStudent.imageUrl} alt="Gốc" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-16 h-16 text-white/50" />
+          <>
+            {/* Backdrop overlay */}
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity"
+              onClick={() => setSelectedStudent(null)}
+            />
+            {/* Slide-out Drawer Panel */}
+            <div className="fixed right-0 top-0 h-full w-[450px] max-w-full bg-white shadow-2xl z-50 flex flex-col border-l border-[#E2E8F0] overflow-y-auto">
+              <div className="p-4 border-b border-[#E2E8F0] bg-[#F8FAFC] sticky top-0 z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-[#0F172A]">{selectedStudent.name}</p>
+                    <p className="text-sm text-[#64748B]">{selectedStudent.studentId} • Lớp {selectedStudent.className || "CNTT"}</p>
+                    {selectedStudent.email && (
+                      <p className="text-xs text-[#94A3B8] mt-0.5">{selectedStudent.email}</p>
                     )}
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[#64748B] mb-2">Ảnh trích xuất AI</p>
-                  <div className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-[#0A2540] to-[#1A3A5C] flex items-center justify-center">
-                    {selectedStudent.imageUrl ? (
-                      <img src={selectedStudent.imageUrl} alt="AI" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-16 h-16 text-white/50" />
-                    )}
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedStudent(null)}
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
                 </div>
               </div>
 
-              {/* Quality Metrics */}
-              {selectedStudent.quality && (
+              <div className="p-4 space-y-6 flex-1">
+                {/* 5 Face Angles Collection Grid */}
                 <div className="space-y-3">
-                  <p className="text-sm font-medium text-[#0F172A]">Chất lượng ảnh</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#64748B]">Độ sắc nét:</span>
-                      <span className={cn(
-                        "font-medium",
-                        selectedStudent.quality >= 80 ? "text-[#22C55E]" :
-                        selectedStudent.quality >= 60 ? "text-[#F59E0B]" : "text-[#EF4444]"
-                      )}>
-                        {selectedStudent.quality}/100
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#64748B]">Ánh sáng:</span>
-                      <span className={cn(
-                        "font-medium",
-                        selectedStudent.quality >= 70 ? "text-[#22C55E]" : "text-[#F59E0B]"
-                      )}>
-                        {selectedStudent.quality >= 70 ? "Đạt" : "Yếu"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#64748B]">Góc mặt:</span>
-                      <span className="font-medium text-[#22C55E]">Thẳng</span>
-                    </div>
+                  <p className="text-sm font-semibold text-[#0F172A]">Dữ liệu 5 góc mặt đăng ký</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {FACE_ANGLES.map((angle) => {
+                      const angleImg = allFaceRecords.find(
+                        (record) =>
+                          record.student_id?.toString() === selectedStudent.id &&
+                          record.image_type === angle.id
+                      )
+                      const angleUrl = angleImg ? toBackendAssetUrl(angleImg.image_path) : null
+
+                      return (
+                        <Card key={angle.id} className="border-[#E2E8F0] shadow-sm flex flex-col justify-between overflow-hidden">
+                          <div className="p-2 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center justify-between">
+                            <span className="text-xs font-semibold text-[#0F172A]">{angle.label}</span>
+                            {angleImg ? (
+                              <span className="w-2 h-2 rounded-full bg-[#22C55E]" title="Đã có ảnh" />
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-[#EF4444]" title="Chưa có ảnh" />
+                            )}
+                          </div>
+                          <div className="p-3 flex flex-col items-center justify-center space-y-2">
+                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-[#E2E8F0] bg-gray-50 flex items-center justify-center relative">
+                              {angleUrl ? (
+                                <img src={angleUrl} alt={angle.label} className="w-full h-full object-cover" />
+                              ) : (
+                                <Camera className="w-7 h-7 text-[#94A3B8]" />
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-xs py-1 h-8"
+                              disabled={isUploading}
+                              onClick={() => {
+                                setActiveUploadAngle(angle.id)
+                                document.getElementById("angle-file-input")?.click()
+                              }}
+                            >
+                              {angleImg ? "Thay đổi" : "Thêm ảnh"}
+                            </Button>
+                          </div>
+                        </Card>
+                      )
+                    })}
                   </div>
                 </div>
-              )}
 
-              {/* Admin Notes */}
-              <div>
-                <p className="text-sm font-medium text-[#0F172A] mb-2">Ghi chú của quản trị viên</p>
-                <Textarea
-                  placeholder="Nhập ghi chú..."
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  className="min-h-[80px]"
+                <input
+                  id="angle-file-input"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleAngleFileChange}
+                  disabled={isUploading}
                 />
-              </div>
 
-              {/* Upload Zone */}
-              <div>
-                <p className="text-sm font-medium text-[#0F172A] mb-2">Cập nhật ảnh mới</p>
-                <label
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={cn(
-                    "flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-                    isDragging ? "border-[#0EA5E9] bg-[#F0F9FF]" : "border-[#E2E8F0] hover:bg-[#F8FAFC]",
-                    isUploading && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  <Upload className="w-6 h-6 text-[#64748B] mb-1" />
-                  <span className="text-xs text-[#64748B]">
-                    {isUploading ? "Đang xử lý..." : "Kéo thả ảnh chân dung rõ mặt"}
-                  </span>
-                  <span className="text-xs text-[#94A3B8]">
-                    (≥300x300px)
-                  </span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
+                {/* Admin Notes */}
+                <div>
+                  <p className="text-sm font-medium text-[#0F172A] mb-2">Ghi chú của quản trị viên</p>
+                  <Textarea
+                    placeholder="Nhập ghi chú..."
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    className="min-h-[80px]"
                   />
-                </label>
-              </div>
+                </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t border-[#E2E8F0]">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setSelectedStudent(null)}
-                >
-                  Hủy bỏ
-                </Button>
-                <Button className="flex-1 bg-[#0A2540] hover:bg-[#1A3A5C]">
-                  Lưu thay đổi
-                </Button>
-              </div>
-
-              {/* Approve/Reject for pending */}
-              {selectedStudent.status === "pending" && (
-                <div className="flex gap-2">
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t border-[#E2E8F0]">
                   <Button
-                    className="flex-1 bg-[#22C55E] hover:bg-[#22C55E]/80 text-white"
-                    onClick={handleApproveFace}
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setSelectedStudent(null)}
                   >
-                    <Check className="w-4 h-4 mr-2" />
-                    Duyệt
-                  </Button>
-                  <Button
-                    className="flex-1 bg-[#EF4444] hover:bg-[#EF4444]/80 text-white"
-                    onClick={handleRejectFace}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Từ chối
+                    Đóng panel
                   </Button>
                 </div>
-              )}
+
+                {/* Approve/Reject for pending */}
+                {selectedStudent.status === "pending" && (
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 bg-[#22C55E] hover:bg-[#22C55E]/80 text-white"
+                      onClick={handleApproveFace}
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Duyệt
+                    </Button>
+                    <Button
+                      className="flex-1 bg-[#EF4444] hover:bg-[#EF4444]/80 text-white"
+                      onClick={handleRejectFace}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Từ chối
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </AppShell>

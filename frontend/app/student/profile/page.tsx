@@ -111,7 +111,7 @@ export default function StudentProfilePage() {
                 <CardContent className="p-6">
                   {profile.faceRegistered ? (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-3 text-[#166534] bg-[#DCFCE7] p-3 rounded-lg border border-[#BBF7D0]">
+                      <div className="flex items-center gap-3 text-[#166534] bg-[#E8F5E9] p-3 rounded-lg border border-[#22C55E]/15">
                         <CheckCircle2 className="w-6 h-6 shrink-0" />
                         <div className="text-sm">
                           <p className="font-semibold">Đã đăng ký nhận diện</p>
@@ -124,7 +124,7 @@ export default function StudentProfilePage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-3 text-[#92400E] bg-[#FEF9C3] p-3 rounded-lg border border-[#FEF08A]">
+                      <div className="flex items-center gap-3 text-[#92400E] bg-[#FFF9C4] p-3 rounded-lg border border-[#F59E0B]/15">
                         <AlertCircle className="w-6 h-6 shrink-0" />
                         <div className="text-sm">
                           <p className="font-semibold">Chưa đăng ký nhận diện</p>
@@ -187,7 +187,7 @@ export default function StudentProfilePage() {
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="email" className="text-[#334155] font-medium flex items-center">
+                      <Label htmlFor="email" className="text-[#334155] font-semibold flex items-center">
                         <Mail className="w-4 h-4 mr-2 text-[#64748B]"/> Email liên hệ
                       </Label>
                       <Input
@@ -195,12 +195,12 @@ export default function StudentProfilePage() {
                         type="email"
                         value={editForm.email}
                         onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                        className="focus-visible:ring-[#0EA5E9]"
+                        className="border-[#E2E8F0] focus-visible:ring-[#0EA5E9]"
                       />
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="phone" className="text-[#334155] font-medium flex items-center">
+                      <Label htmlFor="phone" className="text-[#334155] font-semibold flex items-center">
                         <Phone className="w-4 h-4 mr-2 text-[#64748B]"/> Số điện thoại
                       </Label>
                       <Input
@@ -208,7 +208,7 @@ export default function StudentProfilePage() {
                         type="tel"
                         value={editForm.phone}
                         onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                        className="focus-visible:ring-[#0EA5E9]"
+                        className="border-[#E2E8F0] focus-visible:ring-[#0EA5E9]"
                       />
                     </div>
                   </div>
@@ -217,7 +217,7 @@ export default function StudentProfilePage() {
                     <Button
                       onClick={handleSave}
                       disabled={saving || (editForm.email === profile.email && editForm.phone === profile.phone)}
-                      className="bg-[#0A2540] hover:bg-[#1A3A5C] min-w-[120px]"
+                      className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white min-w-[120px]"
                     >
                       {saving && <Loader2 className="w-4 h-4 animate-spin mr-2"/>}
                       Lưu thay đổi

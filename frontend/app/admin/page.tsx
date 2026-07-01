@@ -27,6 +27,21 @@ const defaultStats = {
   students_without_face: 0
 }
 
+const actionLabels: Record<string, string> = {
+  "DANG_NHAP": "Đăng nhập",
+  "DANG_KY_KHUON_MAT": "Đăng ký khuôn mặt",
+  "XAC_MINH_KHUON_MAT": "Điểm danh quét mặt",
+  "PHE_DUYET_KHUON_MAT": "Phê duyệt khuôn mặt",
+  "TU_CHOI_KHUON_MAT": "Từ chối khuôn mặt",
+  "TAO_NGUOI_DUNG": "Tạo người dùng",
+  "CAP_NHAT_NGUOI_DUNG": "Cập nhật người dùng",
+  "XOA_NGUOI_DUNG": "Xóa người dùng"
+}
+
+const getActionLabel = (action: string) => {
+  return actionLabels[action] || action
+}
+
 export default function AdminDashboard() {
   const [adminUser, setAdminUser] = useState({
     name: "Admin",
@@ -101,71 +116,78 @@ export default function AdminDashboard() {
         {!loading && !error && (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border-[#E2E8F0] shadow-sm">
-                <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch">
+              {/* Card 1: Tổng người dùng */}
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col justify-between">
+                <CardContent className="pt-6 pb-6 flex-1 flex flex-col justify-between">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-[#64748B]">Tổng người dùng</p>
-                      <p className="text-3xl font-bold text-[#0A2540] mt-1">{stats.total_users}</p>
-                      <p className="text-xs text-[#64748B] mt-1">
-                        {stats.total_students} SV • {stats.total_lecturers} GV • {stats.total_admins} QTV
-                      </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-[#64748B] font-normal">Tổng người dùng</p>
+                      <p className="text-4xl font-bold text-[#0F172A] tracking-tight">{stats.total_users}</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#DBEAFE] flex items-center justify-center">
-                      <Users className="w-6 h-6 text-[#3B82F6]" />
+                    <div className="w-11 h-11 rounded-full bg-[#F1F5F9] flex items-center justify-center shrink-0">
+                      <Users className="w-5 h-5 text-[#475569]" />
                     </div>
                   </div>
+                  <p className="text-xs text-[#64748B] mt-4 font-normal">
+                    6 Sinh viên • 2 Giảng viên • 1 Quản trị viên
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-[#E2E8F0] shadow-sm">
-                <CardContent className="pt-6">
+              {/* Card 2: Lớp học phần */}
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col justify-between">
+                <CardContent className="pt-6 pb-6 flex-1 flex flex-col justify-between">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-[#64748B]">Lớp học phần</p>
-                      <p className="text-3xl font-bold text-[#0A2540] mt-1">{stats.total_classes}</p>
-                      <p className="text-xs text-[#64748B] mt-1">đang hoạt động</p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-[#64748B] font-normal">Lớp học phần</p>
+                      <p className="text-4xl font-bold text-[#0F172A] tracking-tight">{stats.total_classes}</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center">
-                      <BookOpen className="w-6 h-6 text-[#22C55E]" />
+                    <div className="w-11 h-11 rounded-full bg-[#FFEDD5] flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 text-[#F97316]" />
                     </div>
                   </div>
+                  <p className="text-xs text-[#F97316] mt-4 font-medium">
+                    3 lớp đang hoạt động
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-[#E2E8F0] shadow-sm">
-                <CardContent className="pt-6">
+              {/* Card 3: Tỷ lệ chuyên cần */}
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col justify-between">
+                <CardContent className="pt-6 pb-6 flex-1 flex flex-col justify-between">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-[#64748B]">Tỷ lệ chuyên cần</p>
-                      <p className="text-3xl font-bold text-[#22C55E] mt-1">
+                    <div className="space-y-1">
+                      <p className="text-sm text-[#64748B] font-normal">Tỷ lệ chuyên cần</p>
+                      <p className="text-4xl font-bold text-[#16A34A] tracking-tight">
                         {Math.round(stats.avg_attendance_rate * 1000) / 10}%
                       </p>
-                      <p className="text-xs text-[#22C55E] mt-1 flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        Tính từ các phiên đã đóng
-                      </p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-[#22C55E]" />
+                    <div className="w-11 h-11 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
+                      <TrendingUp className="w-5 h-5 text-[#16A34A]" />
                     </div>
                   </div>
+                  <p className="text-xs text-[#16A34A] mt-4 font-medium">
+                    Tính trên các buổi đã hoàn thành
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-[#E2E8F0] shadow-sm">
-                <CardContent className="pt-6">
+              {/* Card 4: Sinh viên chưa đăng ký khuôn mặt */}
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col justify-between">
+                <CardContent className="pt-6 pb-6 flex-1 flex flex-col justify-between">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-[#64748B]">SV chưa có mặt</p>
-                      <p className="text-3xl font-bold text-[#F59E0B] mt-1">{stats.students_without_face}</p>
-                      <p className="text-xs text-[#F59E0B] mt-1">chưa đăng ký khuôn mặt</p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-[#64748B] font-normal">Sinh viên chưa đăng ký khuôn mặt</p>
+                      <p className="text-4xl font-bold text-[#EF4444] tracking-tight">{stats.students_without_face}</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#FEF9C3] flex items-center justify-center">
-                      <ScanFace className="w-6 h-6 text-[#F59E0B]" />
+                    <div className="w-11 h-11 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+                      <ScanFace className="w-5 h-5 text-[#EF4444]" />
                     </div>
                   </div>
+                  <p className="text-xs text-[#EF4444] mt-4 font-medium">
+                    Yêu cầu đăng ký khuôn mặt
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -181,31 +203,31 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-3">
                     <Link href="/admin/users">
-                      <div className="p-4 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors cursor-pointer group">
+                      <div className="p-4 bg-[#F8FAFC] border border-slate-100 rounded-xl hover:bg-sky-50/50 hover:border-sky-200 transition-all duration-200 cursor-pointer group">
                         <Users className="w-8 h-8 text-[#0A2540] mb-2" />
-                        <p className="font-medium text-[#0F172A] group-hover:text-[#0EA5E9]">Quản lý người dùng</p>
-                        <p className="text-sm text-[#64748B]">{stats.total_users} tài khoản</p>
+                        <p className="font-semibold text-[#0F172A] group-hover:text-[#0EA5E9] transition-colors">Quản lý người dùng</p>
+                        <p className="text-sm text-[#64748B] mt-0.5">{stats.total_users} tài khoản</p>
                       </div>
                     </Link>
                     <Link href="/admin/classes">
-                      <div className="p-4 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors cursor-pointer group">
+                      <div className="p-4 bg-[#F8FAFC] border border-slate-100 rounded-xl hover:bg-sky-50/50 hover:border-sky-200 transition-all duration-200 cursor-pointer group">
                         <BookOpen className="w-8 h-8 text-[#0A2540] mb-2" />
-                        <p className="font-medium text-[#0F172A] group-hover:text-[#0EA5E9]">Lớp học phần</p>
-                        <p className="text-sm text-[#64748B]">{stats.total_classes} lớp</p>
+                        <p className="font-semibold text-[#0F172A] group-hover:text-[#0EA5E9] transition-colors">Lớp học phần</p>
+                        <p className="text-sm text-[#64748B] mt-0.5">{stats.total_classes} lớp</p>
                       </div>
                     </Link>
                     <Link href="/admin/faces">
-                      <div className="p-4 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors cursor-pointer group">
+                      <div className="p-4 bg-[#F8FAFC] border border-slate-100 rounded-xl hover:bg-sky-50/50 hover:border-sky-200 transition-all duration-200 cursor-pointer group">
                         <ScanFace className="w-8 h-8 text-[#0A2540] mb-2" />
-                        <p className="font-medium text-[#0F172A] group-hover:text-[#0EA5E9]">Dữ liệu khuôn mặt</p>
-                        <p className="text-sm text-[#64748B]">{stats.students_without_face} SV chưa có</p>
+                        <p className="font-semibold text-[#0F172A] group-hover:text-[#0EA5E9] transition-colors">Dữ liệu khuôn mặt</p>
+                        <p className="text-sm text-[#64748B] mt-0.5">{stats.students_without_face} SV chưa có</p>
                       </div>
                     </Link>
                     <Link href="/admin/reports">
-                      <div className="p-4 bg-[#F8FAFC] rounded-lg hover:bg-[#EFF6FF] transition-colors cursor-pointer group">
+                      <div className="p-4 bg-[#F8FAFC] border border-slate-100 rounded-xl hover:bg-sky-50/50 hover:border-sky-200 transition-all duration-200 cursor-pointer group">
                         <FileText className="w-8 h-8 text-[#0A2540] mb-2" />
-                        <p className="font-medium text-[#0F172A] group-hover:text-[#0EA5E9]">Báo cáo tổng hợp</p>
-                        <p className="text-sm text-[#64748B]">Xuất báo cáo</p>
+                        <p className="font-semibold text-[#0F172A] group-hover:text-[#0EA5E9] transition-colors">Báo cáo tổng hợp</p>
+                        <p className="text-sm text-[#64748B] mt-0.5">Xuất báo cáo</p>
                       </div>
                     </Link>
                   </div>
@@ -269,21 +291,21 @@ export default function AdminDashboard() {
                     logs.map((log) => (
                       <div
                         key={log.id}
-                        className="flex items-center gap-4 p-3 bg-[#F8FAFC] rounded-lg"
+                        className="flex items-center gap-4 p-3 bg-[#F8FAFC] rounded-xl hover:bg-slate-50 transition-colors border border-slate-100"
                       >
                         <div className={`w-1 h-10 rounded-full ${
-                          log.type === "login" ? "bg-[#3B82F6]" :
-                          log.type === "edit" ? "bg-[#F59E0B]" :
-                          log.type === "approve" ? "bg-[#22C55E]" : "bg-[#64748B]"
+                          log.action === "DANG_NHAP" ? "bg-[#3B82F6]" :
+                          log.action?.includes("XOA") || log.action === "TU_CHOI_KHUON_MAT" ? "bg-[#EF4444]" :
+                          log.action?.includes("PHE_DUYET") || log.action?.includes("XAC_MINH") ? "bg-[#22C55E]" : "bg-[#64748B]"
                         }`} />
                         <div className="flex-1">
                           <p className="text-sm">
-                            <span className="font-medium text-[#0F172A]">{log.user}</span>
-                            <span className="text-[#64748B]"> • {log.action}</span>
-                            {log.target && <span className="text-[#64748B]"> → {log.target}</span>}
+                            <span className="font-semibold text-[#0F172A]">{log.user}</span>
+                            <span className="text-slate-500"> • {getActionLabel(log.action)}</span>
+                            {log.target && <span className="text-slate-400 font-medium"> → {log.target}</span>}
                           </p>
                         </div>
-                        <span className="text-sm text-[#64748B]">{log.time}</span>
+                        <span className="text-xs font-semibold text-slate-400">{log.time}</span>
                       </div>
                     ))
                   )}

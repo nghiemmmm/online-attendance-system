@@ -176,41 +176,41 @@ export default function StudentRegistrationPage() {
         <Card className="border-[#E2E8F0] shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {filteredClasses.length > 0 ? (
-              <Table>
+              <Table className="w-full text-sm text-left">
                 <TableHeader className="bg-[#F8FAFC]">
-                  <TableRow>
-                    <TableHead className="w-[80px]">Mã Lớp</TableHead>
-                    <TableHead>Tên Môn Học</TableHead>
-                    <TableHead>Số Tín Chỉ</TableHead>
-                    <TableHead>Giảng Viên</TableHead>
-                    <TableHead>Học Kỳ / Năm</TableHead>
-                    <TableHead>Thời Gian Học</TableHead>
-                    <TableHead>Yêu Cầu</TableHead>
-                    <TableHead className="text-center w-[160px]">Hành Động</TableHead>
+                  <TableRow className="border-b border-[#E2E8F0]">
+                    <TableHead className="w-[100px] px-6 py-4 font-semibold text-slate-700">Mã Lớp</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Tên Môn Học</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Số Tín Chỉ</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Giảng Viên</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Học Kỳ / Năm</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Thời Gian Học</TableHead>
+                    <TableHead className="px-6 py-4 font-semibold text-slate-700">Yêu Cầu</TableHead>
+                    <TableHead className="text-center w-[180px] px-6 py-4 font-semibold text-slate-700">Hành Động</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {filteredClasses.map((cls, index) => {
+                <TableBody className="divide-y divide-[#E2E8F0]">
+                  {filteredClasses.map((cls) => {
                     const isProcessing = processingId === cls.class_section_id
                     return (
-                      <TableRow key={cls.class_section_id} className={index % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]"}>
-                        <TableCell className="font-medium text-[#0A2540]">LHP {cls.class_section_id}</TableCell>
-                        <TableCell className="font-semibold text-[#0F172A]">{cls.course_name}</TableCell>
-                        <TableCell>{cls.credit_count || 3} TC</TableCell>
-                        <TableCell>{cls.lecturer_name}</TableCell>
-                        <TableCell>Kỳ {cls.semester} — {cls.academic_year}</TableCell>
-                        <TableCell className="text-xs text-[#0EA5E9] font-medium">
+                      <TableRow key={cls.class_section_id} className="bg-white hover:bg-slate-50/80 transition-colors">
+                        <TableCell className="px-6 py-4 font-bold text-[#0A2540]">LHP {cls.class_section_id}</TableCell>
+                        <TableCell className="px-6 py-4 font-semibold text-[#0F172A]">{cls.course_name}</TableCell>
+                        <TableCell className="px-6 py-4 font-semibold text-slate-700">{cls.credit_count || 3} TC</TableCell>
+                        <TableCell className="px-6 py-4 text-slate-600">{cls.lecturer_name}</TableCell>
+                        <TableCell className="px-6 py-4 text-slate-600">Kỳ {cls.semester} — {cls.academic_year}</TableCell>
+                        <TableCell className="px-6 py-4 text-xs text-[#0EA5E9] font-medium">
                           {cls.start_date || "02/02/2026"} ➔ {cls.end_date || "31/05/2026"}
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-medium text-[#475569]">
+                        <TableCell className="px-6 py-4">
+                          <span className="text-xs font-semibold text-slate-500">
                             {cls.minimum_attendance_rate * 100}% Chuyên cần
                           </span>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="px-6 py-4 text-center">
                           {cls.is_registered ? (
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#166534]">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-[#E8F5E9] text-[#22C55E] border-[#22C55E]/15">
                                 <Check className="w-3 h-3 mr-1" />
                                 Đã đăng ký
                               </span>
@@ -219,7 +219,7 @@ export default function StudentRegistrationPage() {
                                 size="sm"
                                 disabled={isProcessing}
                                 onClick={() => handleCancel(cls.class_section_id)}
-                                className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white h-7 text-xs"
+                                className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white h-7 text-xs font-semibold"
                               >
                                 {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Hủy"}
                               </Button>
@@ -229,7 +229,7 @@ export default function StudentRegistrationPage() {
                               size="sm"
                               disabled={isProcessing}
                               onClick={() => handleRegister(cls.class_section_id)}
-                              className="bg-[#0EA5E9] hover:bg-[#0284C7] text-white w-24 h-8 text-xs font-medium"
+                              className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white w-24 h-8 text-xs font-semibold shadow-xs"
                             >
                               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : "Đăng ký"}
                             </Button>

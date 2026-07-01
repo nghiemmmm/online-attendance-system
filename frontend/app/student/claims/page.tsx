@@ -114,9 +114,9 @@ export default function StudentClaimsPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'approved': return <span className="text-[#166534] bg-[#DCFCE7] px-2 py-1 rounded-full text-xs font-medium">Được chấp thuận</span>
-      case 'rejected': return <span className="text-[#991B1B] bg-[#FEE2E2] px-2 py-1 rounded-full text-xs font-medium">Bị từ chối</span>
-      default: return <span className="text-[#92400E] bg-[#FEF9C3] px-2 py-1 rounded-full text-xs font-medium">Đang chờ duyệt</span>
+      case 'approved': return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-[#E8F5E9] text-[#22C55E] border-[#22C55E]/15">Được chấp thuận</span>
+      case 'rejected': return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]/15">Bị từ chối</span>
+      default: return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-[#FFF9C4] text-[#F59E0B] border-[#F59E0B]/15">Đang chờ duyệt</span>
     }
   }
 
@@ -168,7 +168,7 @@ export default function StudentClaimsPage() {
                         setSelectedClassId(e.target.value)
                         setSessionNumber(1)
                       }}
-                      className="w-full h-11 px-3.5 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:border-transparent transition-all"
+                      className="w-full h-11 px-3.5 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] transition-all"
                       required
                     >
                       <option value="">-- Chọn học phần trong học kỳ này --</option>
@@ -194,7 +194,7 @@ export default function StudentClaimsPage() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 shrink-0 border-[#CBD5E1] hover:bg-[#F1F5F9] active:scale-95 transition-all"
+                      className="h-10 w-10 shrink-0 border-[#E2E8F0] hover:bg-[#F8FAFC] active:scale-95 transition-all"
                       disabled={!selectedClassId || sessionNumber <= 1}
                       onClick={() => setSessionNumber(prev => Math.max(1, prev - 1))}
                     >
@@ -213,7 +213,7 @@ export default function StudentClaimsPage() {
                         else setSessionNumber(Math.min(maxSessions, Math.max(1, val)))
                       }}
                       disabled={!selectedClassId}
-                      className="text-center font-bold text-base h-10 w-24 border-[#CBD5E1] focus-visible:ring-[#0EA5E9]"
+                      className="text-center font-bold text-base h-10 w-24 border-[#E2E8F0] focus-visible:ring-[#0EA5E9]"
                       required
                     />
 
@@ -221,7 +221,7 @@ export default function StudentClaimsPage() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 shrink-0 border-[#CBD5E1] hover:bg-[#F1F5F9] active:scale-95 transition-all"
+                      className="h-10 w-10 shrink-0 border-[#E2E8F0] hover:bg-[#F8FAFC] active:scale-95 transition-all"
                       disabled={!selectedClassId || sessionNumber >= maxSessions}
                       onClick={() => setSessionNumber(prev => Math.min(maxSessions, prev + 1))}
                     >
@@ -249,8 +249,8 @@ export default function StudentClaimsPage() {
                 </div>
 
                 <DialogFooter className="pt-2">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Hủy</Button>
-                  <Button type="submit" disabled={submitting || !selectedClassId} className="bg-[#0A2540] hover:bg-[#1A3A5C]">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E2E8F0] text-slate-600">Hủy</Button>
+                  <Button type="submit" disabled={submitting || !selectedClassId} className="bg-[#0A2540] hover:bg-[#1A3A5C] text-white">
                     {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2"/>}
                     Gửi yêu cầu khiếu nại
                   </Button>
@@ -299,7 +299,7 @@ export default function StudentClaimsPage() {
         {!loading && !error && claims.length > 0 && (
           <div className="space-y-4">
             {claims.map((claim) => (
-              <Card key={claim.id} className="border-[#E2E8F0] hover:border-[#0EA5E9] transition-colors">
+              <Card key={claim.id} className="border-[#E2E8F0] hover:border-[#0EA5E9] hover:shadow-sm transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex flex-col md:flex-row md:items-start gap-4">
                     <div className="flex items-start gap-3 flex-1">
@@ -308,15 +308,15 @@ export default function StudentClaimsPage() {
                       </div>
                       <div className="space-y-2 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h3 className="font-semibold text-[#0F172A] text-lg">
+                          <h3 className="font-bold text-[#0F172A] text-lg">
                             {claim.subjectCode} - {claim.subjectName}
                           </h3>
                           <div>{getStatusText(claim.status)}</div>
                         </div>
                         <p className="text-sm text-[#64748B]">Buổi {claim.sessionNumber} • Lịch học: {claim.date} • Đã gửi: {claim.submittedAt}</p>
-                        <div className="bg-[#F8FAFC] p-3 rounded-md mt-2 border border-[#E2E8F0]">
+                        <div className="bg-[#F8FAFC] p-4.5 rounded-xl mt-3 border border-[#E2E8F0]">
                           <p className="text-sm text-[#334155]">
-                            <span className="font-medium text-[#0F172A]">Lý do gửi:</span> {claim.reason}
+                            <span className="font-semibold text-[#0F172A]">Lý do gửi:</span> {claim.reason}
                           </p>
                         </div>
                       </div>
