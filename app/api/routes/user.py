@@ -197,6 +197,7 @@ def delete_account(
 
 class UserWithProfileCreate(AppBaseModel):
     username: str = Field(min_length=1, max_length=50)
+    email: str | None = Field(default=None, max_length=100)
     password: str = Field(min_length=5, max_length=128)
     role: str = Field(min_length=1, max_length=20)  # student, lecturer, admin
     last_name: str = Field(min_length=1, max_length=50)

@@ -18,7 +18,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { LecturerService } from "@/services/lecturer.service"
+import { ClassService } from "@/services/class.service"
 import { Claim } from "@/types/lecturer"
+import { cn } from "@/lib/utils"
 
 export default function LecturerDashboard() {
   const [profile, setProfile] = useState<{ name: string; email: string; maCanBo: number } | null>(null)
@@ -47,14 +49,14 @@ export default function LecturerDashboard() {
       if (prof.maCanBo) {
         // 2. Fetch stats and lists in parallel using maCanBo
         const [
-          lopCount,
+          classesList,
           claimsCount,
           monthlySummary,
           todaySched,
           recentSess,
           allClaims
         ] = await Promise.all([
-          LecturerService.getLopHocPhanCount(prof.maCanBo),
+          ClassService.getClasses(),
           LecturerService.getPendingClaimsCount(prof.maCanBo),
           LecturerService.getMonthlyAttendanceSummary(prof.maCanBo),
           LecturerService.getLichDayToday(prof.maCanBo),
@@ -63,19 +65,24 @@ export default function LecturerDashboard() {
         ])
 
         // Parse attendance stats
-        const currentRate = monthlySummary?.current_month_attendance_rate
+        const currentRate = monthlySummary?.current_month_attendance_rate !== null && monthlySummary?.current_month_attendance_rate !== undefined
           ? Math.round(monthlySummary.current_month_attendance_rate * 10) / 10
-          : 0
+          : (monthlySummary?.previous_month_attendance_rate
+            ? Math.round(monthlySummary.previous_month_attendance_rate * 10) / 10
+            : 0)
+
         const changeVal = monthlySummary?.change_percentage
           ? Math.round(monthlySummary.change_percentage * 10) / 10
           : 0
 
         // Parse student count: sum of current students in recent sessions or class lists
         // If not available, we can estimate or use a default
-        const totalStudents = monthlySummary?.current_month_total_count || 0
+        const totalStudents = monthlySummary?.current_month_total_count
+          || monthlySummary?.previous_month_total_count
+          || 0
 
         setStats({
-          lopCount,
+          lopCount: classesList.length,
           studentCount: totalStudents,
           attendanceRate: currentRate,
           changeRate: changeVal,
@@ -160,7 +167,7 @@ export default function LecturerDashboard() {
           <h1 className="text-2xl font-bold text-[#0F172A]">
             Xin chào, {userDisplayName}!
           </h1>
-          <p className="text-[#64748B] mt-1">Học kỳ này - Năm học hiện tại</p>
+          <p className="text-[#64748B] mt-1">Học kỳ 1 — Năm học 2025-2026</p>
         </div>
 
         {loading && (
@@ -187,64 +194,79 @@ export default function LecturerDashboard() {
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border-[#E2E8F0] shadow-sm">
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-[#64748B]">Lớp giảng dạy</p>
+                      <p className="text-sm text-[#64748B] font-medium">Lớp giảng dạy</p>
                       <p className="text-3xl font-bold text-[#0A2540] mt-1">{stats.lopCount}</p>
                       <p className="text-xs text-[#64748B] mt-1">trong học kỳ này</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#DBEAFE] flex items-center justify-center">
-                      <BookOpen className="w-6 h-6 text-[#3B82F6]" />
+                    <div className="w-12 h-12 rounded-full bg-[#E0F2FE] flex items-center justify-center">
+                      <BookOpen className="w-6 h-6 text-[#0EA5E9]" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-[#E2E8F0] shadow-sm">
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-[#64748B]">Tổng lượt ĐD</p>
+                      <p className="text-sm text-[#64748B] font-medium">Tổng lượt ĐD</p>
                       <p className="text-3xl font-bold text-[#0A2540] mt-1">{stats.studentCount}</p>
                       <p className="text-xs text-[#64748B] mt-1">trong tháng này</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#E8F5E9] flex items-center justify-center">
                       <Users className="w-6 h-6 text-[#22C55E]" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-[#E2E8F0] shadow-sm">
+              <Card className="border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-[#64748B]">Tỷ lệ có mặt TB</p>
+                      <p className="text-sm text-[#64748B] font-medium">Tỷ lệ có mặt TB</p>
                       <p className="text-3xl font-bold text-[#22C55E] mt-1">{stats.attendanceRate}%</p>
-                      <p className={`text-xs mt-1 flex items-center gap-1 ${stats.changeRate >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
+                      <p className={cn(
+                        "text-xs mt-1 flex items-center gap-1 font-semibold",
+                        stats.changeRate >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"
+                      )}>
                         <TrendingUp className="w-3 h-3" />
                         {stats.changeRate >= 0 ? `+${stats.changeRate}` : stats.changeRate}% so với tháng trước
                       </p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#E8F5E9] flex items-center justify-center">
                       <CalendarCheck className="w-6 h-6 text-[#22C55E]" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-[#E2E8F0] shadow-sm">
+              <Card className={cn(
+                "border-[#E2E8F0] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200",
+                stats.claimsCount > 0 ? "border-l-4 border-l-[#F59E0B] bg-[#FFF9C4]/10" : "border-l-4 border-l-[#22C55E]"
+              )}>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-[#64748B]">Khiếu nại chờ</p>
-                      <p className="text-3xl font-bold text-[#F59E0B] mt-1">{stats.claimsCount}</p>
-                      <p className="text-xs text-[#F59E0B] mt-1">cần xử lý</p>
+                      <p className="text-sm text-[#64748B] font-medium">Khiếu nại chờ</p>
+                      <p className={cn(
+                        "text-3xl font-bold mt-1",
+                        stats.claimsCount > 0 ? "text-[#F59E0B]" : "text-[#22C55E]"
+                      )}>{stats.claimsCount}</p>
+                      <p className={cn(
+                        "text-xs mt-1 font-medium",
+                        stats.claimsCount > 0 ? "text-[#F59E0B]" : "text-slate-500"
+                      )}>cần xử lý</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#FEF9C3] flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-[#F59E0B]" />
+                    <div className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center",
+                      stats.claimsCount > 0 ? "bg-[#FFF9C4]" : "bg-[#E8F5E9]"
+                    )}>
+                      <AlertTriangle className={cn("w-6 h-6", stats.claimsCount > 0 ? "text-[#F59E0B]" : "text-[#22C55E]")} />
                     </div>
                   </div>
                 </CardContent>

@@ -122,7 +122,7 @@ export default function LecturerLiveOverviewPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {readySessions.map(session => (
-                      <div key={session.class_session_id} className="p-4 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#0EA5E9] transition-all flex flex-col justify-between gap-3 shadow-xs">
+                      <div key={session.class_session_id} className="p-4.5 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#0EA5E9] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between gap-3 shadow-xs">
                         <div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-[#0EA5E9] bg-[#E0F2FE] px-2.5 py-0.5 rounded-full">
@@ -144,7 +144,7 @@ export default function LecturerLiveOverviewPage() {
                         <Button
                           variant="outline"
                           onClick={() => window.location.href = `/lecturer/live/${session.class_session_id}`}
-                          className="w-full border-[#0EA5E9] text-[#0EA5E9] hover:bg-[#EFF6FF] font-semibold mt-2"
+                          className="w-full border-[#0EA5E9] text-[#0EA5E9] hover:bg-[#EFF6FF] hover:text-[#0EA5E9] font-semibold mt-2"
                         >
                           <Video className="w-4 h-4 mr-1.5" />
                           Truy cập Phòng Live

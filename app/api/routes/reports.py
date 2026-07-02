@@ -1,5 +1,4 @@
 import io
-import pandas as pd
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -35,6 +34,7 @@ def export_attendance_report(
     )
 
     # Chuyển DataFrame thành file Excel trong bộ nhớ
+    import pandas as pd
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Attendance")

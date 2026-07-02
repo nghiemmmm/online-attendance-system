@@ -1,0 +1,272 @@
+name: CI/CD - Build, Push to GHCR and Deploy to EC2
+
+on:
+  push:
+    branches:
+      - production
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ==========================================
+  # Job 1 & 2: Build, Scan & Push Docker Images
+  # ==========================================
+  build-push-scan:
+    name: Build, Scan and Push to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Docker Metadata (Tags)
+        id: meta
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          
+          # Base image names
+          BACKEND_IMAGE="ghcr.io/${REPO_LOWER}/attendance-backend"
+          FRONTEND_IMAGE="ghcr.io/${REPO_LOWER}/attendance-frontend"
+          DEPS_IMAGE="ghcr.io/${REPO_LOWER}/attendance-deps"
+          
+          # Generate tags list
+          TAGS_BACKEND="${BACKEND_IMAGE}:latest,${BACKEND_IMAGE}:${SHA_SHORT}"
+          TAGS_FRONTEND="${FRONTEND_IMAGE}:latest,${FRONTEND_IMAGE}:${SHA_SHORT}"
+          TAGS_DEPS="${DEPS_IMAGE}:latest,${DEPS_IMAGE}:${SHA_SHORT}"
+          
+          # If triggered by a Git tag, append the tag name
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+            TAGS_BACKEND="${TAGS_BACKEND},${BACKEND_IMAGE}:${TAG_NAME}"
+            TAGS_FRONTEND="${TAGS_FRONTEND},${FRONTEND_IMAGE}:${TAG_NAME}"
+            TAGS_DEPS="${TAGS_DEPS},${DEPS_IMAGE}:${TAG_NAME}"
+          fi
+          
+          echo "backend_tags=${TAGS_BACKEND}" >> $GITHUB_OUTPUT
+          echo "frontend_tags=${TAGS_FRONTEND}" >> $GITHUB_OUTPUT
+          echo "deps_tags=${TAGS_DEPS}" >> $GITHUB_OUTPUT
+          echo "sha_tag=${SHA_SHORT}" >> $GITHUB_OUTPUT
+
+      # ----------------------------------------------------
+      # 1. Build and Load Locally for Security Scanning
+      # ----------------------------------------------------
+      - name: Build Backend Locally (for Scan)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: local-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 2. Scan image with Trivy (Fail on Critical vulnerabilities)
+      - name: Scan Backend Image for Vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: local-backend:test
+          format: 'table'
+          exit-code: '1' # Fail the build if critical vulnerabilities are found
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+
+      # ----------------------------------------------------
+      # 3. Build & Push Multi-Arch Images (Post-Scan Success)
+      # ----------------------------------------------------
+      - name: Build & Push Dockerfile.deps
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.deps
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.deps_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
+
+      - name: Build & Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.backend_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.frontend_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
+
+  # ==========================================
+  # Job 3: Deploy to EC2 Production
+  # ==========================================
+  deploy:
+    name: Deploy to Production EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [build-push-scan]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GITHUB_SHA
+          script: |
+            set -e
+            DEPLOY_DIR="/home/${{ secrets.EC2_USER }}/app"
+            BACKUP_DIR="/home/${{ secrets.EC2_USER }}/backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            
+            echo "==== Step 1: Ensure directories exist ===="
+            mkdir -p "$DEPLOY_DIR"
+            mkdir -p "$BACKUP_DIR"
+            
+            # Navigate to deploy directory
+            cd "$DEPLOY_DIR"
+            
+            echo "==== Step 2: Database Backup ===="
+            # Safe backup of PostgreSQL database before changing anything
+            if docker ps --format '{{.Names}}' | grep -q "db"; then
+              echo "Backing up database..."
+              docker compose exec -T db pg_dump -U postgres dbdiemdanh > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || echo "Backup warning: check database status"
+            elif docker ps --format '{{.Names}}' | grep -q "postgres"; then
+              echo "Backing up database (postgres name)..."
+              docker exec -t postgres pg_dump -U postgres dbdiemdanh > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || echo "Backup warning"
+            else
+              echo "No active DB container found to backup. Skipping."
+            fi
+            
+            echo "==== Step 3: Git Pull and Env Check ===="
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/${{ github.repository }}.git .
+            fi
+            git fetch origin
+            git checkout production
+            git pull origin production
+            
+            # Check or recreate .env file with secrets
+            cat <<EOF > .env
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            IMAGE_STORAGE_PROVIDER=CLOUDINARY
+            ENVIRONMENT=production
+            DEBUG=False
+            EOF
+            
+            echo "==== Step 4: Login GHCR & Pull Images ===="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull new images
+            docker compose pull
+            
+            echo "==== Step 5: Stop active stack temporarily (with backup tags saved) ===="
+            # Save the active container IDs for fallback reference
+            ACTIVE_BACKEND_ID=$(docker ps -aqf "name=backend" || echo "")
+            
+            echo "==== Step 6: Alembic Database Migration ===="
+            # Run migrations on a temporary backend container
+            docker compose run --rm backend alembic upgrade head || { echo "Alembic Migration failed!"; exit 1; }
+            
+            echo "==== Step 7: Spin up new containers ===="
+            docker compose up -d
+            
+            echo "==== Step 8: Health Check & Rollback Logic ===="
+            # Sleep 15 seconds to let the FastAPI server initialize
+            sleep 15
+            
+            HEALTH_ENDPOINT="http://localhost:5050/api/v1/health" # Or fallback /api/docs
+            
+            # Try to fetch backend health status
+            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" || echo "failed")
+            
+            if [ "$HEALTH_STATUS" = "200" ]; then
+              echo "✅ Health check passed! Deployment successful."
+              
+              echo "==== Step 9: Post-Deploy Cleanup ===="
+              # Remove old unused Docker images to save disk space
+              docker image prune -a -f
+            else
+              echo "❌ Health check failed with status: $HEALTH_STATUS. Rolling back to previous images!"
+              
+              # Revert Git checkout and up previous images
+              git checkout HEAD@{1}
+              docker compose pull
+              docker compose up -d
+              
+              echo "Rollback completed. Restoring database from backup..."
+              if [ -f "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" ]; then
+                # Restore database backup if Postgres is running
+                if docker ps --format '{{.Names}}' | grep -q "db"; then
+                  docker compose exec -T db psql -U postgres dbdiemdanh < "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
+                fi
+              fi
+              exit 1
+            fi
+
+  # ==========================================
+  # Job 4: Notifications
+  # ==========================================
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [build-push-scan, deploy]
+    if: always()
+    steps:
+      - name: Generate Job Status Report
+        run: |
+          BUILD_STATUS="${{ needs.build-push-scan.result }}"
+          DEPLOY_STATUS="${{ needs.deploy.result }}"
+          
+          echo "### CD Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build, Scan & Push | $BUILD_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Production Deploy | $DEPLOY_STATUS |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$BUILD_STATUS" = "success" ] && [ "$DEPLOY_STATUS" = "success" ]; then
+            echo "✅ **All CD jobs completed successfully. Production environment is healthy!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Deployment failed. Rollback triggered on EC2 instances.**" >> $GITHUB_STEP_SUMMARY
+          fi

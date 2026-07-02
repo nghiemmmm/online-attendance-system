@@ -14,12 +14,22 @@ class FaceImageBase(SQLModel):
     """Represent shared face enrollment image fields."""
 
     student_id: int
-    image_path: str = Field(max_length=255)
+    image_path: str | None = Field(default=None, max_length=255)
     image_type: str | None = Field(default=None, max_length=30)
     quality_score: float | None = None
     review_status: str = Field(default="CHO_DUYET", max_length=30)
     rejection_reason: str | None = Field(default=None, max_length=255)
     reviewed_at: datetime | None = None
+    
+    # Storage Abstraction Fields
+    storage_provider: str = Field(default="LOCAL", max_length=30)
+    public_id: str | None = Field(default=None, max_length=255)
+    secure_url: str | None = Field(default=None, max_length=512)
+    version: str | None = Field(default=None, max_length=100)
+    file_size: int | None = Field(default=None)
+    mime_type: str | None = Field(default=None, max_length=50)
+    width: int | None = Field(default=None)
+    height: int | None = Field(default=None)
 
 
 class FaceImageCreate(FaceImageBase):
@@ -39,6 +49,15 @@ class FaceImageUpdate(SQLModel):
     rejection_reason: str | None = Field(default=None, max_length=255)
     reviewer_id: int | None = None
     reviewed_at: datetime | None = None
+    
+    storage_provider: str | None = Field(default=None, max_length=30)
+    public_id: str | None = Field(default=None, max_length=255)
+    secure_url: str | None = Field(default=None, max_length=512)
+    version: str | None = Field(default=None, max_length=100)
+    file_size: int | None = Field(default=None)
+    mime_type: str | None = Field(default=None, max_length=50)
+    width: int | None = Field(default=None)
+    height: int | None = Field(default=None)
 
 
 class FaceImage(FaceImageBase, table=True):

@@ -1,7 +1,6 @@
 import os
 from contextlib import asynccontextmanager
 
-import torch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -15,8 +14,6 @@ from app.middleware.logging_middleware import RequestLoggingMiddleware
 from app.services.face_service import get_or_create_face_service
 from app.utils.logger import logger
 
-
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 setup_logging()
 
@@ -32,7 +29,34 @@ os.makedirs("vector_db/embeddings_db", exist_ok=True)
 async def lifespan(app: FastAPI):
     app.state.face_service = get_or_create_face_service()
     logger.info("FaceRecognitionService initialized and cached in app.state")
+    
+    # Spawn daily background cleanup task (deletes attendance images older than 1 day)
+    import asyncio
+    async def periodic_cleanup():
+        from app.services.cleanup_service import cleanup_expired_attendance_evidence
+        logger.info("Starting periodic attendance evidence cleanup task...")
+        while True:
+            try:
+                deleted = cleanup_expired_attendance_evidence(days=1)
+                if deleted > 0:
+                    logger.info(f"Periodic Cleanup: Successfully removed {deleted} expired attendance images.")
+            except Exception as e:
+                logger.error(f"Error in periodic cleanup background task: {e}")
+            await asyncio.sleep(24 * 3600)
+
+    cleanup_task = asyncio.create_task(periodic_cleanup())
+    
     yield
+    
+    # Clean up background task and all active WebRTC peer connections
+    cleanup_task.cancel()
+    try:
+        from app.services.webrtc_manager import get_webrtc_manager
+        webrtc_manager = get_webrtc_manager()
+        await webrtc_manager.close_all()
+        logger.info("Closed all active WebRTC connections on shutdown.")
+    except Exception as e:
+        logger.error(f"Error closing WebRTC connections on shutdown: {e}")
     logger.info("%s shutting down...", settings.APP_NAME)
 
 

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any
 
 import aiofiles
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status, BackgroundTasks
 from pydantic import Field, field_validator
 from sqlmodel import select
 
@@ -93,23 +93,33 @@ def save_attendance_evidence(
     Returns:
         Saved evidence image path.
     """
-    evidence_dir = os.path.join("uploads", "attendance")
-    os.makedirs(evidence_dir, exist_ok=True)
+    from app.storage.storage_factory import get_storage_service
+    storage_service = get_storage_service()
     evidence_name = f"dd_{attendance_id}_{uuid.uuid4().hex[:8]}.jpg"
-    evidence_path = os.path.join(evidence_dir, evidence_name)
-
-    with open(evidence_path, "wb") as evidence_file:
-        evidence_file.write(image_bytes)
+    
+    metadata = storage_service.save_image(
+        file_bytes=image_bytes,
+        filename=evidence_name,
+        folder="online_attendance/evidence"
+    )
 
     session.add(
         AttendanceImage(
             attendance_id=attendance_id,
-            image_path=evidence_path,
             confidence=confidence,
+            image_path=metadata.get("image_path"),
+            storage_provider=metadata.get("storage_provider"),
+            public_id=metadata.get("public_id"),
+            secure_url=metadata.get("secure_url"),
+            version=metadata.get("version"),
+            file_size=metadata.get("file_size"),
+            mime_type=metadata.get("mime_type"),
+            width=metadata.get("width"),
+            height=metadata.get("height")
         )
     )
     session.commit()
-    return evidence_path
+    return metadata.get("secure_url") or metadata.get("image_path") or ""
 
 
 @router.post(
@@ -132,6 +142,7 @@ async def admin_dang_ky_khuon_mat(
     current_account: CurrentAccount,
     student_id: Annotated[int, Form()],
     file: Annotated[UploadFile, File()],
+    image_type: Annotated[str, Form()] = "chinh_dien",
     face_service: FaceRecognitionService = Depends(get_face_service),
 ) -> Any:
     """
@@ -143,6 +154,7 @@ async def admin_dang_ky_khuon_mat(
         current_account: Authenticated administrator account.
         student_id: Student identifier.
         file: Uploaded face image.
+        image_type: Face angle type.
 
     Returns:
         Created face enrollment image record.
@@ -161,6 +173,7 @@ async def admin_dang_ky_khuon_mat(
         session=session,
         student_id=student_id,
         content=content,
+        image_type=image_type,
     )
     write_audit_log(
         session=session,
@@ -390,6 +403,7 @@ async def xac_minh_truc_tiep(
     request: Request,
     session: SessionDep,
     current_account: CurrentAccount,
+    background_tasks: BackgroundTasks,
     file: Annotated[UploadFile, File()],
     class_session_id: Annotated[int | None, Form()] = None,
     face_service: FaceRecognitionService = Depends(get_face_service),
@@ -403,13 +417,30 @@ async def xac_minh_truc_tiep(
         account_id=current_account.account_id,
     )
     if not student:
-        recognized_ids = face_service.recognize_faces(image_bytes=content, tolerance=0.85)
+        from app.core.config import settings
+        recognized_ids = face_service.recognize_faces(image_bytes=content, tolerance=settings.FACE_RECOGNITION_TOLERANCE)
         return {
             "verified": bool(recognized_ids),
             "confidence": 95.0 if recognized_ids else 0.0,
             "message": f"Nhận diện thành công sinh viên ID {recognized_ids[0]}" if recognized_ids else "Không tìm thấy hồ sơ sinh viên liên kết"
         }
-    recognized_ids = face_service.recognize_faces(image_bytes=content, tolerance=0.85)
+    # Check if student has any approved face registrations
+    from app.models import FaceImage
+    face_exists = session.exec(
+        select(FaceImage)
+        .where(FaceImage.student_id == student.student_id)
+        .where(FaceImage.review_status == "DA_DUYET")
+    ).first()
+
+    if not face_exists:
+        return {
+            "verified": False,
+            "confidence": 0.0,
+            "message": "Sinh viên chưa đăng ký khuôn mặt hoặc chưa được phê duyệt",
+        }
+
+    from app.core.config import settings
+    recognized_ids = face_service.recognize_faces(image_bytes=content, tolerance=settings.FACE_RECOGNITION_TOLERANCE)
 
     if student.student_id in recognized_ids:
         if class_session_id:
@@ -417,6 +448,7 @@ async def xac_minh_truc_tiep(
                 request=request,
                 session=session,
                 current_account=current_account,
+                background_tasks=background_tasks,
                 student_id=student.student_id,
                 class_session_id=class_session_id,
                 image_bytes=content,
@@ -426,16 +458,14 @@ async def xac_minh_truc_tiep(
         return {
             "verified": True,
             "confidence": ATTENDANCE_CONFIDENCE * 100,
-            "message": "Xac minh thanh cong",
+            "message": "Xác minh thành công",
         }
 
-    return face_service.auto_register_and_verify(
-        session=session,
-        student_id=student.student_id,
-        class_session_id=class_session_id,
-        image_bytes=content,
-        auto_register_confidence=AUTO_REGISTER_CONFIDENCE,
-    )
+    return {
+        "verified": False,
+        "confidence": 0.0,
+        "message": "Khuôn mặt không khớp với cơ sở dữ liệu đăng ký",
+    }
 
 
 def _record_verified_attendance(
@@ -443,6 +473,7 @@ def _record_verified_attendance(
     request: Request,
     session: SessionDep,
     current_account: CurrentAccount,
+    background_tasks: BackgroundTasks,
     student_id: int,
     class_session_id: int,
     image_bytes: bytes,
@@ -455,6 +486,7 @@ def _record_verified_attendance(
         request: Incoming FastAPI request.
         session: Active database session.
         current_account: Authenticated student account.
+        background_tasks: Background tasks runner.
         student_id: Student identifier.
         class_session_id: Lesson identifier.
         image_bytes: Raw evidence image bytes.
@@ -480,12 +512,25 @@ def _record_verified_attendance(
 
     attendance_id = result.get("attendance_id")
     if attendance_id:
-        evidence_path = face_service.save_attendance_evidence(
-            session=session,
-            attendance_id=attendance_id,
-            image_bytes=image_bytes,
-            confidence=ATTENDANCE_CONFIDENCE,
+        # Define a helper function to perform the save in the background
+        def upload_evidence_task(att_id: int, img_bytes: bytes, conf: float):
+            from app.core.db import engine
+            from sqlmodel import Session
+            with Session(engine) as bg_session:
+                face_service.save_attendance_evidence(
+                    session=bg_session,
+                    attendance_id=att_id,
+                    image_bytes=img_bytes,
+                    confidence=conf,
+                )
+
+        background_tasks.add_task(
+            upload_evidence_task,
+            attendance_id,
+            image_bytes,
+            ATTENDANCE_CONFIDENCE
         )
+
         write_audit_log(
             session=session,
             account=current_account,
@@ -496,7 +541,7 @@ def _record_verified_attendance(
                 "class_session_id": class_session_id,
                 "student_id": student_id,
                 "confidence": ATTENDANCE_CONFIDENCE,
-                "evidence_image": evidence_path,
+                "evidence_image": f"Pending background upload for attendance {attendance_id}",
             },
             request=request,
         )

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LecturerService } from "@/services/lecturer.service"
 import { apiClient } from "@/lib/api-client"
-import { Loader2, AlertCircle, User, Mail, Phone, Building2, GraduationCap, KeyRound, CheckCircle2, ShieldCheck, BookOpen } from "lucide-react"
+import { Loader2, AlertCircle, User, Mail, Phone, Building2, GraduationCap, KeyRound, CheckCircle2, ShieldCheck, BookOpen, Eye, EyeOff } from "lucide-react"
 
 export default function LecturerProfilePage() {
   const [profile, setProfile] = useState<any | null>(null)
@@ -19,6 +19,10 @@ export default function LecturerProfilePage() {
 
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
   const [changingPassword, setChangingPassword] = useState(false)
+  
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const fetchProfile = async () => {
     setLoading(true)
@@ -197,7 +201,7 @@ export default function LecturerProfilePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="degree" className="text-xs font-bold text-[#334155]">Học hàm / Học vị</Label>
-                      <Input id="degree" value={editForm.academicDegree} onChange={(e) => setEditForm({...editForm, academicDegree: e.target.value})} placeholder="TS., ThS., PGS.TS..." />
+                      <Input id="degree" value={editForm.academicDegree} onChange={(e) => setEditForm({...editForm, academicDegree: e.target.value})} placeholder="TS., ThS., PGS.TS..." className="border-[#E2E8F0] focus-visible:ring-[#0EA5E9]" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="username" className="text-xs font-bold text-[#334155]">Tên đăng nhập hệ thống</Label>
@@ -209,7 +213,7 @@ export default function LecturerProfilePage() {
                     <Label htmlFor="email" className="text-xs font-bold text-[#334155]">Email liên kết Trường / Google</Label>
                     <div className="relative">
                       <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
-                      <Input id="email" className="pl-9" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} placeholder="gv@example.com" />
+                      <Input id="email" className="pl-9 border-[#E2E8F0] focus-visible:ring-[#0EA5E9]" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} placeholder="gv@example.com" />
                     </div>
                   </div>
 
@@ -217,7 +221,7 @@ export default function LecturerProfilePage() {
                     <Label htmlFor="phone" className="text-xs font-bold text-[#334155]">Số điện thoại liên hệ</Label>
                     <div className="relative">
                       <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
-                      <Input id="phone" className="pl-9" value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} placeholder="09xxxxxxxx" />
+                      <Input id="phone" className="pl-9 border-[#E2E8F0] focus-visible:ring-[#0EA5E9]" value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} placeholder="09xxxxxxxx" />
                     </div>
                   </div>
 
@@ -242,16 +246,64 @@ export default function LecturerProfilePage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="oldPass" className="text-xs font-bold text-[#334155]">Mật khẩu hiện tại</Label>
-                    <Input id="oldPass" type="password" value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})} placeholder="••••••••" />
+                    <div className="relative">
+                      <Input
+                        id="oldPass"
+                        type={showOldPassword ? "text" : "password"}
+                        value={passwordForm.oldPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})}
+                        placeholder="••••••••"
+                        className="border-[#E2E8F0] focus-visible:ring-[#0EA5E9] pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOldPassword(!showOldPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      >
+                        {showOldPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="newPass" className="text-xs font-bold text-[#334155]">Mật khẩu mới</Label>
-                      <Input id="newPass" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} placeholder="••••••••" />
+                      <div className="relative">
+                        <Input
+                          id="newPass"
+                          type={showNewPassword ? "text" : "password"}
+                          value={passwordForm.newPassword}
+                          onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                          placeholder="••••••••"
+                          className="border-[#E2E8F0] focus-visible:ring-[#0EA5E9] pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirmPass" className="text-xs font-bold text-[#334155]">Xác nhận mật khẩu mới</Label>
-                      <Input id="confirmPass" type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} placeholder="••••••••" />
+                      <div className="relative">
+                        <Input
+                          id="confirmPass"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                          placeholder="••••••••"
+                          className="border-[#E2E8F0] focus-visible:ring-[#0EA5E9] pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="pt-2 flex justify-end">

@@ -16,6 +16,16 @@ class AttendanceImageBase(SQLModel):
     attendance_id: int
     image_path: str | None = Field(default=None, max_length=255)
     confidence: float | None = None
+    
+    # Storage Abstraction Fields
+    storage_provider: str = Field(default="LOCAL", max_length=30)
+    public_id: str | None = Field(default=None, max_length=255)
+    secure_url: str | None = Field(default=None, max_length=512)
+    version: str | None = Field(default=None, max_length=100)
+    file_size: int | None = Field(default=None)
+    mime_type: str | None = Field(default=None, max_length=50)
+    width: int | None = Field(default=None)
+    height: int | None = Field(default=None)
 
 
 class AttendanceImageCreate(AttendanceImageBase):
@@ -29,6 +39,15 @@ class AttendanceImageUpdate(SQLModel):
 
     image_path: str | None = Field(default=None, max_length=255)
     confidence: float | None = None
+    
+    storage_provider: str | None = Field(default=None, max_length=30)
+    public_id: str | None = Field(default=None, max_length=255)
+    secure_url: str | None = Field(default=None, max_length=512)
+    version: str | None = Field(default=None, max_length=100)
+    file_size: int | None = Field(default=None)
+    mime_type: str | None = Field(default=None, max_length=50)
+    width: int | None = Field(default=None)
+    height: int | None = Field(default=None)
 
 
 class AttendanceImage(AttendanceImageBase, table=True):

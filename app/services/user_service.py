@@ -347,7 +347,7 @@ class UserService:
             db_student = Student(
                 last_name=payload.last_name,
                 first_name=payload.first_name,
-                google_email=payload.username,
+                google_email=getattr(payload, "email", None) or payload.username,
                 phone=payload.phone,
                 gender=payload.gender,
                 major_id=major.major_id,
@@ -359,7 +359,7 @@ class UserService:
             db_staff = Staff(
                 last_name=payload.last_name,
                 first_name=payload.first_name,
-                google_email=payload.username,
+                google_email=getattr(payload, "email", None) or payload.username,
                 phone=payload.phone,
                 gender=payload.gender,
                 account_id=db_account.account_id,

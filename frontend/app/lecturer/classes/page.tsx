@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   AlertCircle,
+  AlertTriangle,
   BookOpen,
   CalendarDays,
   Clock,
@@ -274,15 +275,15 @@ export default function LecturerClassesPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Danh sach lop hoc phan</h1>
-            <p className="text-[#64748B] mt-1">Quan ly lop, buoi hoc, diem danh va bao cao chuyen can.</p>
+            <h1 className="text-2xl font-bold text-[#0F172A]">Danh sách lớp học phần</h1>
+            <p className="text-[#64748B] mt-1">Quản lý lớp, buổi học, điểm danh và báo cáo chuyên cần.</p>
           </div>
         </div>
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
             <Loader2 className="w-10 h-10 text-[#0EA5E9] animate-spin mb-4" />
-            <p className="text-[#64748B] font-medium">Dang tai du lieu lop hoc phan...</p>
+            <p className="text-[#64748B] font-medium">Đang tải dữ liệu lớp học phần...</p>
           </div>
         )}
 
@@ -290,10 +291,10 @@ export default function LecturerClassesPage() {
           <Card className="border-[#EF4444] bg-[#FEF2F2]">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <AlertCircle className="w-12 h-12 text-[#EF4444] mb-3" />
-              <h3 className="text-xl font-semibold text-[#991B1B] mb-2">Da xay ra loi</h3>
+              <h3 className="text-xl font-semibold text-[#991B1B] mb-2">Đã xảy ra lỗi</h3>
               <p className="text-[#DC2626] mb-6 max-w-md">{error}</p>
               <Button onClick={fetchProfileAndClasses} variant="outline" className="border-[#EF4444] text-[#EF4444]">
-                Thu lai
+                Thử lại
               </Button>
             </CardContent>
           </Card>
@@ -303,8 +304,8 @@ export default function LecturerClassesPage() {
           <Card className="border-dashed border-2 border-[#E2E8F0] bg-[#F8FAFC]">
             <CardContent className="flex flex-col items-center justify-center py-20 text-center">
               <BookOpen className="w-12 h-12 text-[#64748B] mb-3" />
-              <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Chua co lop hoc phan nao</h3>
-              <p className="text-[#64748B] max-w-sm">Ban chua duoc phan cong lop hoc phan nao trong hoc ky nay.</p>
+              <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Chưa có lớp học phần nào</h3>
+              <p className="text-[#64748B] max-w-sm">Bạn chưa được phân công lớp học phần nào trong học kỳ này.</p>
             </CardContent>
           </Card>
         )}
@@ -368,7 +369,7 @@ export default function LecturerClassesPage() {
                   <form className="space-y-4" onSubmit={handleSessionSubmit}>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="space-y-1 text-sm font-medium text-[#334155]">
-                        Ngay hoc
+                        Ngày học
                         <input
                           type="date"
                           required
@@ -378,7 +379,7 @@ export default function LecturerClassesPage() {
                         />
                       </label>
                       <label className="space-y-1 text-sm font-medium text-[#334155]">
-                        Buoi so
+                        Buổi số
                         <input
                           type="number"
                           min="1"
@@ -390,7 +391,7 @@ export default function LecturerClassesPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="space-y-1 text-sm font-medium text-[#334155]">
-                        Bat dau
+                        Bắt đầu
                         <input
                           type="time"
                           value={sessionForm.start_time}
@@ -399,7 +400,7 @@ export default function LecturerClassesPage() {
                         />
                       </label>
                       <label className="space-y-1 text-sm font-medium text-[#334155]">
-                        Ket thuc
+                        Kết thúc
                         <input
                           type="time"
                           value={sessionForm.end_time}
@@ -410,7 +411,7 @@ export default function LecturerClassesPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="space-y-1 text-sm font-medium text-[#334155]">
-                        Phut muon toi da
+                        Phút muộn tối đa
                         <input
                           type="number"
                           min="0"
@@ -420,7 +421,7 @@ export default function LecturerClassesPage() {
                         />
                       </label>
                       <label className="space-y-1 text-sm font-medium text-[#334155]">
-                        Nguong AI
+                        Ngưỡng AI
                         <input
                           type="number"
                           step="0.05"
@@ -433,7 +434,7 @@ export default function LecturerClassesPage() {
                       </label>
                     </div>
                     <label className="space-y-1 text-sm font-medium text-[#334155] block">
-                      Ghi chu
+                      Ghi chú
                       <textarea
                         value={sessionForm.note}
                         onChange={(e) => setSessionForm({ ...sessionForm, note: e.target.value })}
@@ -458,7 +459,7 @@ export default function LecturerClassesPage() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <CardTitle className="text-lg">{selectedClass.tenHocPhan}</CardTitle>
-                    <p className="text-sm text-[#64748B] mt-1">Danh sach buoi hoc va canh bao chuyen can</p>
+                    <p className="text-sm text-[#64748B] mt-1">Danh sách buổi học và cảnh báo chuyên cần</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -484,38 +485,55 @@ export default function LecturerClassesPage() {
                 {sessionsLoading ? (
                   <div className="py-12 text-center text-[#64748B]">
                     <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-[#0EA5E9]" />
-                    Dang tai buoi hoc...
+                    Đang tải buổi học...
                   </div>
                 ) : sessions.length === 0 ? (
                   <div className="py-10 text-center text-[#64748B] border border-dashed border-[#CBD5E1] rounded-lg">
-                    Chua co buoi hoc nao cho lop nay.
+                    Chưa có buổi học nào được lên lịch cho lớp học phần này.
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {sessions.map((session) => (
                       <div key={session.class_session_id} className="flex flex-col gap-3 rounded-lg border border-[#E2E8F0] p-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <div className="flex items-center gap-2 font-semibold text-[#0F172A]">
+                          <div className="flex items-center gap-2 font-bold text-[#0F172A] text-base">
                             <CalendarDays className="w-4 h-4 text-[#0EA5E9]" />
-                            Buoi {session.session_number || "-"} - {session.class_date}
+                            Buổi {session.session_number || "-"} - {session.class_date}
                           </div>
-                          <div className="mt-1 flex flex-wrap gap-3 text-sm text-[#64748B]">
-                            <span className="inline-flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
+                          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-[#64748B]">
+                            <span className="inline-flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-700">
+                              <Clock className="w-3.5 h-3.5 text-slate-500" />
                               {session.start_time || "--:--"} - {session.end_time || "--:--"}
                             </span>
-                            <span>Muon toi da: {session.late_grace_minutes} phut</span>
-                            <span>Nguong: {session.recognition_threshold}</span>
-                            <span className="font-medium text-[#0F172A]">{session.status || "CHUA_DIEM_DANH"}</span>
+                            <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-700">Muộn tối đa: <strong className="text-slate-800">{session.late_grace_minutes} phút</strong></span>
+                            <span className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-700">Ngưỡng nhận diện: <strong className="text-slate-800">{session.recognition_threshold}</strong></span>
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border",
+                              session.status === "DANG_DIEN_RA"
+                                ? "bg-amber-50 text-amber-600 border-amber-200/50"
+                                : session.status === "DA_KET_THUC" || session.status === "COMPLETED"
+                                ? "bg-green-50 text-green-600 border-green-200/50"
+                                : session.status === "DA_HUY" || session.status === "CANCELLED"
+                                ? "bg-red-50 text-red-600 border-red-200/50"
+                                : "bg-slate-100 text-slate-600 border-slate-200"
+                            )}>
+                              {session.status === "DANG_DIEN_RA"
+                                ? "Đang diễn ra"
+                                : session.status === "DA_KET_THUC" || session.status === "COMPLETED"
+                                ? "Đã hoàn thành"
+                                : session.status === "DA_HUY" || session.status === "CANCELLED"
+                                ? "Đã hủy"
+                                : "Chưa điểm danh"}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {session.status === "DA_KET_THUC" || session.status === "COMPLETED" ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#DCFCE7] text-[#166534]">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E8F5E9] text-[#22C55E] border border-[#22C55E]/15">
                               Đã hoàn thành
                             </span>
                           ) : session.status === "DA_HUY" || session.status === "CANCELLED" ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#FEE2E2] text-[#991B1B]">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FEE2E2] text-[#EF4444] border border-[#EF4444]/15">
                               Đã hủy
                             </span>
                           ) : (
@@ -560,32 +578,39 @@ export default function LecturerClassesPage() {
                   </div>
                 )}
 
-                <div>
-                  <h3 className="text-sm font-semibold text-[#0F172A] mb-3">Sinh vien nguy co cam thi</h3>
+                <div className="mt-6 border-t border-[#E2E8F0] pt-6">
+                  <h3 className="text-base font-bold text-[#0F172A] mb-3 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
+                    Sinh viên có nguy cơ cấm thi do vắng nhiều
+                  </h3>
                   {warnings.length === 0 ? (
-                    <p className="rounded-lg bg-[#F8FAFC] p-4 text-sm text-[#64748B]">
-                      Chua co sinh vien vuot nguong canh bao vang.
+                    <p className="rounded-xl bg-[#F8FAFC] p-4 text-sm text-[#64748B] border border-[#E2E8F0] border-dashed">
+                      Chưa có sinh viên nào vượt quá ngưỡng cảnh báo vắng học.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto rounded-lg border border-[#E2E8F0]">
-                      <table className="w-full text-sm">
-                        <thead className="bg-[#F8FAFC] text-left text-[#475569]">
+                    <div className="overflow-hidden rounded-xl border border-[#E2E8F0]">
+                      <table className="w-full text-sm text-left border-collapse">
+                        <thead className="bg-[#F8FAFC] text-[#475569] font-bold text-xs uppercase border-b border-[#E2E8F0]">
                           <tr>
-                            <th className="px-4 py-3">Ma SV</th>
-                            <th className="px-4 py-3">Ho first_name</th>
-                            <th className="px-4 py-3">Vang</th>
-                            <th className="px-4 py-3">Ty le</th>
-                            <th className="px-4 py-3">Trang thai</th>
+                            <th className="px-5 py-3.5 font-semibold text-slate-700">Mã SV</th>
+                            <th className="px-5 py-3.5 font-semibold text-slate-700">Họ và tên</th>
+                            <th className="px-5 py-3.5 font-semibold text-slate-700">Số buổi vắng</th>
+                            <th className="px-5 py-3.5 font-semibold text-slate-700">Tỷ lệ vắng</th>
+                            <th className="px-5 py-3.5 font-semibold text-slate-700">Trạng thái</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-[#E2E8F0]">
                           {warnings.map((warning) => (
-                            <tr key={warning.student_id} className="border-t border-[#E2E8F0]">
-                              <td className="px-4 py-3">SV{String(warning.student_id).padStart(3, "0")}</td>
-                              <td className="px-4 py-3">{warning.ho_ten}</td>
-                              <td className="px-4 py-3">{warning.absent_session_count}/{warning.total_sessions}</td>
-                              <td className="px-4 py-3">{warning.absence_rate}%</td>
-                              <td className="px-4 py-3 font-medium text-[#EF4444]">{warning.warning_status}</td>
+                            <tr key={warning.student_id} className="bg-white hover:bg-slate-50/80 transition-colors">
+                              <td className="px-5 py-3.5 font-bold text-[#0A2540]">{warning.student_code || `SV${String(warning.student_id).padStart(3, "0")}`}</td>
+                              <td className="px-5 py-3.5 font-semibold text-[#0F172A]">{warning.ho_ten}</td>
+                              <td className="px-5 py-3.5 text-slate-600 font-semibold">{warning.absent_session_count}/{warning.total_sessions} buổi</td>
+                              <td className="px-5 py-3.5 text-[#EF4444] font-bold">{warning.absence_rate}%</td>
+                              <td className="px-5 py-3.5">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]/15">
+                                  {warning.warning_status || "Nguy cơ cấm thi"}
+                                </span>
+                              </td>
                             </tr>
                           ))}
                         </tbody>

@@ -33,6 +33,8 @@ class AppSettings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str = "dtdkqzqvo"
     CLOUDINARY_API_KEY: str = "825222872657695"
     CLOUDINARY_API_SECRET: str = "1L8MGyewiyKcNscDbxhwUX25PlM"
+    IMAGE_STORAGE_PROVIDER: str = "LOCAL"
+    FACE_RECOGNITION_TOLERANCE: float = 0.85
 
     @computed_field  # type: ignore[prop-decorator]
     @property

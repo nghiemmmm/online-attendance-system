@@ -3,10 +3,7 @@ import os
 import pickle
 from typing import Any
 
-import faiss
 import numpy as np
-import torch
-from facenet_pytorch import InceptionResnetV1, MTCNN
 from PIL import Image
 from fastapi import Request
 from sqlmodel import Session, select
@@ -48,10 +45,21 @@ class FaceRecognitionService:
     def __new__(cls) -> "FaceRecognitionService":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._initialize()
+            cls._instance.initialized = False
         return cls._instance
 
+    def _ensure_initialized(self) -> None:
+        if not getattr(self, "initialized", False):
+            self._initialize()
+            self.initialized = True
+
     def _initialize(self) -> None:
+        logger.info("Initializing FaceRecognitionService (lazy loading heavy ML libraries)...")
+        global torch, faiss, MTCNN, InceptionResnetV1
+        import torch
+        import faiss
+        from facenet_pytorch import InceptionResnetV1, MTCNN
+
         self.device = torch.device("cpu")
         self.mtcnn = MTCNN(
             image_size=160,
@@ -65,8 +73,9 @@ class FaceRecognitionService:
         )
         self.model = InceptionResnetV1(pretrained="vggface2").eval().to(self.device)
         self.index = None
-        self.names: list[int] = []
+        self.names = []
         self._load_faiss_index()
+        logger.info("FaceRecognitionService initialization complete.")
 
     def _load_faiss_index(self) -> None:
         """
@@ -148,6 +157,7 @@ class FaceRecognitionService:
         Returns:
             List of face embedding arrays detected in the image.
         """
+        self._ensure_initialized()
         try:
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             boxes, _ = self.mtcnn.detect(image)
@@ -187,6 +197,7 @@ class FaceRecognitionService:
             Tuple containing success status, message, quality score, and
             embedding values.
         """
+        self._ensure_initialized()
         try:
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             boxes, probs = self.mtcnn.detect(image)
@@ -234,6 +245,7 @@ class FaceRecognitionService:
         Returns:
             None.
         """
+        self._ensure_initialized()
         embedding = normalize_embedding(embedding)
         if len(embedding) != 512:
             return
@@ -258,6 +270,7 @@ class FaceRecognitionService:
         Returns:
             Tuple containing success status, message, and embedding values.
         """
+        self._ensure_initialized()
         embeddings = self.extract_embeddings(image_bytes)
         if not embeddings:
             return False, "Khong tim thay khuon mat trong anh", []
@@ -281,6 +294,7 @@ class FaceRecognitionService:
         Returns:
             List of recognized student identifiers.
         """
+        self._ensure_initialized()
         if self.index.ntotal == 0:
             return []
 
@@ -331,6 +345,7 @@ class FaceRecognitionService:
         session: Session,
         student_id: int,
         content: bytes,
+        image_type: str = "chinh_dien",
     ) -> Any:
         """Register a student's face from one image, save it to the filesystem, and write to database."""
         from app.models import Student
@@ -342,7 +357,8 @@ class FaceRecognitionService:
             raise StudentNotFoundError("Khong tim thay sinh vien")
 
         success, message, quality_score, embedding = self.assess_face_image(
-            image_bytes=content
+            image_bytes=content,
+            min_quality=0.5,
         )
         if not success:
             raise FaceQualityUnacceptableError(message)
@@ -354,23 +370,80 @@ class FaceRecognitionService:
         only_ascii = nfkd_form.encode("ASCII", "ignore").decode("utf-8")
         full_name_ascii = re.sub(r"[^a-zA-Z0-9_]", "", only_ascii.replace(" ", "_"))
 
-        filename = f"sv{student.student_id}_{full_name_ascii}.jpg"
-        filepath = os.path.join("dataset", filename)
-
-        async with aiofiles.open(filepath, "wb") as image_file:
-            await image_file.write(content)
-
-        image_record = FaceImage(
-            student_id=student.student_id,
-            image_path=filepath,
-            image_type="DANG_KY",
-            embedding_vector=embedding,
-            quality_score=quality_score,
-            review_status="CHO_DUYET",
+        filename = f"sv{student.student_id}_{image_type}_{full_name_ascii}.jpg"
+        
+        from app.storage.storage_factory import get_storage_service
+        storage_service = get_storage_service()
+        
+        # Save image using the Storage Abstraction Layer
+        metadata = storage_service.save_image(
+            file_bytes=content,
+            filename=filename,
+            folder="online_attendance/dataset"
         )
-        session.add(image_record)
+
+        # Check if a FaceImage with this student_id and image_type already exists
+        existing = session.exec(
+            select(FaceImage)
+            .where(FaceImage.student_id == student.student_id)
+            .where(FaceImage.image_type == image_type)
+        ).first()
+
+        from datetime import datetime, timezone
+
+        if existing:
+            # Delete old image from storage to avoid orphan files
+            try:
+                storage_service.delete_image(
+                    public_id=existing.public_id,
+                    local_path=existing.image_path
+                )
+            except Exception as e:
+                logger.error(f"Failed to delete existing portrait image: {e}")
+
+            existing.image_path = metadata.get("image_path")
+            existing.storage_provider = metadata.get("storage_provider")
+            existing.public_id = metadata.get("public_id")
+            existing.secure_url = metadata.get("secure_url")
+            existing.version = metadata.get("version")
+            existing.file_size = metadata.get("file_size")
+            existing.mime_type = metadata.get("mime_type")
+            existing.width = metadata.get("width")
+            existing.height = metadata.get("height")
+            existing.embedding_vector = embedding
+            existing.quality_score = quality_score
+            existing.review_status = "DA_DUYET"
+            existing.reviewed_at = datetime.now(timezone.utc)
+            session.add(existing)
+            image_record = existing
+        else:
+            image_record = FaceImage(
+                student_id=student.student_id,
+                image_path=metadata.get("image_path"),
+                image_type=image_type,
+                embedding_vector=embedding,
+                quality_score=quality_score,
+                review_status="DA_DUYET",
+                reviewed_at=datetime.now(timezone.utc),
+                storage_provider=metadata.get("storage_provider"),
+                public_id=metadata.get("public_id"),
+                secure_url=metadata.get("secure_url"),
+                version=metadata.get("version"),
+                file_size=metadata.get("file_size"),
+                mime_type=metadata.get("mime_type"),
+                width=metadata.get("width"),
+                height=metadata.get("height")
+            )
+            session.add(image_record)
+
         session.commit()
         session.refresh(image_record)
+
+        # Rebuild FAISS cache from database to synchronize immediately
+        self.index = faiss.IndexFlatL2(512)
+        self.names = []
+        self._sync_faiss_index_from_database()
+
         return image_record
 
     def approve_face_image(
@@ -440,25 +513,35 @@ class FaceRecognitionService:
     ) -> str:
         """Save attendance evidence image and create its database record."""
         from app.models import AttendanceImage
+        from app.storage.storage_factory import get_storage_service
         import uuid
 
-        evidence_dir = os.path.join("uploads", "attendance")
-        os.makedirs(evidence_dir, exist_ok=True)
+        storage_service = get_storage_service()
         evidence_name = f"dd_{attendance_id}_{uuid.uuid4().hex[:8]}.jpg"
-        evidence_path = os.path.join(evidence_dir, evidence_name)
-
-        with open(evidence_path, "wb") as evidence_file:
-            evidence_file.write(image_bytes)
+        
+        metadata = storage_service.save_image(
+            file_bytes=image_bytes,
+            filename=evidence_name,
+            folder="online_attendance/evidence"
+        )
 
         session.add(
             AttendanceImage(
                 attendance_id=attendance_id,
-                image_path=evidence_path,
                 confidence=confidence,
+                image_path=metadata.get("image_path"),
+                storage_provider=metadata.get("storage_provider"),
+                public_id=metadata.get("public_id"),
+                secure_url=metadata.get("secure_url"),
+                version=metadata.get("version"),
+                file_size=metadata.get("file_size"),
+                mime_type=metadata.get("mime_type"),
+                width=metadata.get("width"),
+                height=metadata.get("height")
             )
         )
         session.commit()
-        return evidence_path
+        return metadata.get("secure_url") or metadata.get("image_path") or ""
 
     def auto_register_and_verify(
         self,

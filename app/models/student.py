@@ -124,7 +124,7 @@ class StudentAvailableClassItem(SQLModel):
     class_section_id: int
     course_id: int
     course_name: str
-    credit_count: int
+    credit_count: int | None = None
     lecturer_name: str
     semester: int
     academic_year: str

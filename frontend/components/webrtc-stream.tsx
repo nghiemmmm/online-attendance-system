@@ -20,7 +20,7 @@ export function WebRTCStream({ maBuoiHoc, onConnectionStateChange }: WebRTCStrea
   const [iceConnectionState, setIceConnectionState] = useState("new")
   const [iceGatheringState, setIceGatheringState] = useState("new")
   const [signalingState, setSignalingState] = useState("stable")
-  const [useStun, setUseStun] = useState(false)
+  const [useStun, setUseStun] = useState(true)
   const [selectedCodec, setSelectedCodec] = useState("default")
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)

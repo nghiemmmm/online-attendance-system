@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2, AlertCircle, BarChart3, Download, Users, CheckCircle, BookOpen } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export default function LecturerReportsPage() {
   const [lecturerUser, setLecturerUser] = useState({
@@ -137,7 +137,7 @@ export default function LecturerReportsPage() {
                   value={selectedReportId || ""}
                   onValueChange={(val) => setSelectedReportId(val)}
                 >
-                  <SelectTrigger className="w-full bg-[#F8FAFC] border-[#CBD5E1] text-[#0F172A] font-bold">
+                  <SelectTrigger className="w-full bg-white border-[#E2E8F0] text-[#0F172A] font-semibold focus:ring-[#0EA5E9]">
                     <SelectValue placeholder="-- Chọn lớp học phần --" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -164,79 +164,94 @@ export default function LecturerReportsPage() {
         {/* Success Dashboard */}
         {!loading && !error && selectedReport && (
           <div className="space-y-6">
-            {/* Dashboard chi tiết */}
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="shadow-sm border-[#E2E8F0]">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-[#64748B]">Sĩ số</p>
-                        <p className="text-2xl font-bold text-[#0F172A] mt-1">{selectedReport.totalStudents}</p>
-                      </div>
-                      <div className="p-2 bg-[#F1F5F9] rounded-lg"><Users className="w-4 h-4 text-[#475569]" /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <Card className="shadow-sm border-[#E2E8F0] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-[#64748B] font-medium">Sĩ số lớp học</p>
+                      <p className="text-2xl font-bold text-[#0F172A] mt-1">{selectedReport.totalStudents}</p>
+                      <p className="text-xs text-slate-400 mt-2">Tổng số sinh viên đăng ký chính thức</p>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm border-[#E2E8F0]">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-[#64748B]">Đã học</p>
-                        <p className="text-2xl font-bold text-[#0F172A] mt-1">{selectedReport.completedSessions}/{selectedReport.totalSessions}</p>
-                      </div>
-                      <div className="p-2 bg-[#EFF6FF] rounded-lg"><CheckCircle className="w-4 h-4 text-[#3B82F6]" /></div>
+                    <div className="p-2 bg-[#E0F2FE] rounded-lg"><Users className="w-4 h-4 text-[#0EA5E9]" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm border-[#E2E8F0] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-[#64748B] font-medium">Số buổi đã học</p>
+                      <p className="text-2xl font-bold text-[#0F172A] mt-1">{selectedReport.completedSessions}/{selectedReport.totalSessions}</p>
+                      <p className="text-xs text-slate-400 mt-2">Buổi đã hoàn thành / Tổng số buổi</p>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm border-[#E2E8F0]">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-[#64748B]">Chuyên cần</p>
-                        <p className="text-2xl font-bold text-[#22C55E] mt-1">{selectedReport.averageAttendanceRate}%</p>
-                      </div>
-                      <div className="p-2 bg-[#DCFCE7] rounded-lg"><BarChart3 className="w-4 h-4 text-[#22C55E]" /></div>
+                    <div className="p-2 bg-[#E0F2FE] rounded-lg"><CheckCircle className="w-4 h-4 text-[#0EA5E9]" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm border-[#E2E8F0] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-[#64748B] font-medium">Tỷ lệ chuyên cần</p>
+                      <p className="text-2xl font-bold text-[#22C55E] mt-1">{selectedReport.averageAttendanceRate}%</p>
+                      <p className="text-xs text-slate-400 mt-2">Tỷ lệ đi học đầy đủ trung bình</p>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm border-[#E2E8F0]">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-[#64748B]">Cảnh báo</p>
-                        <p className="text-2xl font-bold text-[#EF4444] mt-1">2</p>
-                      </div>
-                      <div className="p-2 bg-[#FEE2E2] rounded-lg"><AlertCircle className="w-4 h-4 text-[#EF4444]" /></div>
+                    <div className="p-2 bg-[#E8F5E9] rounded-lg"><BarChart3 className="w-4 h-4 text-[#22C55E]" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm border-[#E2E8F0] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-4 border-l-[#EF4444]">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-[#64748B] font-medium">Số ca cảnh báo vắng</p>
+                      <p className="text-2xl font-bold text-[#EF4444] mt-1">2</p>
+                      <p className="text-xs text-[#EF4444] mt-2 font-medium">Vượt quá 20% số buổi vắng giới hạn</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <div className="p-2 bg-red-100 rounded-lg"><AlertCircle className="w-4 h-4 text-[#EF4444]" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
               <Card className="shadow-sm border-[#E2E8F0]">
                 <CardHeader>
-                  <CardTitle>Biểu đồ chuyên cần theo buổi</CardTitle>
+                  <CardTitle className="text-lg font-bold text-[#0F172A]">Biểu đồ diễn biến chuyên cần qua các buổi học</CardTitle>
                   <CardDescription>Số liệu sinh viên Có mặt, Đi muộn, và Vắng mặt qua các buổi học đã diễn ra</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[320px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={selectedReport.dataPoints} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <AreaChart data={selectedReport.dataPoints} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                        <defs>
+                          <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22C55E" stopOpacity={0.45}/>
+                            <stop offset="95%" stopColor="#22C55E" stopOpacity={0.01}/>
+                          </linearGradient>
+                          <linearGradient id="colorLate" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.45}/>
+                            <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.01}/>
+                          </linearGradient>
+                          <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#EF4444" stopOpacity={0.45}/>
+                            <stop offset="95%" stopColor="#EF4444" stopOpacity={0.01}/>
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="date" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                        <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                        <Tooltip cursor={{fill: '#F8FAFC'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                        <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}} />
-                        <Bar name="Có mặt" dataKey="present" stackId="a" fill="#22C55E" radius={[0, 0, 4, 4]} />
-                        <Bar name="Đi muộn" dataKey="late" stackId="a" fill="#F59E0B" />
-                        <Bar name="Vắng mặt" dataKey="absent" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                      </BarChart>
+                        <XAxis dataKey="date" tick={{fontSize: 12, fill: '#64748B'}} tickLine={false} axisLine={false} dy={8} />
+                        <YAxis tick={{fontSize: 12, fill: '#64748B'}} tickLine={false} axisLine={false} dx={-8} />
+                        <Tooltip contentStyle={{borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                        <Legend wrapperStyle={{fontSize: '12px', paddingTop: '15px'}} iconType="circle" />
+                        <Area name="Có mặt" type="monotone" dataKey="present" stackId="1" stroke="#22C55E" fill="url(#colorPresent)" strokeWidth={2.5} />
+                        <Area name="Đi muộn" type="monotone" dataKey="late" stackId="1" stroke="#F59E0B" fill="url(#colorLate)" strokeWidth={2.5} />
+                        <Area name="Vắng mặt" type="monotone" dataKey="absent" stackId="1" stroke="#EF4444" fill="url(#colorAbsent)" strokeWidth={2.5} />
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
             </div>
-          </div>
         )}
       </div>
     </AppShell>

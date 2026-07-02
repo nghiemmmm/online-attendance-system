@@ -89,7 +89,7 @@ npm run dev
 | Role | Username | Password | Notes |
 | :--- | :--- | :--- | :--- |
 | **Admin** | `admin` | `admin123456` | Full system administration |
-| **Lecturer** | `2101` | `12345` | TS. Nguyễn Văn An |
+| **Lecturer** | `gv2101` | `12345` | TS. Nguyễn Văn An |
 | **Student** | `21080001` | `12345` | Nguyễn Đức Nghiêm |
 
 ## Development

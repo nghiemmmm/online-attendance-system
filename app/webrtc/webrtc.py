@@ -1,5 +1,6 @@
 import time
 import io
+import asyncio
 from aiortc import MediaStreamTrack
 import av
 from PIL import Image
@@ -26,12 +27,9 @@ class VideoTransformTrack(MediaStreamTrack):
         self.last_process_time = time.time()
         self.process_interval = 3.0  # Xử lý 3 giây 1 lần
 
-    async def recv(self):
-        frame = await self.track.recv()
-
-        current_time = time.time()
-        if self.class_session_id and (current_time - self.last_process_time > self.process_interval):
-            self.last_process_time = current_time
+    def _process_frame_sync(self, frame) -> None:
+        """Process video frame and register attendance synchronously in a worker thread."""
+        try:
             # Chuyển frame thành ảnh
             img = frame.to_ndarray(format="rgb24")
             pil_img = Image.fromarray(img)
@@ -52,5 +50,16 @@ class VideoTransformTrack(MediaStreamTrack):
                         average_confidence=0.8
                     )
                     logger.info(f"WebRTC AI Diem danh: {result}")
+        except Exception as e:
+            logger.error(f"Error processing frame in background thread: {e}")
+
+    async def recv(self):
+        frame = await self.track.recv()
+
+        current_time = time.time()
+        if self.class_session_id and (current_time - self.last_process_time > self.process_interval):
+            self.last_process_time = current_time
+            # Run CPU-bound AI processing in a separate thread pool to prevent async loop blocking
+            asyncio.create_task(asyncio.to_thread(self._process_frame_sync, frame))
 
         return frame

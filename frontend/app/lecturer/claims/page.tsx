@@ -123,7 +123,7 @@ export default function LecturerClaimsPage() {
               ) : (
                 <div className="space-y-4">
                   {pendingClaims.map(claim => (
-                    <Card key={claim.id} className="border-l-4 border-l-[#F59E0B] shadow-sm">
+                    <Card key={claim.id} className="border-l-4 border-l-[#F59E0B] shadow-sm hover:shadow-md transition-all duration-200">
                       <CardContent className="p-5">
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                           <div className="flex-1 space-y-3">
@@ -158,7 +158,7 @@ export default function LecturerClaimsPage() {
                             <Button
                               onClick={() => handleUpdateStatus(claim.id, 'approved')}
                               disabled={processingId === claim.id}
-                              className="bg-[#22C55E] hover:bg-[#16A34A] text-white flex-1"
+                              className="bg-[#22C55E] hover:bg-[#16A34A] text-white flex-1 font-semibold"
                             >
                               {processingId === claim.id ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <CheckCircle className="w-4 h-4 mr-2" />}
                               Chấp thuận
@@ -167,7 +167,7 @@ export default function LecturerClaimsPage() {
                               onClick={() => handleUpdateStatus(claim.id, 'rejected')}
                               disabled={processingId === claim.id}
                               variant="outline"
-                              className="border-[#EF4444] text-[#EF4444] hover:bg-[#FEF2F2] flex-1"
+                              className="border-[#EF4444] text-[#EF4444] hover:bg-[#FEF2F2] hover:text-[#EF4444] flex-1 font-semibold border"
                             >
                               {processingId === claim.id ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <XCircle className="w-4 h-4 mr-2" />}
                               Từ chối
@@ -196,10 +196,10 @@ export default function LecturerClaimsPage() {
                           <p className="text-xs text-[#64748B] mt-1">{claim.subjectName} ({claim.subjectCode}) • Buổi {claim.sessionNumber} • {claim.date}</p>
                         </div>
                         <div>
-                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                             claim.status === 'approved'
-                              ? 'bg-[#DCFCE7] text-[#166534]'
-                              : 'bg-[#FEE2E2] text-[#991B1B]'
+                              ? 'bg-[#E8F5E9] text-[#22C55E] border-[#22C55E]/15'
+                              : 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]/15'
                           }`}>
                             {claim.status === 'approved' ? 'Đã chấp thuận' : 'Đã từ chối'}
                           </span>
