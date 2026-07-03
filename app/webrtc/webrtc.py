@@ -41,15 +41,33 @@ class VideoTransformTrack(MediaStreamTrack):
             recognized_ids = face_service.recognize_faces(image_bytes)
 
             if recognized_ids:
-                # Ghi điểm danh
-                with Session(engine) as session:
-                    result = mark_attendance_by_lora(
-                        session=session,
-                        class_session_id=self.class_session_id,
-                        student_ids=recognized_ids,
-                        average_confidence=0.8
-                    )
-                    logger.info(f"WebRTC AI Diem danh: {result}")
+                # Lọc trùng lặp ghi nhận điểm danh (Debounce) bằng Redis Cache
+                filtered_ids = []
+                try:
+                    import redis
+                    from app.core.config import settings
+                    r = redis.from_url(settings.REDIS_URL, socket_timeout=2.0, decode_responses=True)
+                    for s_id in recognized_ids:
+                        key = f"attendance:checked:{self.class_session_id}:{s_id}"
+                        # set if not exists, TTL 300 seconds (5 minutes)
+                        if r.set(key, "1", ex=300, nx=True):
+                            filtered_ids.append(s_id)
+                        else:
+                            logger.info(f"Student ID {s_id} check-in debounced by Redis cache.")
+                except Exception as e:
+                    logger.error(f"Redis check-in debounce error: {e}. Falling back to direct database write.")
+                    filtered_ids = recognized_ids
+
+                if filtered_ids:
+                    # Ghi điểm danh
+                    with Session(engine) as session:
+                        result = mark_attendance_by_lora(
+                            session=session,
+                            class_session_id=self.class_session_id,
+                            student_ids=filtered_ids,
+                            average_confidence=0.8
+                        )
+                        logger.info(f"WebRTC AI Diem danh: {result}")
         except Exception as e:
             logger.error(f"Error processing frame in background thread: {e}")
 

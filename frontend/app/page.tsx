@@ -5,6 +5,7 @@ import { LoginForm, RegisterForm, AuthHero } from "@/components/auth-forms"
 import { useRouter } from "next/navigation"
 import { AuthService } from "@/services/auth.service"
 import { apiClient } from "@/lib/api-client"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export default function LoginPage() {
   const [view, setView] = useState<"login" | "register">("login")
@@ -53,14 +54,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-background">
       {/* Left Panel - Hero */}
       <div className="hidden lg:flex lg:w-[45%]">
         <AuthHero />
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background relative">
+        <div className="absolute top-4 right-4 z-50">
+          <ModeToggle />
+        </div>
+        
         {view === "login" ? (
           <LoginForm
             onSubmit={handleLogin}

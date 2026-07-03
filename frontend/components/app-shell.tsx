@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 import { RoleBadge } from "@/components/status-badge"
 import Link from "next/link"
+import { ModeToggle } from "@/components/mode-toggle"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -203,9 +204,10 @@ export function TopNavbar({ breadcrumb, user, notificationCount = 0, notificatio
   const displayCount = displayNotifications.length
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white border-b border-[#E2E8F0] flex items-center justify-between px-6">
-      <h1 className="text-lg font-semibold text-[#0F172A]">{breadcrumb}</h1>
+    <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center justify-between px-6">
+      <h1 className="text-lg font-semibold text-foreground">{breadcrumb}</h1>
       <div className="flex items-center gap-4 relative">
+        <ModeToggle />
         <div className="relative">
           <Button
             variant="ghost"
@@ -213,7 +215,7 @@ export function TopNavbar({ breadcrumb, user, notificationCount = 0, notificatio
             className="relative"
             onClick={() => setShowNotifications(!showNotifications)}
           >
-            <Bell className="w-5 h-5 text-[#64748B]" />
+            <Bell className="w-5 h-5 text-muted-foreground" />
             {displayCount > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#EF4444] text-white text-xs rounded-full flex items-center justify-center">
                 {displayCount > 9 ? "9+" : displayCount}
@@ -230,9 +232,9 @@ export function TopNavbar({ breadcrumb, user, notificationCount = 0, notificatio
               />
 
               {/* Notifications Dropdown Panel */}
-              <div className="absolute right-0 top-12 w-80 bg-white/95 backdrop-blur-md border border-[#E2E8F0] shadow-xl rounded-xl z-50 overflow-hidden flex flex-col max-h-96">
-                <div className="p-3 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center justify-between">
-                  <span className="font-semibold text-sm text-[#0F172A]">Thông báo mới</span>
+              <div className="absolute right-0 top-12 w-80 bg-card/95 backdrop-blur-md border border-border shadow-xl rounded-xl z-50 overflow-hidden flex flex-col max-h-96">
+                <div className="p-3 bg-muted/50 border-b border-border flex items-center justify-between">
+                  <span className="font-semibold text-sm text-foreground">Thông báo mới</span>
                   {displayCount > 0 && (
                     <span className="text-xs bg-[#EFF6FF] text-[#0EA5E9] px-2 py-0.5 rounded-full font-medium">
                       {displayCount} tin
@@ -242,7 +244,7 @@ export function TopNavbar({ breadcrumb, user, notificationCount = 0, notificatio
                 <div className="flex-1 overflow-y-auto divide-y divide-[#E2E8F0]">
                   {displayCount > 0 ? (
                     displayNotifications.map((item) => (
-                      <div key={item.id} className="p-3 hover:bg-[#F8FAFC] transition-colors flex gap-2.5 items-start">
+                      <div key={item.id} className="p-3 hover:bg-muted/50 transition-colors flex gap-2.5 items-start">
                         {item.type === "warning" ? (
                           <div className="w-7 h-7 rounded-full bg-[#FEF9C3] flex items-center justify-center text-[#F59E0B] shrink-0">
                             <AlertTriangle className="w-4 h-4" />
@@ -253,13 +255,13 @@ export function TopNavbar({ breadcrumb, user, notificationCount = 0, notificatio
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-[#0F172A]">{item.title}</p>
-                          <p className="text-xs text-[#64748B] mt-0.5 leading-relaxed">{item.description}</p>
+                          <p className="text-xs font-semibold text-foreground">{item.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.description}</p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-8 text-center text-[#64748B] text-xs">
+                    <div className="p-8 text-center text-muted-foreground text-xs">
                       Không có thông báo nào.
                     </div>
                   )}
@@ -295,7 +297,7 @@ interface AppShellProps {
 
 export function AppShell({ role, user, breadcrumb, notificationCount, notifications, children }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-background">
       <Sidebar role={role} user={user} />
       <div className="pl-60 transition-all duration-300">
         <TopNavbar

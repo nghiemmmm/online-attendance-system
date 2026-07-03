@@ -35,6 +35,7 @@ class AppSettings(BaseSettings):
     CLOUDINARY_API_SECRET: str = "1L8MGyewiyKcNscDbxhwUX25PlM"
     IMAGE_STORAGE_PROVIDER: str = "LOCAL"
     FACE_RECOGNITION_TOLERANCE: float = 0.85
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     @computed_field  # type: ignore[prop-decorator]
     @property

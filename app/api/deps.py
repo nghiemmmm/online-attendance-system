@@ -218,24 +218,53 @@ import time
 
 
 class RateLimiter:
-    """A lightweight IP-based rate limiter dependency."""
+    """A lightweight IP-based rate limiter dependency supporting Redis with in-memory fallback."""
 
     def __init__(self, times: int, seconds: int):
         self.times = times
         self.seconds = seconds
         self.history = defaultdict(list)
 
-    def __call__(self, request: Request):
+    async def __call__(self, request: Request):
+        from app.core.redis import redis_client
+        from app.utils.logger import logger
+        
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
 
-        # Clean up old timestamps
+        # Try to use Redis rate limiter
+        if redis_client is not None:
+            try:
+                key = f"rate_limit:{client_ip}"
+                pipe = redis_client.pipeline()
+                # Remove timestamps older than the window
+                pipe.zremrangebyscore(key, 0, now - self.seconds)
+                # Add current request timestamp
+                pipe.zadd(key, {str(now): now})
+                # Count current requests in the window
+                pipe.zcard(key)
+                # Expire key to clean up memory
+                pipe.expire(key, self.seconds)
+                
+                _, _, count, _ = await pipe.execute()
+                if count > self.times:
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="Too many requests. Please try again later."
+                    )
+                return
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Redis rate limiter failed: {e}. Falling back to in-memory mode.")
+
+        # Fallback to local in-memory rate limiting
         self.history[client_ip] = [t for t in self.history[client_ip] if now - t < self.seconds]
 
         if len(self.history[client_ip]) >= self.times:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many login attempts. Please try again later."
+                detail="Too many requests. Please try again later."
             )
 
         self.history[client_ip].append(now)

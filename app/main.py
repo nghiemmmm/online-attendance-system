@@ -27,6 +27,10 @@ os.makedirs("vector_db/embeddings_db", exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize Redis connection pool
+    from app.core.redis import init_redis_client
+    await init_redis_client()
+
     app.state.face_service = get_or_create_face_service()
     logger.info("FaceRecognitionService initialized and cached in app.state")
     
@@ -48,7 +52,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Clean up background task and all active WebRTC peer connections
+    # Clean up background task, active WebRTC peer connections, and Redis client
     cleanup_task.cancel()
     try:
         from app.services.webrtc_manager import get_webrtc_manager
@@ -57,6 +61,13 @@ async def lifespan(app: FastAPI):
         logger.info("Closed all active WebRTC connections on shutdown.")
     except Exception as e:
         logger.error(f"Error closing WebRTC connections on shutdown: {e}")
+        
+    try:
+        from app.core.redis import close_redis_client
+        await close_redis_client()
+    except Exception as e:
+        logger.error(f"Error closing Redis connection on shutdown: {e}")
+        
     logger.info("%s shutting down...", settings.APP_NAME)
 
 

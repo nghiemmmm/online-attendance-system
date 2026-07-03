@@ -70,8 +70,8 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Chào mừng trở lại</h1>
-        <p className="text-[#64748B]">Đăng nhập để tiếp tục</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Chào mừng trở lại</h1>
+        <p className="text-muted-foreground">Đăng nhập để tiếp tục</p>
       </div>
 
       {/* Error Alert */}
@@ -99,13 +99,13 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Username */}
         <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Mã số sinh viên (MSSV) / Tên đăng nhập"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setErrorMessage(""); }}
-            className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            className="pl-10 h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] text-foreground"
             disabled={isLocked || submitting}
             required
           />
@@ -113,20 +113,20 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
         {/* Password */}
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type={showPassword ? "text" : "password"}
             placeholder="Mật khẩu"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setErrorMessage(""); }}
-            className="pl-10 pr-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            className="pl-10 pr-10 h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] text-foreground"
             disabled={isLocked || submitting}
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F172A]"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
@@ -140,7 +140,7 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
               onCheckedChange={(checked) => setRemember(checked === true)}
               disabled={isLocked || submitting}
             />
-            <span className="text-sm text-[#64748B]">Ghi nhớ đăng nhập</span>
+            <span className="text-sm text-muted-foreground">Ghi nhớ đăng nhập</span>
           </label>
           <Link href="/forgot-password" className="text-sm text-[#0EA5E9] hover:underline">
             Quên mật khẩu?
@@ -161,7 +161,7 @@ export function LoginForm({ onSubmit, onRegisterClick, isLocked = false, lockTim
 
 
       {/* Register Link */}
-      <p className="text-center text-sm text-[#64748B] mt-6">
+      <p className="text-center text-sm text-muted-foreground mt-6">
         Chưa có tài khoản?{" "}
         <button type="button" onClick={onRegisterClick} className="text-[#0EA5E9] hover:underline font-medium">
           Đăng ký ngay
@@ -282,8 +282,8 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
 
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Đăng ký tài khoản</h1>
-        <p className="text-[#64748B]">Dành cho sinh viên trong hệ thống</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Đăng ký tài khoản</h1>
+        <p className="text-muted-foreground">Dành cho sinh viên trong hệ thống</p>
       </div>
 
       {/* Notice */}
@@ -310,30 +310,29 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="number"
             placeholder="Mã số sinh viên (MSSV)"
             value={mssv}
             onChange={(e) => { setMssv(e.target.value); setErrorMessage(""); }}
-            className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            className="pl-10 h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] text-foreground"
             required
           />
         </div>
 
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="email"
             placeholder="Email trường học"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setErrorMessage(""); }}
-            className="pl-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            className="pl-10 h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] text-foreground"
             required
           />
         </div>
 
-        {/* OTP row */}
         <div className="flex gap-2">
           <Input
             type="text"
@@ -341,7 +340,7 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
             placeholder="Mã OTP 6 chữ số"
             value={otpCode}
             onChange={(e) => { setOtpCode(e.target.value); setErrorMessage(""); }}
-            className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9] tracking-widest text-center font-bold"
+            className="h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] tracking-widest text-center font-bold text-foreground"
             required
           />
           <Button
@@ -355,19 +354,19 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
         </div>
 
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type={showPassword ? "text" : "password"}
             placeholder="Mật khẩu (tối thiểu 5 ký tự)"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setErrorMessage(""); }}
-            className="pl-10 pr-10 h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+            className="pl-10 pr-10 h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] text-foreground"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F172A]"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
@@ -378,7 +377,7 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
           placeholder="Xác nhận mật khẩu"
           value={confirmPassword}
           onChange={(e) => { setConfirmPassword(e.target.value); setErrorMessage(""); }}
-          className="h-11 bg-white border-[#E2E8F0] focus:border-[#0EA5E9] focus:ring-[#0EA5E9]"
+          className="h-11 bg-background border-border focus:border-[#0EA5E9] focus:ring-[#0EA5E9] text-foreground"
           required
         />
 
@@ -394,9 +393,9 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
 
       {/* Divider */}
       <div className="flex items-center gap-4 my-6">
-        <div className="flex-1 h-px bg-[#E2E8F0]" />
-        <span className="text-sm text-[#64748B]">hoặc</span>
-        <div className="flex-1 h-px bg-[#E2E8F0]" />
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-sm text-muted-foreground">hoặc</span>
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* Google Register Button */}
@@ -406,7 +405,7 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
         onClick={() => {
           window.location.href = `${API_BASE_URL}/auth/google/login?mode=auto_register`;
         }}
-        className="w-full h-11 bg-white hover:bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] font-medium flex items-center justify-center gap-3 mb-6"
+        className="w-full h-11 bg-background hover:bg-muted/50 border-border text-foreground font-medium flex items-center justify-center gap-3 mb-6"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -430,7 +429,7 @@ export function RegisterForm({ onSubmit, onLoginClick }: RegisterFormProps) {
       </Button>
 
       {/* Login Link */}
-      <p className="text-center text-sm text-[#64748B]">
+      <p className="text-center text-sm text-muted-foreground">
         Đã có tài khoản?{" "}
         <button onClick={onLoginClick} className="text-[#0EA5E9] hover:underline font-medium">
           Đăng nhập
