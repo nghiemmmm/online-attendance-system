@@ -52,10 +52,9 @@ FROM deps AS app
 
 WORKDIR /app
 
-# Copy backend source code
+# Copy backend source code (includes app/alembic/ for migrations)
 COPY ./app /app/app
 COPY ./alembic.ini /app/alembic.ini
-COPY ./alembic /app/alembic
 
 # Switch to non-root user
 USER appuser
