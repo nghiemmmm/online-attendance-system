@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ./app:/app/app
+    ports:
+      - "8000:8000"
+
+  frontend:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+
+  face-recognition:
+    environment:
+      - DEBUG=true
+    volumes:
+      - ./face-recognition:/app
+    ports:
+      - "9000:9000"

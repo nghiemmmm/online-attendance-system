@@ -37,3 +37,6 @@ app/database/db_face/
 # OS files
 Thumbs.db
 .DS_Store
+
+# Local Docker override files
+docker-compose.override.yml*

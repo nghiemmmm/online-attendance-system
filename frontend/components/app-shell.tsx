@@ -90,13 +90,13 @@ export function Sidebar({ role, user, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-[#0A2540] text-white transition-all duration-300 flex flex-col",
+        "fixed left-0 top-0 z-40 h-screen bg-sidebar text-white transition-all duration-300 flex flex-col",
         collapsed ? "w-16" : "w-60",
         className
       )}
     >
       {/* Logo */}
-      <div className={cn("flex items-center h-16 px-4 border-b border-[#1A3A5C]", collapsed && "justify-center")}>
+      <div className={cn("flex items-center h-16 px-4 border-b border-sidebar-border", collapsed && "justify-center")}>
         <Logo variant="light" showText={!collapsed} size={collapsed ? "sm" : "md"} />
       </div>
 
@@ -128,7 +128,7 @@ export function Sidebar({ role, user, className }: SidebarProps) {
       </nav>
 
       {/* User Info */}
-      <div className={cn("border-t border-[#1A3A5C] p-4", collapsed && "px-2")}>
+      <div className={cn("border-t border-sidebar-border p-4", collapsed && "px-2")}>
         <div className={cn("flex items-center gap-3", collapsed && "flex-col")}>
           <Avatar className="w-10 h-10">
             <AvatarImage src={user.avatar} alt={user.name} />
@@ -147,7 +147,7 @@ export function Sidebar({ role, user, className }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white/80 hover:text-white hover:bg-[#1A3A5C]"
+            className="text-white/80 hover:text-white hover:bg-sidebar-accent"
             title="Cài đặt"
           >
             <Settings className="w-5 h-5" />
@@ -156,7 +156,7 @@ export function Sidebar({ role, user, className }: SidebarProps) {
             variant="ghost"
             size={collapsed ? "icon" : "default"}
             className={cn(
-              "text-white/80 hover:text-white hover:bg-[#1A3A5C]",
+              "text-white/80 hover:text-white hover:bg-sidebar-accent",
               !collapsed && "flex-1 justify-start"
             )}
             title="Đăng xuất"
@@ -171,7 +171,7 @@ export function Sidebar({ role, user, className }: SidebarProps) {
       {/* Collapse Toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 bg-[#0A2540] border border-[#1A3A5C] rounded-full flex items-center justify-center text-white hover:bg-[#1A3A5C] transition-colors"
+        className="absolute -right-3 top-20 w-6 h-6 bg-sidebar border border-sidebar-border rounded-full flex items-center justify-center text-white hover:bg-sidebar-accent transition-colors"
       >
         {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </button>

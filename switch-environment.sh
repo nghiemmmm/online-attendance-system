@@ -87,46 +87,13 @@ enable_dev() {
     check_system
     backup_override
     
-    log_info "Đang tạo cấu hình Development Mode..."
+    log_info "Đang thiết lập cấu hình Development Mode..."
+    if [ ! -f "docker-compose.dev.yml" ]; then
+        log_error "Không tìm thấy tệp docker-compose.dev.yml để sao chép!"
+        exit 1
+    fi
+    cp "docker-compose.dev.yml" "$OVERRIDE_FILE"
     
-    cat <<EOF > "$OVERRIDE_FILE"
-version: '3.8'
-
-services:
-  backend:
-    environment:
-      - DEBUG=true
-      - LOG_LEVEL=debug
-    volumes:
-      - ./app:/app
-    ports:
-      - "8000:8000"
-
-  frontend:
-    environment:
-      - NODE_ENV=development
-    volumes:
-      - ./frontend:/app
-    ports:
-      - "3000:3000"
-
-  postgres:
-    ports:
-      - "5432:5432"
-
-  redis:
-    ports:
-      - "6379:6379"
-
-  face-recognition:
-    environment:
-      - DEBUG=true
-    volumes:
-      - ./face-recognition:/app
-    ports:
-      - "9000:9000"
-EOF
-
     log_success "Development mode enabled (✓)"
     echo -e "\nHướng dẫn vận hành tiếp theo:"
     echo -e "  1. Chạy lệnh: ${BLUE}docker compose up -d${NC} để khởi chạy chế độ dev."
@@ -140,82 +107,13 @@ enable_prod() {
     check_system
     backup_override
     
-    log_info "Đang tạo cấu hình Production Mode..."
+    log_info "Đang thiết lập cấu hình Production Mode..."
+    if [ ! -f "docker-compose.pro.yml" ]; then
+        log_error "Không tìm thấy tệp docker-compose.pro.yml để sao chép!"
+        exit 1
+    fi
+    cp "docker-compose.pro.yml" "$OVERRIDE_FILE"
     
-    cat <<EOF > "$OVERRIDE_FILE"
-version: '3.8'
-
-services:
-  backend:
-    restart: always
-    environment:
-      - DEBUG=false
-      - LOG_LEVEL=warning
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  frontend:
-    restart: always
-    environment:
-      - NODE_ENV=production
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  postgres:
-    restart: always
-    # Cố tình KHÔNG publish port ra bên ngoài để bảo mật CSDL quan hệ
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  redis:
-    restart: always
-    # Cố tình KHÔNG publish port ra bên ngoài để bảo mật cache
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  face-recognition:
-    restart: always
-    environment:
-      - DEBUG=false
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-EOF
-
     log_success "Production mode enabled (✓)"
     echo -e "\n${YELLOW}⚠️ NHẮC NHỞ QUAN TRỌNG CHO PRODUCTION:${NC}"
     echo -e "  Vui lòng kiểm tra lại cấu hình các khóa nhạy cảm trong hệ thống trước khi khởi chạy:"

@@ -102,6 +102,36 @@
   --sidebar-accent-foreground: #F8FAFC;
   --sidebar-border: #2D3748;
   --sidebar-ring: var(--color-accent);
+
+  /* Override hardcoded light backgrounds in dark mode */
+  .bg-white, [data-slot="card"], .bg-card {
+    background-color: var(--card) !important;
+  }
+  .bg-\[\#F8FAFC\] {
+    background-color: var(--background) !important;
+  }
+  .bg-\[\#F1F5F9\], .bg-slate-100 {
+    background-color: var(--secondary) !important;
+  }
+
+  /* Override hardcoded dark text colors in dark mode */
+  .text-\[\#0F172A\] {
+    color: var(--foreground) !important;
+  }
+  .text-\[\#0A2540\] {
+    color: var(--foreground) !important;
+  }
+  .text-\[\#475569\], .text-\[\#64748B\], .text-slate-600 {
+    color: var(--muted-foreground) !important;
+  }
+
+  /* Override hardcoded borders in dark mode */
+  .border-\[\#E2E8F0\], .border-slate-200, .border-slate-100 {
+    border-color: var(--border) !important;
+  }
+  .divide-\[\#E2E8F0\] > * + *, .divide-y > * + * {
+    border-color: var(--border) !important;
+  }
 }
 
 @theme inline {
