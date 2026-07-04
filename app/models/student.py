@@ -2,9 +2,10 @@
 
 from datetime import date, datetime, timezone, time
 
-from pydantic import EmailStr, field_serializer
+from pydantic import field_serializer
 from sqlmodel import Field, SQLModel
 
+from app.core.email_compat import EmailStr
 from app.models.base import AppBaseModel
 
 

@@ -171,4 +171,38 @@ from app.models.semester import (
     SemesterUpdate,
 )
 
+# Backward-compatible aliases for legacy Vietnamese model names.
+TaiKhoan = Account
+TaiKhoanBase = AccountBase
+TaiKhoanCreate = AccountCreate
+TaiKhoanPublic = AccountPublic
+TaiKhoanListPublic = AccountsPublic
+TaiKhoanProfile = AccountProfile
+TaiKhoanRegister = AccountRegister
+TaiKhoanUpdate = AccountUpdate
+
+SinhVien = Student
+SinhVienBase = StudentBase
+SinhVienCreate = StudentCreate
+SinhVienPublic = StudentPublic
+SinhVienUpdate = StudentUpdate
+
+CanBo = Staff
+CanBoBase = StaffBase
+CanBoCreate = StaffCreate
+CanBoPublic = StaffPublic
+CanBoUpdate = StaffUpdate
+
+AnhKhuonMat = FaceImage
+AnhKhuonMatBase = FaceImageBase
+AnhKhuonMatCreate = FaceImageCreate
+AnhKhuonMatPublic = FaceImagePublic
+AnhKhuonMatUpdate = FaceImageUpdate
+
+Nganh = Major
+NganhBase = MajorBase
+NganhCreate = MajorCreate
+NganhPublic = MajorPublic
+NganhUpdate = MajorUpdate
+
 __all__ = [name for name in globals() if not name.startswith("_")]

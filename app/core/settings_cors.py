@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Annotated
 
 from pydantic import AnyUrl, BeforeValidator, computed_field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.settings_common import parse_cors
+from app.core.settings_compat import BaseSettings, SettingsConfigDict
 
 
 class CORSSettings(BaseSettings):

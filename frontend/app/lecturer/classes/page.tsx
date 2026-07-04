@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -57,6 +58,7 @@ const emptySessionForm: SessionForm = {
 }
 
 export default function LecturerClassesPage() {
+  const router = useRouter()
   const [profile, setProfile] = useState<{ name: string; email: string; maCanBo: number } | null>(null)
   const [classes, setClasses] = useState<CourseClass[]>([])
   const [loading, setLoading] = useState(true)
@@ -256,7 +258,7 @@ export default function LecturerClassesPage() {
   const handleStartSession = async (maBuoiHoc: number) => {
     try {
       await LecturerService.moDiemDanh(maBuoiHoc)
-      window.location.href = `/lecturer/live/${maBuoiHoc}`
+      router.push(`/lecturer/live/${maBuoiHoc}`)
     } catch {
       alert("Khong the mo phien diem danh.")
     }
@@ -554,7 +556,7 @@ export default function LecturerClassesPage() {
                                     <PlayCircle className="w-4 h-4 mr-1" />
                                     Mở phiên
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => window.location.href = `/lecturer/live/${session.class_session_id}`}>
+                                  <Button size="sm" variant="outline" onClick={() => router.push(`/lecturer/live/${session.class_session_id}`)}>
                                     Live
                                   </Button>
                                   <Button size="sm" variant="outline" className="border-[#F97316] text-[#F97316] hover:bg-[#FFF7ED]" onClick={() => openPostponeModal(session)}>
@@ -710,7 +712,7 @@ export default function LecturerClassesPage() {
                 if (filteredAndSorted.length === 0) {
                   return (
                     <div className="text-center py-12 text-[#64748B] border border-dashed border-[#CBD5E1] rounded-lg bg-[#F8FAFC]">
-                      Không tìm thấy sinh viên nào phù hợp với từ khóa "{studentSearchTerm}".
+                      Không tìm thấy sinh viên nào phù hợp với từ khóa &quot;{studentSearchTerm}&quot;.
                     </div>
                   )
                 }

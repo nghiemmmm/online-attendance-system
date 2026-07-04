@@ -116,5 +116,5 @@ async def endpoint(session: AsyncSessionDep):
 
 ## 📚 Xem thêm
 
-- [async_routes_audit.md](async_routes_audit.md) - Detailed audit report
+- [ASYNC_ROUTES_AUDIT.md](ASYNC_ROUTES_AUDIT.md) - Detailed audit report
 - [AGENTS.md](d:\TTCS\.agents\skills\FastAPI-Coding-Standards\AGENTS.md) - Best practices

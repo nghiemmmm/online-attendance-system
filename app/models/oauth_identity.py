@@ -2,9 +2,10 @@
 
 from datetime import datetime, timezone
 
-from pydantic import EmailStr
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel
+
+from app.core.email_compat import EmailStr
 
 
 def get_datetime_utc() -> datetime:

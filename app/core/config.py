@@ -5,3 +5,4 @@ The actual settings are split by domain in `app.core.settings_*` modules.
 """
 
 from app.core.settings import Settings, settings
+

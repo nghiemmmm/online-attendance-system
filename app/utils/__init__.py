@@ -4,9 +4,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-import jwt
 from jinja2 import Template
-from jwt.exceptions import InvalidTokenError
 
 from app.core.config import settings
 
@@ -104,6 +102,8 @@ def generate_new_account_email(
 
 
 def generate_password_reset_token(email: str) -> str:
+    import jwt
+
     delta = timedelta(hours=settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
     now = datetime.now(timezone.utc)
     expires = now + delta
@@ -117,10 +117,12 @@ def generate_password_reset_token(email: str) -> str:
 
 
 def verify_password_reset_token(token: str) -> str | None:
+    import jwt
+
     try:
         decoded_token = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return str(decoded_token["sub"])
-    except InvalidTokenError:
+    except jwt.InvalidTokenError:
         return None

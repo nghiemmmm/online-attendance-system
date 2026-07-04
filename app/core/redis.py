@@ -1,13 +1,20 @@
-import redis.asyncio as aioredis
+try:
+    import redis.asyncio as aioredis
+except ModuleNotFoundError:  # pragma: no cover - fallback for test environments
+    aioredis = None
 from app.core.config import settings
 from app.utils.logger import logger
 
 # Global Redis client instance
-redis_client: aioredis.Redis | None = None
+redis_client = None
 
 async def init_redis_client() -> None:
     """Initialize Redis connection pool."""
     global redis_client
+    if aioredis is None:
+        logger.warning("Redis package is not installed; running without Redis client.")
+        redis_client = None
+        return
     try:
         logger.info(f"Initializing Redis client at {settings.REDIS_URL}...")
         redis_client = aioredis.from_url(
@@ -37,6 +44,6 @@ async def close_redis_client() -> None:
         finally:
             redis_client = None
 
-async def get_redis() -> aioredis.Redis | None:
+async def get_redis():
     """Safe getter for redis client."""
     return redis_client

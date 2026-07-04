@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.db import AsyncSessionFactory, AsyncSessionFactory
 from app.models import Account, TokenPayload
 
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/access-tokens")
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/login/access-token")
 
 # ⚠️ TEMPORARY: Use sync session for backward compatibility
 # Migration to AsyncSession happens per-route basis
@@ -22,7 +22,7 @@ sync_engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 def get_db() -> Generator[Session, None, None]:
     """Sync database session dependency for existing routes.
-
+    
     TODO: Migrate to async_get_db() for new/updated routes.
     """
     with Session(sync_engine) as session:
@@ -31,9 +31,11 @@ def get_db() -> Generator[Session, None, None]:
 
 async def async_get_db() -> AsyncGenerator[AsyncSession, None]:
     """Async database session dependency for FastAPI async routes.
-
+    
     Use this for new routes or when migrating from sync to async.
     """
+    if AsyncSessionFactory is None:
+        raise RuntimeError("Async database sessions are unavailable for the current DATABASE_URL")
     async with AsyncSessionFactory() as session:
         yield session
 
@@ -45,7 +47,7 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 def get_current_account(session: SessionDep, token: TokenDep) -> Account:
     """Retrieve and validate current account from JWT token (sync version).
-
+    
     TODO: Create async_get_current_account() for async routes.
     """
     try:
@@ -75,10 +77,10 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Account:
 
     # Sync database query
     account = session.get(Account, account_id)
-
+    
     if not account:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Account not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
@@ -89,7 +91,7 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Account:
 
 async def async_get_current_account(session: AsyncSessionDep, token: TokenDep) -> Account:
     """Retrieve and validate current account from JWT token (async version).
-
+    
     Use this for async routes that need async database access.
     """
     try:
@@ -121,10 +123,10 @@ async def async_get_current_account(session: AsyncSessionDep, token: TokenDep) -
     stmt = select(Account).where(Account.account_id == account_id)
     result = await session.execute(stmt)
     account = result.scalar_one_or_none()
-
+    
     if not account:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Account not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
@@ -218,47 +220,18 @@ import time
 
 
 class RateLimiter:
-    """A lightweight IP-based rate limiter dependency supporting Redis with in-memory fallback."""
+    """A lightweight IP-based rate limiter dependency."""
 
     def __init__(self, times: int, seconds: int):
         self.times = times
         self.seconds = seconds
         self.history = defaultdict(list)
 
-    async def __call__(self, request: Request):
-        from app.core.redis import redis_client
-        from app.utils.logger import logger
-        
+    def __call__(self, request: Request):
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
 
-        # Try to use Redis rate limiter
-        if redis_client is not None:
-            try:
-                key = f"rate_limit:{client_ip}"
-                pipe = redis_client.pipeline()
-                # Remove timestamps older than the window
-                pipe.zremrangebyscore(key, 0, now - self.seconds)
-                # Add current request timestamp
-                pipe.zadd(key, {str(now): now})
-                # Count current requests in the window
-                pipe.zcard(key)
-                # Expire key to clean up memory
-                pipe.expire(key, self.seconds)
-                
-                _, _, count, _ = await pipe.execute()
-                if count > self.times:
-                    raise HTTPException(
-                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                        detail="Too many requests. Please try again later."
-                    )
-                return
-            except HTTPException:
-                raise
-            except Exception as e:
-                logger.error(f"Redis rate limiter failed: {e}. Falling back to in-memory mode.")
-
-        # Fallback to local in-memory rate limiting
+        # Clean up old timestamps
         self.history[client_ip] = [t for t in self.history[client_ip] if now - t < self.seconds]
 
         if len(self.history[client_ip]) >= self.times:

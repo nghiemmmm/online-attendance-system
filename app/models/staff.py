@@ -2,8 +2,9 @@
 
 from datetime import date
 
-from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
+
+from app.core.email_compat import EmailStr
 
 
 class StaffBase(SQLModel):
