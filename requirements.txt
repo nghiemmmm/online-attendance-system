@@ -40,4 +40,5 @@ onnxruntime
 facenet-pytorch
 ruff==0.6.9
 redis>=5.0.1
+pwdlib
 
