@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query, status
 
 from app.api.deps import SessionDep, get_current_active_superuser
-from app.models import Message, MajorCreate, MajorPublic, MajorsPublic, MajorUpdate
+from app.models import MajorCreate, MajorPublic, MajorsPublic, MajorUpdate, Message
 from app.services import major_service
 
 router = APIRouter(prefix="/majors", tags=["majors"])

@@ -1,31 +1,31 @@
 from collections.abc import Generator
 from datetime import date
-import pytest
 
+import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.api.deps import (
-    get_current_active_superuser,
-    get_db,
     get_current_account,
     get_current_active_lecturer,
     get_current_active_student,
+    get_current_active_superuser,
+    get_db,
 )
 from app.main import app
 from app.models import (
-    AuditLog,
-    ClassSession,
-    Staff,
-    Attendance,
-    Course,
-    Appeal,
-    ClassSection,
-    Major,
-    Student,
     Account,
+    Appeal,
+    Attendance,
+    AuditLog,
+    ClassSection,
+    ClassSession,
+    Course,
+    Major,
+    Staff,
+    Student,
 )
 
 
@@ -75,14 +75,6 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             """Bypass authentication for router tests."""
             return superuser
 
-        def override_get_db():
-            """Yield the test database session."""
-            yield session
-
-        def override_superuser():
-            """Bypass authentication for router tests."""
-            return superuser
-
         def override_current_account(request: Request):
             user_id = request.headers.get("x-test-user-id")
             if user_id:
@@ -113,8 +105,18 @@ def seed_appeal_data(session: Session):
     session.add(other_account)
     session.commit()
 
-    staff = Staff(last_name="Nguyen", first_name="Giang", google_ten_dang_nhap="giang@example.edu", account_id=1)
-    other_staff = Staff(last_name="Tran", first_name="Khac", google_ten_dang_nhap="khac@example.edu", account_id=2)
+    staff = Staff(
+        last_name="Nguyen",
+        first_name="Giang",
+        google_ten_dang_nhap="giang@example.edu",
+        account_id=1,
+    )
+    other_staff = Staff(
+        last_name="Tran",
+        first_name="Khac",
+        google_ten_dang_nhap="khac@example.edu",
+        account_id=2,
+    )
     major = Major(major_name="Cong nghe thong tin")
     course = Course(
         course_id=701,
@@ -218,9 +220,7 @@ def seed_appeal_data(session: Session):
 def test_actionable_appeal_flow() -> None:
     """Test list, detail, approve and reject APIs for staff pending complaints."""
     for client, session in make_test_client():
-        staff, other_staff, appeal_1, appeal_2, other_appeal = (
-            seed_appeal_data(session)
-        )
+        staff, other_staff, appeal_1, appeal_2, other_appeal = seed_appeal_data(session)
 
         list_response = client.get(
             f"/api/appeals/staff/{staff.staff_id}?status=pending"
@@ -272,8 +272,8 @@ def test_actionable_appeal_flow() -> None:
 def test_approve_appeal_rejects_invalid_attendance_status() -> None:
     """Test approve API rejects unsupported attendance status values."""
     for client, session in make_test_client():
-        staff, _other_staff, appeal_1, _appeal_2, _other_appeal = (
-            seed_appeal_data(session)
+        staff, _other_staff, appeal_1, _appeal_2, _other_appeal = seed_appeal_data(
+            session
         )
 
         response = client.patch(

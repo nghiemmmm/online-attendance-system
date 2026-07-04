@@ -4,22 +4,28 @@ import random
 from datetime import date
 from typing import Any
 
-from app.core.exceptions import StudentNotFoundError, StudentAlreadyExistsError, MajorNotFoundError, ClassSectionNotFoundError, CourseRegistrationNotFoundError, DuplicateRegistrationError
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app import crud
-from app.crud.teaching_schedule_crud import infer_current_semester
+from app.core.exceptions import (
+    ClassSectionNotFoundError,
+    CourseRegistrationNotFoundError,
+    DuplicateRegistrationError,
+    MajorNotFoundError,
+    StudentAlreadyExistsError,
+    StudentNotFoundError,
+)
 from app.models import (
-    ClassSession,
-    Staff,
-    CourseRegistration,
     Attendance,
-    Course,
     ClassSection,
-    Message,
+    ClassSession,
+    Course,
+    CourseRegistration,
     Major,
+    Message,
+    Staff,
     Student,
     StudentCreate,
     StudentUpdate,
@@ -58,7 +64,9 @@ def ensure_unique_student_fields(
             account_id=account_id,
         )
         if existing_student and existing_student.student_id != current_student_id:
-            raise StudentAlreadyExistsError("Account is already linked to another student profile")
+            raise StudentAlreadyExistsError(
+                "Account is already linked to another student profile"
+            )
 
 
 def get_student_or_404(*, session: Session, student_id: int) -> Student:
@@ -112,7 +120,9 @@ def create_student(*, session: Session, item_in: StudentCreate) -> Student:
         return crud.create_student(session=session, student_create=item_in)
     except IntegrityError as exc:
         session.rollback()
-        raise StudentAlreadyExistsError("Student profile violates a unique or foreign key constraint") from exc
+        raise StudentAlreadyExistsError(
+            "Student profile violates a unique or foreign key constraint"
+        ) from exc
 
 
 def update_student(
@@ -138,7 +148,9 @@ def update_student(
         )
     except IntegrityError as exc:
         session.rollback()
-        raise StudentAlreadyExistsError("Student profile violates a unique or foreign key constraint") from exc
+        raise StudentAlreadyExistsError(
+            "Student profile violates a unique or foreign key constraint"
+        ) from exc
 
 
 def delete_student(*, session: Session, student_id: int) -> Message:
@@ -148,7 +160,9 @@ def delete_student(*, session: Session, student_id: int) -> Message:
         crud.delete_student(session=session, db_student=db_student)
     except IntegrityError as exc:
         session.rollback()
-        raise StudentAlreadyExistsError("Student profile is referenced by other records") from exc
+        raise StudentAlreadyExistsError(
+            "Student profile is referenced by other records"
+        ) from exc
     return Message(message="Student profile deleted successfully")
 
 
@@ -157,8 +171,13 @@ def get_my_schedule(*, session: Session, account_id: int) -> dict[str, Any]:
     student = get_student_by_account_or_404(session=session, account_id=account_id)
     statement = (
         select(ClassSection, ClassSession, Course)
-        .join(CourseRegistration, CourseRegistration.class_section_id == ClassSection.class_section_id)
-        .join(ClassSession, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            CourseRegistration,
+            CourseRegistration.class_section_id == ClassSection.class_section_id,
+        )
+        .join(
+            ClassSession, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .join(Course, Course.course_id == ClassSection.course_id)
         .where(CourseRegistration.student_id == student.student_id)
         .where(ClassSession.class_date >= date.today())
@@ -189,8 +208,12 @@ def get_my_attendance(*, session: Session, account_id: int) -> dict[str, Any]:
     student = get_student_by_account_or_404(session=session, account_id=account_id)
     statement = (
         select(Attendance, ClassSession, ClassSection, Course)
-        .join(ClassSession, ClassSession.class_session_id == Attendance.class_session_id)
-        .join(ClassSection, ClassSection.class_section_id == ClassSession.class_section_id)
+        .join(
+            ClassSession, ClassSession.class_session_id == Attendance.class_session_id
+        )
+        .join(
+            ClassSection, ClassSection.class_section_id == ClassSession.class_section_id
+        )
         .join(Course, Course.course_id == ClassSection.course_id)
         .where(Attendance.student_id == student.student_id)
     )
@@ -253,24 +276,36 @@ def get_available_class_sections(
     available_classes = []
     for class_section, course, staff in results:
         timetable = session.exec(
-            select(Timetable).where(Timetable.class_section_id == class_section.class_section_id)
+            select(Timetable).where(
+                Timetable.class_section_id == class_section.class_section_id
+            )
         ).first()
-        start_date_str = timetable.start_date.strftime("%d/%m/%Y") if timetable and timetable.start_date else "02/02/2026"
-        end_date_str = timetable.end_date.strftime("%d/%m/%Y") if timetable and timetable.end_date else "31/05/2026"
+        start_date_str = (
+            timetable.start_date.strftime("%d/%m/%Y")
+            if timetable and timetable.start_date
+            else "02/02/2026"
+        )
+        end_date_str = (
+            timetable.end_date.strftime("%d/%m/%Y")
+            if timetable and timetable.end_date
+            else "31/05/2026"
+        )
 
-        available_classes.append({
-            "class_section_id": class_section.class_section_id,
-            "course_id": class_section.course_id,
-            "course_name": course.course_name,
-            "credit_count": course.credit_count,
-            "lecturer_name": f"{staff.last_name} {staff.first_name}".strip(),
-            "semester": class_section.semester,
-            "academic_year": class_section.academic_year,
-            "minimum_attendance_rate": class_section.minimum_attendance_rate,
-            "is_registered": class_section.class_section_id in registered_class_ids,
-            "start_date": start_date_str,
-            "end_date": end_date_str,
-        })
+        available_classes.append(
+            {
+                "class_section_id": class_section.class_section_id,
+                "course_id": class_section.course_id,
+                "course_name": course.course_name,
+                "credit_count": course.credit_count,
+                "lecturer_name": f"{staff.last_name} {staff.first_name}".strip(),
+                "semester": class_section.semester,
+                "academic_year": class_section.academic_year,
+                "minimum_attendance_rate": class_section.minimum_attendance_rate,
+                "is_registered": class_section.class_section_id in registered_class_ids,
+                "start_date": start_date_str,
+                "end_date": end_date_str,
+            }
+        )
     return {"data": available_classes, "count": len(available_classes)}
 
 
@@ -288,7 +323,9 @@ def register_my_class_section(
         .where(CourseRegistration.class_section_id == class_section_id)
     ).first()
     if existing:
-        raise DuplicateRegistrationError("Student is already registered for this class section")
+        raise DuplicateRegistrationError(
+            "Student is already registered for this class section"
+        )
 
     class_section = session.get(ClassSection, class_section_id)
     if not class_section:
@@ -310,7 +347,9 @@ def register_my_class_section(
     for index, lesson in enumerate(lessons):
         attendance_status = statuses[index % len(statuses)]
         method = methods[index % len(methods)]
-        confidence = round(random.uniform(0.85, 0.99), 2) if method == "KHUON_MAT" else None
+        confidence = (
+            round(random.uniform(0.85, 0.99), 2) if method == "KHUON_MAT" else None
+        )
         session.add(
             Attendance(
                 student_id=student.student_id,

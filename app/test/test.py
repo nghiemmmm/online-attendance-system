@@ -1,20 +1,21 @@
-import sys
 import os
+import sys
 
 # Add app directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import faiss
 import pickle
+
+import faiss
 import numpy as np
 import torch
+from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
-from facenet_pytorch import InceptionResnetV1, MTCNN
 
 # ===============================
 # Initialize FaceNet + MTCNN
 # ===============================
-device = torch.device('cpu')
+device = torch.device("cpu")
 print(f"[INFO] Using device: {device}")
 
 mtcnn = MTCNN(
@@ -25,10 +26,10 @@ mtcnn = MTCNN(
     factor=0.709,
     post_process=True,
     device=device,
-    keep_all=False
+    keep_all=False,
 )
 
-model = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+model = InceptionResnetV1(pretrained="vggface2").eval().to(device)
 print("[INFO] Models loaded!")
 
 # ===============================
@@ -39,7 +40,7 @@ metadata_path = r"vector_db\embeddings_db\names.pkl"
 
 if not os.path.exists(index_path):
     print(f"[ERROR] FAISS index not found at {index_path}")
-    print(f"[INFO] Creating test with sample data instead...")
+    print("[INFO] Creating test with sample data instead...")
     index = faiss.IndexFlatL2(512)
     names = []
 else:
@@ -61,7 +62,7 @@ else:
     print(f"\n[INFO] Testing with: {image_path}")
 
     # Load and detect face
-    img = Image.open(image_path).convert('RGB')
+    img = Image.open(image_path).convert("RGB")
     img_tensor = mtcnn(img)
 
     if img_tensor is None:
@@ -73,7 +74,7 @@ else:
 
         # Generate embedding
         with torch.no_grad():
-            embedding = model(img_tensor.to(device)).cpu().numpy()[0].astype('float32')
+            embedding = model(img_tensor.to(device)).cpu().numpy()[0].astype("float32")
 
         print(f"[INFO] Embedding shape: {embedding.shape}")
         print(f"[INFO] Embedding norm: {np.linalg.norm(embedding):.4f}")
@@ -88,7 +89,7 @@ else:
             name = names[idx] if idx < len(names) else "unknown"
             matched = dist < 0.6
 
-            print(f"\n[RESULT]")
+            print("\n[RESULT]")
             print(f"  Name: {name}")
             print(f"  Distance: {dist:.4f}")
             print(f"  Matched: {'YES' if matched else 'NO'}")

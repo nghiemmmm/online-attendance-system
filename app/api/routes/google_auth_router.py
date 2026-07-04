@@ -3,16 +3,16 @@ import logging
 import secrets
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
 from app import crud
 from app.api.deps import SessionDep
-from app.core import security
+from app.core import security  # noqa: F401 — used by tests for monkeypatching
 from app.core.config import settings
 from app.core.security.auth.google_oauth import oauth
-from app.models import GoogleAuthPending, OAuthIdentity, Account, AccountCreate, Token
+from app.models import Account, AccountCreate, GoogleAuthPending, OAuthIdentity, Token
 from app.services.auth_token_service import issue_login_tokens
 
 router = APIRouter(prefix="/auth/google", tags=["google-auth"])
@@ -58,9 +58,7 @@ async def google_login_register(request: Request, remember_me: bool = False):
 
 
 @router.get("/callback", name="google_callback")
-async def google_callback(
-    request: Request, session: SessionDep
-) -> Any:
+async def google_callback(request: Request, session: SessionDep) -> Any:
     try:
         google_token = await oauth.google.authorize_access_token(request)
         user_info = await oauth.google.userinfo(token=google_token)
@@ -265,9 +263,7 @@ def validate_allowed_email_domain(email: str) -> None:
 
 
 def build_google_username(provider_subject: str) -> str:
-    subject_hash = hashlib.sha256(
-        provider_subject.encode("utf-8")
-    ).hexdigest()[:32]
+    subject_hash = hashlib.sha256(provider_subject.encode("utf-8")).hexdigest()[:32]
     return f"google_{subject_hash}"
 
 

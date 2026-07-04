@@ -2,13 +2,15 @@ import os
 import subprocess
 from datetime import datetime
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, status
 
 from app.api.deps import get_current_active_superuser
 from app.core.config import settings
 from app.services.audit_log_service import read_audit_logs
 
 router = APIRouter(prefix="/system", tags=["system"])
+
 
 @router.post(
     "/backups",
@@ -32,21 +34,28 @@ def backup_database() -> Any:
         if db_url.startswith("sqlite"):
             db_path = db_url.split("///")[-1]
             import shutil
+
             shutil.copy2(db_path, backup_file.replace(".sql", ".db"))
-            return {"success": True, "message": "Đã backup SQLite thành công", "file": backup_file.replace(".sql", ".db")}
+            return {
+                "success": True,
+                "message": "Đã backup SQLite thành công",
+                "file": backup_file.replace(".sql", ".db"),
+            }
 
         # Nếu dùng PostgreSQL
         # Cần pg_dump cài sẵn trong PATH. Nếu không có có thể văng lỗi.
         process = subprocess.run(
-            ["pg_dump", db_url, "-f", backup_file],
-            capture_output=True,
-            text=True
+            ["pg_dump", db_url, "-f", backup_file], capture_output=True, text=True
         )
 
         if process.returncode != 0:
             raise Exception(f"pg_dump error: {process.stderr}")
 
-        return {"success": True, "message": "Đã tạo bản sao lưu thành công", "file": backup_file}
+        return {
+            "success": True,
+            "message": "Đã tạo bản sao lưu thành công",
+            "file": backup_file,
+        }
 
     except Exception as e:
         # Giả lập thành công nếu môi trường không có pg_dump để phục vụ demo
@@ -58,12 +67,13 @@ def backup_database() -> Any:
         return {
             "success": True,
             "message": f"Môi trường không có lệnh backup chuẩn. Đã tạo file giả lập. Chi tiết lỗi: {str(e)}",
-            "file": dummy_file
+            "file": dummy_file,
         }
 
 
 from app.api.deps import SessionDep
 from app.services.dashboard_service import DashboardService, get_dashboard_service
+
 
 @router.get("/stats", dependencies=[Depends(get_current_active_superuser)])
 def get_system_stats(
@@ -99,4 +109,3 @@ def get_system_reports(
 ) -> Any:
     """Lấy dữ liệu thống kê báo cáo chi tiết cho Admin."""
     return service.get_system_reports()
-

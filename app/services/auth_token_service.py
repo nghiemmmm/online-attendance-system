@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session
 
@@ -19,7 +19,7 @@ from app.core.exceptions import (
     RefreshTokenExpiredError,
     RefreshTokenRevokedError,
 )
-from app.models import RefreshToken, Account, Token
+from app.models import Account, RefreshToken, Token
 
 logger = logging.getLogger("app.auth")
 
@@ -62,8 +62,8 @@ def normalize_datetime_utc(value: datetime) -> datetime:
         Datetime normalized to UTC.
     """
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def create_access_token_for_account(*, account: Account) -> Token:
@@ -120,9 +120,7 @@ def create_refresh_token_for_account(
 
     raw_token = create_raw_refresh_token()
     token_hash = hash_refresh_token(raw_token)
-    expires_at = datetime.now(timezone.utc) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-    )
+    expires_at = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     crud.create_refresh_token(
         session=session,
         account_id=account.account_id,
@@ -171,7 +169,7 @@ def issue_login_tokens(
         )
         raise AccountInactiveError()
 
-    account.last_login_at = datetime.now(timezone.utc)
+    account.last_login_at = datetime.now(UTC)
     session.add(account)
     session.commit()
     session.refresh(account)
@@ -228,7 +226,7 @@ def _get_valid_refresh_token(
             db_token.account_id,
         )
         raise RefreshTokenRevokedError()
-    if normalize_datetime_utc(db_token.expires_at) <= datetime.now(timezone.utc):
+    if normalize_datetime_utc(db_token.expires_at) <= datetime.now(UTC):
         logger.warning(
             "refresh_token_expired token_id=%s account_id=%s",
             db_token.refresh_token_id,

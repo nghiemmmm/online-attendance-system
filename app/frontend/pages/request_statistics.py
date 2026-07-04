@@ -1,7 +1,7 @@
-import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
+import streamlit as st
+
 from app.frontend.api_client import RequestAPI
 
 st.title("📊 Thống kê yêu cầu")
@@ -20,16 +20,22 @@ processing_requests = 0
 completed_requests = 0
 
 if stats_data:
-    total_requests = stats_data.get('total', 0)
-    pending_requests = stats_data.get('pending', 0)
-    processing_requests = stats_data.get('processing', 0)
-    completed_requests = stats_data.get('completed', 0)
+    total_requests = stats_data.get("total", 0)
+    pending_requests = stats_data.get("pending", 0)
+    processing_requests = stats_data.get("processing", 0)
+    completed_requests = stats_data.get("completed", 0)
 elif requests_data:
     # Calculate from request list if stats API not available
     total_requests = len(requests_data)
-    pending_requests = len([req for req in requests_data if req.get('status') == 'Chờ xử lý'])
-    processing_requests = len([req for req in requests_data if req.get('status') == 'Đang xử lý'])
-    completed_requests = len([req for req in requests_data if req.get('status') == 'Hoàn thành'])
+    pending_requests = len(
+        [req for req in requests_data if req.get("status") == "Chờ xử lý"]
+    )
+    processing_requests = len(
+        [req for req in requests_data if req.get("status") == "Đang xử lý"]
+    )
+    completed_requests = len(
+        [req for req in requests_data if req.get("status") == "Hoàn thành"]
+    )
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -66,7 +72,7 @@ with col1:
     status_counts = {
         "Hoàn thành": completed_requests,
         "Đang xử lý": processing_requests,
-        "Chờ xử lý": pending_requests
+        "Chờ xử lý": pending_requests,
     }
 
     fig = px.pie(values=list(status_counts.values()), names=list(status_counts.keys()))
@@ -79,7 +85,7 @@ with col2:
         # Count requests by type
         type_counts = {}
         for req in requests_data:
-            req_type = req.get('type', 'Khác')
+            req_type = req.get("type", "Khác")
             type_counts[req_type] = type_counts.get(req_type, 0) + 1
 
         fig = px.bar(x=list(type_counts.keys()), y=list(type_counts.values()))
@@ -95,15 +101,17 @@ st.subheader("⏱️ Phân tích thời gian xử lý")
 
 if requests_data:
     # Calculate processing times for completed requests
-    completed_reqs = [req for req in requests_data if req.get('status') == 'Hoàn thành']
+    completed_reqs = [req for req in requests_data if req.get("status") == "Hoàn thành"]
 
     if completed_reqs:
         processing_times = []
         for req in completed_reqs:
-            created_date = pd.to_datetime(req.get('created_date', ''))
-            completed_date = pd.to_datetime(req.get('completed_date', ''))
+            created_date = pd.to_datetime(req.get("created_date", ""))
+            completed_date = pd.to_datetime(req.get("completed_date", ""))
             if pd.notna(created_date) and pd.notna(completed_date):
-                processing_time = (completed_date - created_date).total_seconds() / 3600  # hours
+                processing_time = (
+                    completed_date - created_date
+                ).total_seconds() / 3600  # hours
                 processing_times.append(processing_time)
 
         if processing_times:
@@ -111,7 +119,9 @@ if requests_data:
             st.metric("Thời gian xử lý trung bình", f"{avg_time:.1f} giờ")
 
             # Distribution chart
-            fig = px.histogram(x=processing_times, nbins=10, title="Phân bố thời gian xử lý")
+            fig = px.histogram(
+                x=processing_times, nbins=10, title="Phân bố thời gian xử lý"
+            )
             fig.update_layout(xaxis_title="Thời gian (giờ)", yaxis_title="Số yêu cầu")
             st.plotly_chart(fig, use_container_width=True)
         else:

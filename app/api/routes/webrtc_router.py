@@ -1,28 +1,25 @@
-from typing import Optional
-
-from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.responses import JSONResponse
-import uuid
 import logging
+import uuid
+
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole
-from app.webrtc.webrtc import VideoTransformTrack
-from app.services.webrtc_manager import WebRTCManager, get_webrtc_manager
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 
+from app.services.webrtc_manager import WebRTCManager, get_webrtc_manager
+from app.webrtc.webrtc import VideoTransformTrack
 
 root_logger = logging.getLogger("app")
 
-router = APIRouter(
-    prefix="/webrtc",
-    tags=["webrtc"]
-)
+router = APIRouter(prefix="/webrtc", tags=["webrtc"])
+
 
 @router.post("/offers")
 async def offer(
     request: Request,
     manager: WebRTCManager = Depends(get_webrtc_manager),
 ):
-    pc: Optional[RTCPeerConnection] = None
+    pc: RTCPeerConnection | None = None
     try:
         try:
             params = await request.json()
@@ -31,10 +28,14 @@ async def offer(
 
         sdp = params.get("sdp") if isinstance(params, dict) else None
         offer_type = params.get("type") if isinstance(params, dict) else None
-        class_session_id = params.get("class_session_id") if isinstance(params, dict) else None
+        class_session_id = (
+            params.get("class_session_id") if isinstance(params, dict) else None
+        )
 
         if not sdp or not offer_type:
-            raise HTTPException(status_code=422, detail="Missing required fields: sdp, type")
+            raise HTTPException(
+                status_code=422, detail="Missing required fields: sdp, type"
+            )
 
         try:
             offer = RTCSessionDescription(sdp=sdp, type=offer_type)
@@ -42,7 +43,7 @@ async def offer(
             raise HTTPException(status_code=400, detail="Invalid WebRTC offer") from exc
 
         pc = RTCPeerConnection()
-        pc_id = "PeerConnection(%s)" % uuid.uuid4()
+        pc_id = f"PeerConnection({uuid.uuid4()})"
         manager.add_peer_connection(pc)
 
         def log_info(msg, *args):
@@ -72,9 +73,10 @@ async def offer(
             log_info("Track %s received", track.kind)
 
             if track.kind == "video":
-                vt = VideoTransformTrack(manager.relay.subscribe(track), class_session_id=class_session_id)
+                vt = VideoTransformTrack(
+                    manager.relay.subscribe(track), class_session_id=class_session_id
+                )
                 pc.addTrack(vt)
-
 
             @track.on("ended")
             async def on_ended():
@@ -108,7 +110,7 @@ async def offer(
         raise HTTPException(
             status_code=500,
             detail="Internal server error while processing WebRTC offer",
-        )
+        ) from None
 
 
 @router.post("/messages", include_in_schema=False)
@@ -124,7 +126,9 @@ async def message(
 
         message_text = params.get("message") if isinstance(params, dict) else None
         if not message_text:
-            raise HTTPException(status_code=422, detail="Missing required field: message")
+            raise HTTPException(
+                status_code=422, detail="Missing required field: message"
+            )
 
         for dc in manager.dcs:
             dc.send(message_text)
@@ -137,4 +141,4 @@ async def message(
         raise HTTPException(
             status_code=500,
             detail="Internal server error while sending message",
-        )
+        ) from None

@@ -62,7 +62,9 @@ def get_absence_warnings_by_student(
         absence_rate = (
             0.0
             if source.total_class_sessions == 0
-            else round(source.absent_session_count / source.total_class_sessions * 100, 2)
+            else round(
+                source.absent_session_count / source.total_class_sessions * 100, 2
+            )
         )
         status = classify_absence_warning(
             absence_rate=absence_rate,

@@ -1,4 +1,4 @@
-'''
+"""
 là file seed dữ liệu ban đầu cho backend. Nó không chạy API, mà chỉ được gọi lúc khởi động để kiểm tra và tạo dữ liệu tối thiểu cần có.
 
 Nó làm 3 việc:
@@ -6,11 +6,12 @@ Nó làm 3 việc:
 Mở Session với engine từ db.py:1.
 Gọi init_db(session) để khởi tạo dữ liệu.
 Log ra “Creating initial data” và “Initial data created”.
-'''
+"""
+
 import logging
 
-from sqlmodel import SQLModel, Session
-from app import models
+from sqlmodel import Session, SQLModel
+
 from app.core.db import engine, init_db
 
 logging.basicConfig(level=logging.INFO)

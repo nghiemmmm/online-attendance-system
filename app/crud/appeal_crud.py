@@ -9,13 +9,13 @@ from datetime import datetime
 from sqlmodel import Session, func, select
 
 from app.models import (
-    ClassSession,
-    Attendance,
-    Course,
     Appeal,
+    Attendance,
+    ClassSection,
+    ClassSession,
+    Course,
     PendingAppealDetail,
     PendingAppealItem,
-    ClassSection,
     Student,
 )
 
@@ -24,9 +24,7 @@ APPROVED_STATUS = "DA_CHAP_THUAN"
 REJECTED_STATUS = "DA_TU_CHOI"
 
 
-def count_pending_appeals_by_staff(
-    *, session: Session, staff_id: int
-) -> int:
+def count_pending_appeals_by_staff(*, session: Session, staff_id: int) -> int:
     """
     Count pending complaints in classes taught by a staff member.
 
@@ -41,8 +39,12 @@ def count_pending_appeals_by_staff(
         select(func.count())
         .select_from(Appeal)
         .join(Attendance, Appeal.attendance_id == Attendance.attendance_id)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .where(
             ClassSection.staff_id == staff_id,
             Appeal.status == PENDING_STATUS,
@@ -124,8 +126,12 @@ def get_appeal_joined_rows_by_staff(
     statement = (
         select(Appeal, Attendance, ClassSession, ClassSection, Course, Student)
         .join(Attendance, Appeal.attendance_id == Attendance.attendance_id)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .join(Course, ClassSection.course_id == Course.course_id)
         .join(Student, Appeal.student_id == Student.student_id)
         .where(ClassSection.staff_id == staff_id)
@@ -144,16 +150,18 @@ def get_appeal_joined_rows_by_staff(
     return session.exec(statement).all()
 
 
-def count_actionable_appeals_by_staff(
-    *, session: Session, staff_id: int
-) -> int:
+def count_actionable_appeals_by_staff(*, session: Session, staff_id: int) -> int:
     """Count pending complaints that belong to classes owned by a staff member."""
     statement = (
         select(func.count())
         .select_from(Appeal)
         .join(Attendance, Appeal.attendance_id == Attendance.attendance_id)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .where(
             ClassSection.staff_id == staff_id,
             Appeal.status == PENDING_STATUS,

@@ -1,11 +1,12 @@
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.engine import make_url
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import Session, create_engine, select
 
 from app import crud
 from app.core.config import settings
 from app.models import Account, AccountCreate
+
 
 def _build_async_session_factory():
     """Create the async session factory when the configured DB URL supports it."""
@@ -47,11 +48,11 @@ async def ensure_pgvector_extension(session: AsyncSession) -> None:
 async def init_db_async(session: AsyncSession) -> None:
     """Initialize database with default superuser (async version)."""
     # await ensure_pgvector_extension(session)
-    
+
     stmt = select(Account).where(Account.username == settings.FIRST_SUPERUSER)
     result = await session.execute(stmt)
     account = result.scalar_one_or_none()
-    
+
     if not account:
         account_in = AccountCreate(
             username=settings.FIRST_SUPERUSER,
@@ -61,7 +62,7 @@ async def init_db_async(session: AsyncSession) -> None:
         # TODO: Implement async version of create_account
         # For now, creating directly with ORM
         from app.core.security import get_password_hash
-        
+
         account = Account(
             username=account_in.username,
             password_hash=get_password_hash(account_in.password),
@@ -81,8 +82,8 @@ def ensure_pgvector_extension_sync(session) -> None:
 
 def init_db_sync(session) -> None:
     """DEPRECATED: Use init_db_async instead."""
-    from sqlmodel import Session, create_engine as sqlmodel_create_engine
-    
+    from sqlmodel import create_engine as sqlmodel_create_engine
+
     sync_engine = sqlmodel_create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
     with Session(sync_engine) as sync_session:
         stmt = select(Account).where(Account.username == settings.FIRST_SUPERUSER)

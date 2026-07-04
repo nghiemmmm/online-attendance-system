@@ -1,33 +1,33 @@
+import logging
 from typing import Annotated, Any
 
-import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud
 from app.api.deps import CurrentAccount, SessionDep, login_rate_limiter
 from app.models import (
+    AccountPublic,
+    AccountUpdate,
     LoginRequest,
     LogoutRequest,
     Message,
     NewPassword,
     RefreshTokenRequest,
-    AccountPublic,
-    AccountUpdate,
     Token,
 )
+from app.services.audit_log_service import write_audit_log
 from app.services.auth_token_service import (
     issue_login_tokens,
     logout_all_refresh_tokens,
     logout_refresh_token,
     refresh_access_token,
 )
-from app.services.audit_log_service import write_audit_log
 from app.utils import (
-    verify_password_reset_token,
     generate_password_reset_token,
     generate_reset_password_email,
     send_email,
+    verify_password_reset_token,
 )
 
 router = APIRouter(tags=["login"])
@@ -47,7 +47,9 @@ def login_access_token(
             password=form_data.password,
         )
     except HTTPException as e:
-        logger.warning("password_login_failed username=%s detail=%s", form_data.username, e.detail)
+        logger.warning(
+            "password_login_failed username=%s detail=%s", form_data.username, e.detail
+        )
         write_audit_log(
             session=session,
             action="DANG_NHAP",
@@ -92,7 +94,9 @@ def login_json(
             password=body.password,
         )
     except HTTPException as e:
-        logger.warning("json_login_failed username=%s detail=%s", body.username, e.detail)
+        logger.warning(
+            "json_login_failed username=%s detail=%s", body.username, e.detail
+        )
         write_audit_log(
             session=session,
             action="DANG_NHAP",

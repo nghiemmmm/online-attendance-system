@@ -1,4 +1,4 @@
-import uuid
+from datetime import UTC
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -76,7 +76,6 @@ def test_get_existing_user_as_superuser(
     assert existing_user.username == api_user["username"]
 
 
-
 def test_get_existing_user_current_user(client: TestClient, db: Session) -> None:
     username = random_email()
     password = random_lower_string()
@@ -117,8 +116,6 @@ def test_get_existing_user_permissions_error(
     )
     assert r.status_code == 403
     assert r.json()["detail"] == "The account doesn't have enough privileges"
-
-
 
 
 def test_create_user_existing_username(
@@ -285,30 +282,35 @@ def test_update_password_me_same_password_error(
         json=data,
     )
     assert r.status_code == 400
-    updated_user = r.json()
-    # Service checks password verify first, then same-password check
-    # Both errors map to 400
-    assert r.status_code == 400
 
 
 def test_register_user(client: TestClient, db: Session) -> None:
     email = random_email()
     password = random_lower_string()
-    
+
     # Seed a Student record and an OTPRecord
-    from app.models import Student, Major
+    from datetime import datetime, timedelta
+
+    from app.models import Major, Student
     from app.models.otp import OTPRecord
-    from datetime import datetime, timedelta, timezone
-    
+
     major = Major(major_name="Test Major")
     db.add(major)
     db.commit()
     db.refresh(major)
-    
-    student = Student(student_id=20210001, last_name="Tran", first_name="Binh", google_email=email, major_id=major.major_id)
+
+    student = Student(
+        student_id=20210001,
+        last_name="Tran",
+        first_name="Binh",
+        google_email=email,
+        major_id=major.major_id,
+    )
     db.add(student)
-    
-    otp = OTPRecord(email=email, code="123456", expires_at=datetime.now(timezone.utc) + timedelta(minutes=10))
+
+    otp = OTPRecord(
+        email=email, code="123456", expires_at=datetime.now(UTC) + timedelta(minutes=10)
+    )
     db.add(otp)
     db.commit()
 
@@ -316,7 +318,7 @@ def test_register_user(client: TestClient, db: Session) -> None:
         "mssv": 20210001,
         "email": email,
         "password": password,
-        "otp_code": "123456"
+        "otp_code": "123456",
     }
     r = client.post(
         f"{settings.API_V1_STR}/users/registrations",
@@ -337,29 +339,42 @@ def test_register_user(client: TestClient, db: Session) -> None:
 def test_register_user_already_exists_error(client: TestClient, db: Session) -> None:
     email = random_email()
     password = random_lower_string()
-    
+
     # Create a student with an account already linked
-    from app.models import Student, Major
+    from datetime import datetime, timedelta
+
+    from app.models import Major, Student
     from app.models.otp import OTPRecord
-    from datetime import datetime, timedelta, timezone
-    
+
     major = Major(major_name="Test Major")
     db.add(major)
     db.commit()
     db.refresh(major)
-    
+
     # Create a student without account (to test duplicate registration detection differently)
-    student = Student(student_id=20210002, last_name="Tran", first_name="Binh", google_email=email, major_id=major.major_id)
+    student = Student(
+        student_id=20210002,
+        last_name="Tran",
+        first_name="Binh",
+        google_email=email,
+        major_id=major.major_id,
+    )
     db.add(student)
     db.commit()
     # Manually create an account for this student to simulate already-registered
     from app.models import AccountCreate as AC
-    existing_account = crud.create_account(session=db, account_create=AC(username="20210002", password="Test12345", role="SINH_VIEN"))
+
+    existing_account = crud.create_account(
+        session=db,
+        account_create=AC(username="20210002", password="Test12345", role="SINH_VIEN"),
+    )
     db.refresh(student)
     student.account_id = existing_account.account_id
     db.add(student)
     db.commit()
-    otp = OTPRecord(email=email, code="123456", expires_at=datetime.now(timezone.utc) + timedelta(minutes=10))
+    otp = OTPRecord(
+        email=email, code="123456", expires_at=datetime.now(UTC) + timedelta(minutes=10)
+    )
     db.add(otp)
     db.commit()
 
@@ -367,7 +382,7 @@ def test_register_user_already_exists_error(client: TestClient, db: Session) -> 
         "mssv": 20210002,
         "email": email,
         "password": password,
-        "otp_code": "123456"
+        "otp_code": "123456",
     }
     r = client.post(
         f"{settings.API_V1_STR}/users/registrations",
@@ -471,8 +486,6 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     assert user_db is None
 
 
-
-
 def test_delete_user_super_user(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
@@ -490,8 +503,6 @@ def test_delete_user_super_user(
     assert deleted_user["message"] == "Account deleted successfully"
     result = db.exec(select(Account).where(Account.account_id == user_id)).first()
     assert result is None
-
-
 
 
 def test_delete_user_current_super_user_error(

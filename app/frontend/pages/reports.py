@@ -1,5 +1,6 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 from app.frontend.api_client import AttendanceAPI, ClassAPI
 
 st.title("📝 Tạo báo cáo")
@@ -12,7 +13,9 @@ col1, col2 = st.columns(2)
 with col1:
     # Fetch classes from API
     classes = ClassAPI.get_all()
-    class_options = ["Tất cả"] + [cls.get('name', '') for cls in classes] if classes else ["Tất cả"]
+    class_options = (
+        ["Tất cả"] + [cls.get("name", "") for cls in classes] if classes else ["Tất cả"]
+    )
     class_id = st.selectbox("Chọn lớp", class_options)
     start_date = st.date_input("Ngày bắt đầu")
 
@@ -28,27 +31,33 @@ if st.button("📊 Tạo báo cáo"):
         # Filter data based on selected criteria
         filtered_data = []
         for record in attendance_data:
-            record_date = pd.to_datetime(record.get('date', '')).date()
-            record_class = record.get('class', '')
+            record_date = pd.to_datetime(record.get("date", "")).date()
+            record_class = record.get("class", "")
 
             # Check date range
-            if start_date <= record_date <= end_date:
-                # Check class filter
-                if class_id == "Tất cả" or record_class == class_id:
-                    filtered_data.append(record)
+            if start_date <= record_date <= end_date and (
+                class_id == "Tất cả" or record_class == class_id
+            ):
+                filtered_data.append(record)
 
         if filtered_data:
             df = pd.DataFrame(filtered_data)
 
             # Calculate summary statistics
             total_records = len(filtered_data)
-            present_count = len([r for r in filtered_data if r.get('status') == 'Có mặt'])
-            absent_count = len([r for r in filtered_data if r.get('status') == 'Vắng'])
-            late_count = len([r for r in filtered_data if r.get('status') == 'Muộn'])
+            present_count = len(
+                [r for r in filtered_data if r.get("status") == "Có mặt"]
+            )
+            absent_count = len([r for r in filtered_data if r.get("status") == "Vắng"])
+            late_count = len([r for r in filtered_data if r.get("status") == "Muộn"])
 
-            attendance_rate = (present_count / total_records * 100) if total_records > 0 else 0
+            attendance_rate = (
+                (present_count / total_records * 100) if total_records > 0 else 0
+            )
 
-            st.success(f"✓ Báo cáo {report_type} cho lớp {class_id} từ {start_date} đến {end_date} đã được tạo!")
+            st.success(
+                f"✓ Báo cáo {report_type} cho lớp {class_id} từ {start_date} đến {end_date} đã được tạo!"
+            )
 
             # Display summary
             col1, col2, col3, col4 = st.columns(4)
@@ -74,7 +83,7 @@ if st.button("📊 Tạo báo cáo"):
                 data=csv_data,
                 file_name=f"baocao_{class_id}_{start_date}_to_{end_date}.csv",
                 mime="text/csv",
-                key="download_csv"
+                key="download_csv",
             )
         else:
             st.warning("Không có dữ liệu điểm danh trong khoảng thời gian đã chọn")

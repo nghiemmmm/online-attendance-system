@@ -23,15 +23,19 @@ def init_cloudinary():
         cloud_name=settings.CLOUDINARY_CLOUD_NAME,
         api_key=settings.CLOUDINARY_API_KEY,
         api_secret=settings.CLOUDINARY_API_SECRET,
-        secure=True
+        secure=True,
     )
     return True
 
 
-
 init_cloudinary()
 
-def upload_to_cloudinary(file_bytes: bytes, folder: str = "online_attendance/faces", public_id: str | None = None) -> str | None:
+
+def upload_to_cloudinary(
+    file_bytes: bytes,
+    folder: str = "online_attendance/faces",
+    public_id: str | None = None,
+) -> str | None:
     """
     Upload image bytes to Cloudinary and return the secure HTTPS URL.
     Fallback to local file if Cloudinary fails or credentials not provided.
@@ -46,12 +50,13 @@ def upload_to_cloudinary(file_bytes: bytes, folder: str = "online_attendance/fac
         if public_id:
             options["public_id"] = public_id
             options["overwrite"] = True
-            
+
         result = cloudinary.uploader.upload(file_bytes, **options)
         return result.get("secure_url")
     except Exception as e:
         logger.error(f"Cloudinary upload failed: {e}")
         return None
+
 
 def delete_from_cloudinary(public_id: str) -> bool:
     """Delete an image from Cloudinary by its public ID."""

@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-
 from sqlmodel import Session
 
 from app import crud
@@ -59,10 +58,7 @@ def test_recovery_password(
             headers=normal_user_token_headers,
         )
         assert r.status_code == 200
-        assert r.json() == {
-            "message": "Password recovery email sent"
-        }
-
+        assert r.json() == {"message": "Password recovery email sent"}
 
 
 def test_reset_password(client: TestClient, db: Session) -> None:
@@ -77,15 +73,22 @@ def test_reset_password(client: TestClient, db: Session) -> None:
         role="SINH_VIEN",
     )
     user = crud.create_account(session=db, account_create=user_create)
-    
+
     # Link a Student profile to support get_account_by_profile_google_email
-    from app.models import Student, Major
+    from app.models import Major, Student
+
     major = Major(major_name="Test Major")
     db.add(major)
     db.commit()
     db.refresh(major)
-    
-    student = Student(last_name="Test", first_name="User", google_email=email, account_id=user.account_id, major_id=major.major_id)
+
+    student = Student(
+        last_name="Test",
+        first_name="User",
+        google_email=email,
+        account_id=user.account_id,
+        major_id=major.major_id,
+    )
     db.add(student)
     db.commit()
 
@@ -121,8 +124,6 @@ def test_reset_password_invalid_token(
     assert "message" in response
     assert r.status_code == 400
     assert response["message"] == "Invalid token"
-
-
 
 
 def test_login_with_argon2_password_keeps_hash(client: TestClient, db: Session) -> None:

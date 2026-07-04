@@ -1,13 +1,13 @@
 """Define class registration database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class CourseRegistrationBase(SQLModel):
@@ -35,9 +35,7 @@ class CourseRegistration(CourseRegistrationBase, table=True):
 
     __tablename__ = "course_registrations"
 
-    student_id: int = Field(
-        foreign_key="students.student_id", primary_key=True
-    )
+    student_id: int = Field(foreign_key="students.student_id", primary_key=True)
     class_section_id: int = Field(
         foreign_key="class_sections.class_section_id", primary_key=True
     )

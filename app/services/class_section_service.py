@@ -4,20 +4,21 @@ Class section service.
 Contains logic for managing class section students, statistics, and warnings.
 """
 
-from sqlmodel import Session, select, func
-from fastapi import Depends, HTTPException
 from typing import Any
 
+from fastapi import Depends, HTTPException
+from sqlmodel import Session, func, select
+
+from app.api.deps import get_db
+from app.crud import class_section_crud, staff_crud
 from app.models import (
     Account,
-    ClassSection,
-    Student,
-    CourseRegistration,
-    ClassSession,
     Attendance,
+    ClassSection,
+    ClassSession,
+    CourseRegistration,
+    Student,
 )
-from app.crud import class_section_crud, staff_crud
-from app.api.deps import get_db
 
 
 class ClassSectionService:
@@ -26,7 +27,9 @@ class ClassSectionService:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def _ensure_authorized(self, class_section: ClassSection, current_account: Account) -> None:
+    def _ensure_authorized(
+        self, class_section: ClassSection, current_account: Account
+    ) -> None:
         """Validate if the current lecturer/admin is authorized to access class section info."""
         if current_account.role == "ADMIN":
             return
@@ -36,8 +39,7 @@ class ClassSectionService:
         )
         if not staff or class_section.staff_id != staff.staff_id:
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to view details of this class"
+                status_code=403, detail="Not authorized to view details of this class"
             )
 
     def get_class_section_students(
@@ -56,7 +58,9 @@ class ClassSectionService:
 
         statement = (
             select(Student)
-            .join(CourseRegistration, CourseRegistration.student_id == Student.student_id)
+            .join(
+                CourseRegistration, CourseRegistration.student_id == Student.student_id
+            )
             .where(CourseRegistration.class_section_id == class_section_id)
         )
         students = self.session.exec(statement).all()
@@ -93,7 +97,10 @@ class ClassSectionService:
 
         statement = (
             select(Attendance.status, func.count(Attendance.attendance_id))
-            .join(ClassSession, ClassSession.class_session_id == Attendance.class_session_id)
+            .join(
+                ClassSession,
+                ClassSession.class_session_id == Attendance.class_session_id,
+            )
             .where(ClassSession.class_section_id == class_section_id)
             .group_by(Attendance.status)
         )
@@ -102,7 +109,7 @@ class ClassSectionService:
         return {
             "student_count": student_count,
             "class_session_count": class_session_count,
-            "detail": {stat[0]: stat[1] for stat in stats}
+            "detail": {stat[0]: stat[1] for stat in stats},
         }
 
     def get_class_section_warnings(
@@ -120,16 +127,21 @@ class ClassSectionService:
 
         self._ensure_authorized(item, current_account)
 
-        total_sessions = self.session.exec(
-            select(func.count(ClassSession.class_session_id)).where(
-                ClassSession.class_section_id == class_section_id,
-                ClassSession.status == "DA_KET_THUC",
-            )
-        ).first() or 0
+        total_sessions = (
+            self.session.exec(
+                select(func.count(ClassSession.class_session_id)).where(
+                    ClassSession.class_section_id == class_section_id,
+                    ClassSession.status == "DA_KET_THUC",
+                )
+            ).first()
+            or 0
+        )
 
         statement = (
             select(Student)
-            .join(CourseRegistration, CourseRegistration.student_id == Student.student_id)
+            .join(
+                CourseRegistration, CourseRegistration.student_id == Student.student_id
+            )
             .where(CourseRegistration.class_section_id == class_section_id)
             .order_by(Student.student_id)
         )
@@ -137,19 +149,23 @@ class ClassSectionService:
 
         data = []
         for student in students:
-            absent_count = self.session.exec(
-                select(func.count(Attendance.attendance_id))
-                .join(ClassSession, ClassSession.class_session_id == Attendance.class_session_id)
-                .where(
-                    ClassSession.class_section_id == class_section_id,
-                    Attendance.student_id == student.student_id,
-                    Attendance.status.in_(["VANG", "VANG_MAT"]),
-                )
-            ).first() or 0
+            absent_count = (
+                self.session.exec(
+                    select(func.count(Attendance.attendance_id))
+                    .join(
+                        ClassSession,
+                        ClassSession.class_session_id == Attendance.class_session_id,
+                    )
+                    .where(
+                        ClassSession.class_section_id == class_section_id,
+                        Attendance.student_id == student.student_id,
+                        Attendance.status.in_(["VANG", "VANG_MAT"]),
+                    )
+                ).first()
+                or 0
+            )
             absence_rate = (
-                round(absent_count / total_sessions * 100, 2)
-                if total_sessions
-                else 0.0
+                round(absent_count / total_sessions * 100, 2) if total_sessions else 0.0
             )
             if absence_rate >= absence_limit:
                 warning_status = "VUOT_NGUONG"

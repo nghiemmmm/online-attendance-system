@@ -1,11 +1,17 @@
 import os
-import numpy as np
+
 import faiss
-import torch
+import numpy as np
 from facenet_pytorch import InceptionResnetV1
 
+
 class FaceNetLoader:
-    def __init__(self, model_path='models/facenet/', label_map='facenet_label_map.npy', index_file='facenet_features.index'):
+    def __init__(
+        self,
+        model_path="models/facenet/",
+        label_map="facenet_label_map.npy",
+        index_file="facenet_features.index",
+    ):
         self.model_path = model_path
         self.label_map_file = label_map
         self.index_file = index_file
@@ -18,7 +24,7 @@ class FaceNetLoader:
     def _load_resources(self):
         """Load all resources: model, index, label map, and embeddings."""
         # Load FaceNet model
-        self.model = InceptionResnetV1(pretrained='vggface2').eval()
+        self.model = InceptionResnetV1(pretrained="vggface2").eval()
 
         # Load Faiss index and label map
         index_path = os.path.join(self.model_path, self.index_file)

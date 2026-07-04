@@ -105,4 +105,3 @@ class StaffAttendanceReportItem(SQLModel):
     totalSessions: int
     averageAttendanceRate: float
     dataPoints: list[AttendanceReportDataPoint]
-

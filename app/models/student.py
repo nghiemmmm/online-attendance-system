@@ -1,6 +1,6 @@
 """Define student profile database and response models."""
 
-from datetime import date, datetime, timezone, time
+from datetime import UTC, date, datetime, time
 
 from pydantic import field_serializer
 from sqlmodel import Field, SQLModel
@@ -11,7 +11,7 @@ from app.models.base import AppBaseModel
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class StudentBase(SQLModel):
@@ -70,7 +70,7 @@ class StudentPublic(AppBaseModel, StudentBase):
 
     @field_serializer("study_started_at")
     def _serialize_datetime(self, value: datetime) -> str:
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class StudentsPublic(SQLModel):

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from sqlmodel import Session, select
 
-from app.models import ClassSession, CourseRegistration, Attendance, ClassSection
+from app.models import Attendance, ClassSection, ClassSession, CourseRegistration
 
 PRESENT_ATTENDANCE_STATUSES = {"PRESENT", "LATE", "CO_MAT", "DI_MUON"}
 

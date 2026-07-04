@@ -49,40 +49,25 @@ jobs:
           # Base image names
           BACKEND_IMAGE="ghcr.io/${REPO_LOWER}/attendance-backend"
           FRONTEND_IMAGE="ghcr.io/${REPO_LOWER}/attendance-frontend"
-          DEPS_IMAGE="ghcr.io/${REPO_LOWER}/attendance-deps"
           
           # Generate tags list
           TAGS_BACKEND="${BACKEND_IMAGE}:latest,${BACKEND_IMAGE}:${SHA_SHORT}"
           TAGS_FRONTEND="${FRONTEND_IMAGE}:latest,${FRONTEND_IMAGE}:${SHA_SHORT}"
-          TAGS_DEPS="${DEPS_IMAGE}:latest,${DEPS_IMAGE}:${SHA_SHORT}"
           
           # If triggered by a Git tag, append the tag name
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${{ github.ref_name }}"
             TAGS_BACKEND="${TAGS_BACKEND},${BACKEND_IMAGE}:${TAG_NAME}"
             TAGS_FRONTEND="${TAGS_FRONTEND},${FRONTEND_IMAGE}:${TAG_NAME}"
-            TAGS_DEPS="${TAGS_DEPS},${DEPS_IMAGE}:${TAG_NAME}"
           fi
           
           echo "backend_tags=${TAGS_BACKEND}" >> $GITHUB_OUTPUT
           echo "frontend_tags=${TAGS_FRONTEND}" >> $GITHUB_OUTPUT
-          echo "deps_tags=${TAGS_DEPS}" >> $GITHUB_OUTPUT
-          echo "deps_image=${DEPS_IMAGE}" >> $GITHUB_OUTPUT
           echo "sha_tag=${SHA_SHORT}" >> $GITHUB_OUTPUT
 
       # ----------------------------------------------------
       # 1. Build and Load Locally for Security Scanning
       # ----------------------------------------------------
-      - name: Build Dependency Image Locally
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.deps
-          load: true
-          tags: attendance-deps:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Build Backend Locally (for Scan)
         uses: docker/build-push-action@v5
         with:
@@ -90,8 +75,6 @@ jobs:
           file: ./Dockerfile
           load: true
           tags: local-backend:test
-          build-args: |
-            DEPS_IMAGE=attendance-deps:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -101,7 +84,7 @@ jobs:
         with:
           image-ref: local-backend:test
           format: 'table'
-          exit-code: '1' # Fail the build if critical vulnerabilities are found
+          exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL'
@@ -109,18 +92,6 @@ jobs:
       # ----------------------------------------------------
       # 3. Build & Push Multi-Arch Images (Post-Scan Success)
       # ----------------------------------------------------
-      - name: Build & Push Dockerfile.deps
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.deps
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.deps_tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-        continue-on-error: true
-
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v5
         with:
@@ -129,8 +100,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.backend_tags }}
-          build-args: |
-            DEPS_IMAGE=${{ steps.meta.outputs.deps_image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -1,11 +1,14 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 from app.frontend.api_client import StudentAPI
 
 st.title("👨‍🎓 Quản lý Học sinh")
 st.markdown("---")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Danh sách học sinh", "Thêm học sinh", "Cập nhật", "Xóa"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Danh sách học sinh", "Thêm học sinh", "Cập nhật", "Xóa"]
+)
 
 with tab1:
     st.subheader("Danh sách học sinh")
@@ -43,7 +46,7 @@ with tab2:
                 "google_email": student_email,
                 "class": student_class,
                 "dob": student_dob.isoformat(),
-                "phone": student_phone
+                "phone": student_phone,
             }
             result = StudentAPI.create(data)
             if result:
@@ -63,24 +66,32 @@ with tab3:
 
         if selected_student:
             student_id = selected_student.split(" - ")[0]
-            student_data = next((s for s in students if str(s.get('id', '')) == student_id), None)
+            student_data = next(
+                (s for s in students if str(s.get("id", "")) == student_id), None
+            )
 
             if student_data:
                 col1, col2 = st.columns(2)
                 with col1:
-                    updated_name = st.text_input("Tên", value=student_data.get('name', ''))
-                    updated_email = st.text_input("Google Email", value=student_data.get('google_email', ''))
+                    updated_name = st.text_input(
+                        "Tên", value=student_data.get("name", "")
+                    )
+                    updated_email = st.text_input(
+                        "Google Email", value=student_data.get("google_email", "")
+                    )
 
                 with col2:
                     updated_class = st.selectbox("Lớp", ["10A", "10B"], index=0)
-                    updated_status = st.selectbox("Trạng thái", ["Hoạt động", "Tạm dừng"], index=0)
+                    updated_status = st.selectbox(
+                        "Trạng thái", ["Hoạt động", "Tạm dừng"], index=0
+                    )
 
                 if st.button("💾 Cập nhật"):
                     data = {
                         "name": updated_name,
                         "google_email": updated_email,
                         "class": updated_class,
-                        "status": updated_status
+                        "status": updated_status,
                     }
                     result = StudentAPI.update(int(student_id), data)
                     if result:

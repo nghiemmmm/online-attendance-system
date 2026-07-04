@@ -12,7 +12,9 @@ def test_create_user(db: Session) -> None:
     email = random_email()
     password = random_lower_string()
 
-    user = crud.create_account(session=db, account_create=AccountCreate(username=email, password=password))
+    user = crud.create_account(
+        session=db, account_create=AccountCreate(username=email, password=password)
+    )
     assert user.username == email
     assert hasattr(user, "password_hash")
     assert user.status is True
@@ -20,13 +22,17 @@ def test_create_user(db: Session) -> None:
 
     inactive = crud.create_account(
         session=db,
-        account_create=AccountCreate(username=random_email(), password=password, status=False),
+        account_create=AccountCreate(
+            username=random_email(), password=password, status=False
+        ),
     )
     assert inactive.status is False
 
     admin = crud.create_account(
         session=db,
-        account_create=AccountCreate(username=random_email(), password=password, role="ADMIN"),
+        account_create=AccountCreate(
+            username=random_email(), password=password, role="ADMIN"
+        ),
     )
     assert admin.role == "ADMIN"
 
@@ -35,16 +41,21 @@ def test_authenticate_user(db: Session) -> None:
     """Kiem tra xac thuc tai khoan dung thong tin."""
     email = random_email()
     password = random_lower_string()
-    user = crud.create_account(session=db, account_create=AccountCreate(username=email, password=password))
-    authenticated_user = crud.authenticate_account(session=db, username=email, password=password)
+    user = crud.create_account(
+        session=db, account_create=AccountCreate(username=email, password=password)
+    )
+    authenticated_user = crud.authenticate_account(
+        session=db, username=email, password=password
+    )
     assert authenticated_user
     assert user.username == authenticated_user.username
 
 
 def test_not_authenticate_user(db: Session) -> None:
     """Kiem tra authenticate_account raise 400 khi tai khoan khong ton tai."""
-    from fastapi import HTTPException
     import pytest
+    from fastapi import HTTPException
+
     email = random_email()
     password = random_lower_string()
     with pytest.raises(HTTPException) as exc_info:
@@ -56,7 +67,10 @@ def test_update_user(db: Session) -> None:
     """Kiem tra cap nhat mat khau tai khoan."""
     password = random_lower_string()
     email = random_email()
-    user = crud.create_account(session=db, account_create=AccountCreate(username=email, password=password, role="ADMIN"))
+    user = crud.create_account(
+        session=db,
+        account_create=AccountCreate(username=email, password=password, role="ADMIN"),
+    )
     new_password = random_lower_string()
     user_in_update = AccountUpdate(password=new_password, role="ADMIN")
     if user.account_id is not None:
@@ -83,7 +97,9 @@ def test_authenticate_user_with_bcrypt_upgrades_to_argon2(db: Session) -> None:
     db.refresh(user)
     assert user.password_hash.startswith("$2")
 
-    authenticated_user = crud.authenticate_account(session=db, username=email, password=password)
+    authenticated_user = crud.authenticate_account(
+        session=db, username=email, password=password
+    )
     assert authenticated_user
     assert authenticated_user.username == email
 

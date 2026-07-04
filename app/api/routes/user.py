@@ -11,20 +11,20 @@ from app.api.deps import (
 )
 from app.core.security import get_password_hash, verify_password
 from app.models import (
-    Message,
     Account,
     AccountCreate,
-    AccountsPublic,
     AccountProfile,
     AccountPublic,
     AccountRegister,
+    AccountsPublic,
     AccountUpdate,
-    UpdatePassword,
-    Student,
-    Staff,
     FaceImage,
     Major,
+    Message,
+    Staff,
+    Student,
     StudentRegisterRequest,
+    UpdatePassword,
 )
 from app.models.base import AppBaseModel
 from app.services.user_service import UserService
@@ -86,18 +86,22 @@ def register_account(session: SessionDep, account_in: AccountRegister) -> Any:
         )
     account_create = AccountCreate.model_validate(account_in)
     db_account = crud.create_account(session=session, account_create=account_create)
-    
+
     # Auto create a linked student profile if details are provided
-    if account_in.role == "SINH_VIEN" and account_in.last_name and account_in.first_name:
-        from app.models import Student, Major
-        
+    if (
+        account_in.role == "SINH_VIEN"
+        and account_in.last_name
+        and account_in.first_name
+    ):
+        from app.models import Major, Student
+
         nganh = session.exec(select(Major)).first()
         if not nganh:
             nganh = Major(major_name="Công nghệ thông tin", description="Mặc định")
             session.add(nganh)
             session.commit()
             session.refresh(nganh)
-            
+
         db_sinhvien = Student(
             last_name=account_in.last_name,
             first_name=account_in.first_name,
@@ -105,12 +109,12 @@ def register_account(session: SessionDep, account_in: AccountRegister) -> Any:
             phone=account_in.phone,
             gender=account_in.gender,
             major_id=nganh.major_id,
-            account_id=db_account.account_id
+            account_id=db_account.account_id,
         )
         session.add(db_sinhvien)
         session.commit()
         session.refresh(db_sinhvien)
-        
+
     return db_account
 
 
@@ -181,7 +185,7 @@ def read_user_profiles(
 ) -> Any:
     """Lấy danh sách tài khoản hệ thống kèm thông tin hồ sơ cho Admin."""
     statement = select(Account)
-    
+
     if role and role != "all":
         db_roles = []
         if role == "student":
@@ -193,65 +197,87 @@ def read_user_profiles(
         else:
             db_roles = [role]
         statement = statement.where(Account.role.in_(db_roles))
-        
+
     if status and status != "all":
-        db_status = True if status == "active" else False
+        db_status = status == "active"
         statement = statement.where(Account.status == db_status)
-        
+
     accounts = session.exec(statement.order_by(col(Account.created_at).desc())).all()
-    
+
     data = []
     for acc in accounts:
         profile_data = {}
         if acc.role == "SINH_VIEN":
-            sv = session.exec(select(Student).where(Student.account_id == acc.account_id)).first()
+            sv = session.exec(
+                select(Student).where(Student.account_id == acc.account_id)
+            ).first()
             if sv:
                 profile_data = {
                     "name": f"{sv.last_name} {sv.first_name}".strip(),
                     "studentId": sv.student_id,
                     "google_email": sv.google_email,
                     "phone": sv.phone,
-                    "gender": sv.gender
+                    "gender": sv.gender,
                 }
         elif acc.role in ["GIANG_VIEN", "CAN_BO"]:
-            cb = session.exec(select(Staff).where(Staff.account_id == acc.account_id)).first()
+            cb = session.exec(
+                select(Staff).where(Staff.account_id == acc.account_id)
+            ).first()
             if cb:
                 profile_data = {
                     "name": f"{cb.last_name} {cb.first_name}".strip(),
                     "google_email": cb.google_email,
                     "phone": cb.phone,
-                    "gender": cb.gender
+                    "gender": cb.gender,
                 }
-                
+
         name = profile_data.get("name", "") or ""
         email = profile_data.get("google_email", "") or acc.username or ""
         student_id_str = str(profile_data.get("studentId", ""))
-        
+
         if q:
             q_lower = q.lower()
-            if q_lower not in name.lower() and q_lower not in email.lower() and q_lower not in student_id_str.lower():
+            if (
+                q_lower not in name.lower()
+                and q_lower not in email.lower()
+                and q_lower not in student_id_str.lower()
+            ):
                 continue
-                
+
         # Kiểm tra đã đăng ký khuôn mặt chưa
         face_count = 0
         if acc.role == "SINH_VIEN" and profile_data.get("studentId"):
-            face_count = session.exec(
-                select(func.count(FaceImage.image_id))
-                .where(FaceImage.student_id == profile_data.get("studentId"))
-            ).first() or 0
-            
-        data.append({
-            "id": acc.account_id,
-            "name": name or acc.username,
-            "email": email,
-            "role": "student" if acc.role == "SINH_VIEN" else "lecturer" if acc.role in ["GIANG_VIEN", "CAN_BO"] else "admin",
-            "status": "active" if acc.status else "locked",
-            "createdAt": acc.created_at.strftime("%d/%m/%Y") if acc.created_at else "N/A",
-            "lastLogin": acc.last_login_at.strftime("%d/%m/%Y") if acc.last_login_at else "N/A",
-            "studentId": student_id_str if acc.role == "SINH_VIEN" else None,
-            "faceDataStatus": "approved" if face_count > 0 else "none",
-        })
-        
+            face_count = (
+                session.exec(
+                    select(func.count(FaceImage.image_id)).where(
+                        FaceImage.student_id == profile_data.get("studentId")
+                    )
+                ).first()
+                or 0
+            )
+
+        data.append(
+            {
+                "id": acc.account_id,
+                "name": name or acc.username,
+                "email": email,
+                "role": "student"
+                if acc.role == "SINH_VIEN"
+                else "lecturer"
+                if acc.role in ["GIANG_VIEN", "CAN_BO"]
+                else "admin",
+                "status": "active" if acc.status else "locked",
+                "createdAt": acc.created_at.strftime("%d/%m/%Y")
+                if acc.created_at
+                else "N/A",
+                "lastLogin": acc.last_login_at.strftime("%d/%m/%Y")
+                if acc.last_login_at
+                else "N/A",
+                "studentId": student_id_str if acc.role == "SINH_VIEN" else None,
+                "faceDataStatus": "approved" if face_count > 0 else "none",
+            }
+        )
+
     paginated_data = data[skip : skip + limit]
     return {"data": paginated_data, "count": len(data)}
 
@@ -349,14 +375,14 @@ class UserWithProfileCreate(AppBaseModel):
         return normalized
 
 
-
-
 @router.post(
     "/registrations",
     response_model=AccountPublic,
     status_code=status.HTTP_201_CREATED,
 )
-def register_student_with_otp(session: SessionDep, payload: StudentRegisterRequest) -> Any:
+def register_student_with_otp(
+    session: SessionDep, payload: StudentRegisterRequest
+) -> Any:
     """Register a student account after OTP verification."""
     service = UserService(session=session)
     return service.register_student_with_otp(payload)
@@ -383,14 +409,14 @@ def create_account_with_profile(
             status_code=400,
             detail="The account with this username already exists",
         )
-        
+
     # Map role
     db_role = "SINH_VIEN"
     if payload.vai_tro == "lecturer":
         db_role = "GIANG_VIEN"
     elif payload.vai_tro == "admin":
         db_role = "ADMIN"
-        
+
     # Tạo tài khoản
     db_account = Account(
         username=payload.ten_dang_nhap,
@@ -401,7 +427,7 @@ def create_account_with_profile(
     session.add(db_account)
     session.commit()
     session.refresh(db_account)
-    
+
     # Tạo hồ sơ đi kèm
     if db_role == "SINH_VIEN":
         nganh = session.exec(select(Major)).first()
@@ -410,7 +436,7 @@ def create_account_with_profile(
             session.add(nganh)
             session.commit()
             session.refresh(nganh)
-            
+
         db_sinhvien = Student(
             last_name=payload.ho,
             first_name=payload.ten,
@@ -418,7 +444,7 @@ def create_account_with_profile(
             phone=payload.dien_thoai,
             gender=payload.gioi_tinh,
             major_id=nganh.major_id,
-            account_id=db_account.account_id
+            account_id=db_account.account_id,
         )
         session.add(db_sinhvien)
         session.commit()
@@ -430,11 +456,11 @@ def create_account_with_profile(
             phone=payload.dien_thoai,
             gender=payload.gioi_tinh,
             account_id=db_account.account_id,
-            position="Giảng viên"
+            position="Giảng viên",
         )
         session.add(db_canbo)
         session.commit()
-        
+
     return db_account
 
 

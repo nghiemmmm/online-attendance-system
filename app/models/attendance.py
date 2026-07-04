@@ -1,6 +1,6 @@
 """Define attendance record database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import field_serializer
 from sqlalchemy import UniqueConstraint
@@ -42,7 +42,9 @@ class Attendance(AttendanceBase, table=True):
 
     __tablename__ = "attendance"
     __table_args__ = (
-        UniqueConstraint("student_id", "class_session_id", name="uq_attendance_student_session"),
+        UniqueConstraint(
+            "student_id", "class_session_id", name="uq_attendance_student_session"
+        ),
     )
 
     attendance_id: int | None = Field(default=None, primary_key=True)
@@ -59,7 +61,7 @@ class AttendancePublic(AppBaseModel, AttendanceBase):
     def _serialize_datetime(self, value: datetime | None) -> str | None:
         if value is None:
             return None
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class AttendancesPublic(SQLModel):

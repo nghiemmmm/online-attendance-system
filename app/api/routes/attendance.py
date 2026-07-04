@@ -6,11 +6,16 @@ Defines APIs for attendance statistics.
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Path, Query, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Path, Query, Request, status
 from pydantic import Field, field_validator
 
-from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_lecturer, CurrentAccount
-from app.models import SemesterAttendanceSummaryPublic, AttendancePublic
+from app.api.deps import (
+    CurrentAccount,
+    SessionDep,
+    get_current_active_lecturer,
+    get_current_active_superuser,
+)
+from app.models import AttendancePublic, SemesterAttendanceSummaryPublic
 from app.models.base import AppBaseModel
 from app.services.attendance_stats_service import (
     get_semester_present_lesson_total,
@@ -18,6 +23,7 @@ from app.services.attendance_stats_service import (
     mark_attendance_manually_service,
 )
 from app.services.audit_log_service import write_audit_log
+
 
 class AutoAttendanceRequest(AppBaseModel):
     class_session_id: Annotated[int, Field(gt=0)]
@@ -70,6 +76,7 @@ def read_student_semester_present_lesson_total(
         academic_year=academic_year,
     )
 
+
 @router.post(
     "/",
     response_model=dict,
@@ -77,10 +84,8 @@ def read_student_semester_present_lesson_total(
         status.HTTP_400_BAD_REQUEST: {
             "description": "Lỗi xử lý điểm danh tự động (buổi học đã kết thúc, danh sách trống, v.v.)"
         },
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Buổi học không tồn tại"
-        }
-    }
+        status.HTTP_404_NOT_FOUND: {"description": "Buổi học không tồn tại"},
+    },
 )
 def mark_attendance_automatically(
     request_context: Request,
@@ -122,10 +127,8 @@ def mark_attendance_automatically(
         status.HTTP_403_FORBIDDEN: {
             "description": "Không có quyền giảng viên trên buổi học hoặc lớp học phần này"
         },
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Buổi học không tồn tại"
-        }
-    }
+        status.HTTP_404_NOT_FOUND: {"description": "Buổi học không tồn tại"},
+    },
 )
 def mark_attendance_manually(
     request_context: Request,

@@ -1,11 +1,12 @@
 import io
 import os
 import pickle
+from datetime import UTC
 from typing import Any
 
 import numpy as np
-from PIL import Image
 from fastapi import Request
+from PIL import Image
 from sqlmodel import Session, select
 
 from app.models import FaceImage
@@ -54,11 +55,13 @@ class FaceRecognitionService:
             self.initialized = True
 
     def _initialize(self) -> None:
-        logger.info("Initializing FaceRecognitionService (lazy loading heavy ML libraries)...")
+        logger.info(
+            "Initializing FaceRecognitionService (lazy loading heavy ML libraries)..."
+        )
         global torch, faiss, MTCNN, InceptionResnetV1
-        import torch
         import faiss
-        from facenet_pytorch import InceptionResnetV1, MTCNN
+        import torch
+        from facenet_pytorch import MTCNN, InceptionResnetV1
 
         self.device = torch.device("cpu")
         self.mtcnn = MTCNN(
@@ -174,8 +177,7 @@ class FaceRecognitionService:
                 embeddings = self.model(faces.to(self.device))
 
             return [
-                embedding.cpu().numpy().astype("float32")
-                for embedding in embeddings
+                embedding.cpu().numpy().astype("float32") for embedding in embeddings
             ]
         except Exception:
             logger.exception("Error extracting embeddings")
@@ -214,10 +216,7 @@ class FaceRecognitionService:
 
             with torch.no_grad():
                 embedding = (
-                    self.model(faces.to(self.device))[0]
-                    .cpu()
-                    .numpy()
-                    .astype("float32")
+                    self.model(faces.to(self.device))[0].cpu().numpy().astype("float32")
                 )
 
             quality_score = float(round(max(0.0, min(1.0, float(probs[0]))), 4))
@@ -324,8 +323,9 @@ class FaceRecognitionService:
         limit: int = 100,
     ) -> Any:
         """List face image registration requests for administrators."""
+        from sqlmodel import func, select
+
         from app.models import FaceImagesPublic
-        from sqlmodel import select, func
 
         statement = select(FaceImage)
         if review_status:
@@ -348,9 +348,12 @@ class FaceRecognitionService:
         image_type: str = "chinh_dien",
     ) -> Any:
         """Register a student's face from one image, save it to the filesystem, and write to database."""
+
+        from app.core.exceptions import (
+            FaceQualityUnacceptableError,
+            StudentNotFoundError,
+        )
         from app.models import Student
-        import aiofiles
-        from app.core.exceptions import StudentNotFoundError, FaceQualityUnacceptableError
 
         student = session.get(Student, student_id)
         if not student:
@@ -365,21 +368,21 @@ class FaceRecognitionService:
 
         import re
         import unicodedata
+
         combined = f"{student.last_name or ''}_{student.first_name or ''}"
         nfkd_form = unicodedata.normalize("NFKD", combined)
         only_ascii = nfkd_form.encode("ASCII", "ignore").decode("utf-8")
         full_name_ascii = re.sub(r"[^a-zA-Z0-9_]", "", only_ascii.replace(" ", "_"))
 
         filename = f"sv{student.student_id}_{image_type}_{full_name_ascii}.jpg"
-        
+
         from app.storage.storage_factory import get_storage_service
+
         storage_service = get_storage_service()
-        
+
         # Save image using the Storage Abstraction Layer
         metadata = storage_service.save_image(
-            file_bytes=content,
-            filename=filename,
-            folder="online_attendance/dataset"
+            file_bytes=content, filename=filename, folder="online_attendance/dataset"
         )
 
         # Check if a FaceImage with this student_id and image_type already exists
@@ -389,14 +392,13 @@ class FaceRecognitionService:
             .where(FaceImage.image_type == image_type)
         ).first()
 
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         if existing:
             # Delete old image from storage to avoid orphan files
             try:
                 storage_service.delete_image(
-                    public_id=existing.public_id,
-                    local_path=existing.image_path
+                    public_id=existing.public_id, local_path=existing.image_path
                 )
             except Exception as e:
                 logger.error(f"Failed to delete existing portrait image: {e}")
@@ -413,7 +415,7 @@ class FaceRecognitionService:
             existing.embedding_vector = embedding
             existing.quality_score = quality_score
             existing.review_status = "DA_DUYET"
-            existing.reviewed_at = datetime.now(timezone.utc)
+            existing.reviewed_at = datetime.now(UTC)
             session.add(existing)
             image_record = existing
         else:
@@ -424,7 +426,7 @@ class FaceRecognitionService:
                 embedding_vector=embedding,
                 quality_score=quality_score,
                 review_status="DA_DUYET",
-                reviewed_at=datetime.now(timezone.utc),
+                reviewed_at=datetime.now(UTC),
                 storage_provider=metadata.get("storage_provider"),
                 public_id=metadata.get("public_id"),
                 secure_url=metadata.get("secure_url"),
@@ -432,7 +434,7 @@ class FaceRecognitionService:
                 file_size=metadata.get("file_size"),
                 mime_type=metadata.get("mime_type"),
                 width=metadata.get("width"),
-                height=metadata.get("height")
+                height=metadata.get("height"),
             )
             session.add(image_record)
 
@@ -454,8 +456,12 @@ class FaceRecognitionService:
         reviewer_id: int,
     ) -> Any:
         """Approve a pending face image and update FAISS cache."""
-        from datetime import datetime, timezone
-        from app.core.exceptions import FaceImageNotFoundError, InvalidFaceEmbeddingError
+        from datetime import datetime
+
+        from app.core.exceptions import (
+            FaceImageNotFoundError,
+            InvalidFaceEmbeddingError,
+        )
 
         image_record = session.get(FaceImage, image_id)
         if not image_record:
@@ -468,7 +474,7 @@ class FaceRecognitionService:
         image_record.review_status = "DA_DUYET"
         image_record.rejection_reason = None
         image_record.reviewer_id = reviewer_id
-        image_record.reviewed_at = datetime.now(timezone.utc)
+        image_record.reviewed_at = datetime.now(UTC)
 
         session.add(image_record)
         session.commit()
@@ -486,7 +492,8 @@ class FaceRecognitionService:
         reason: str | None,
     ) -> Any:
         """Reject a pending face image."""
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         from app.core.exceptions import FaceImageNotFoundError
 
         image_record = session.get(FaceImage, image_id)
@@ -496,7 +503,7 @@ class FaceRecognitionService:
         image_record.review_status = "TU_CHOI"
         image_record.rejection_reason = reason
         image_record.reviewer_id = reviewer_id
-        image_record.reviewed_at = datetime.now(timezone.utc)
+        image_record.reviewed_at = datetime.now(UTC)
 
         session.add(image_record)
         session.commit()
@@ -512,17 +519,18 @@ class FaceRecognitionService:
         confidence: float,
     ) -> str:
         """Save attendance evidence image and create its database record."""
+        import uuid
+
         from app.models import AttendanceImage
         from app.storage.storage_factory import get_storage_service
-        import uuid
 
         storage_service = get_storage_service()
         evidence_name = f"dd_{attendance_id}_{uuid.uuid4().hex[:8]}.jpg"
-        
+
         metadata = storage_service.save_image(
             file_bytes=image_bytes,
             filename=evidence_name,
-            folder="online_attendance/evidence"
+            folder="online_attendance/evidence",
         )
 
         session.add(
@@ -537,7 +545,7 @@ class FaceRecognitionService:
                 file_size=metadata.get("file_size"),
                 mime_type=metadata.get("mime_type"),
                 width=metadata.get("width"),
-                height=metadata.get("height")
+                height=metadata.get("height"),
             )
         )
         session.commit()
@@ -553,8 +561,8 @@ class FaceRecognitionService:
         auto_register_confidence: float = 0.95,
     ) -> dict[str, Any]:
         """Auto-register a student's face and optionally record attendance."""
-        from app.models import FaceImage
         from app.crud.attendance_crud import mark_attendance_by_lora
+        from app.models import FaceImage
 
         try:
             success, message, quality_score, embedding = self.assess_face_image(
@@ -654,5 +662,3 @@ def get_face_service(request: Request) -> FaceRecognitionService:
         service = get_or_create_face_service()
         request.app.state.face_service = service
     return service
-
-

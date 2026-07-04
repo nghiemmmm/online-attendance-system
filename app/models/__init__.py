@@ -2,6 +2,41 @@
 
 from sqlmodel import SQLModel
 
+from app.models.academic_warning import AbsenceWarningItem, AbsenceWarningsPublic
+from app.models.account import (
+    Account,
+    AccountBase,
+    AccountCreate,
+    AccountListPublic,
+    AccountProfile,
+    AccountPublic,
+    AccountRegister,
+    AccountsPublic,
+    AccountUpdate,
+)
+from app.models.appeal import (
+    Appeal,
+    AppealApprovalRequest,
+    AppealBase,
+    AppealCreate,
+    AppealPublic,
+    AppealResolutionRequest,
+    AppealResolutionResult,
+    AppealsPublic,
+    AppealUpdate,
+    PendingAppealDetail,
+    PendingAppealItem,
+    PendingAppealMetric,
+    PendingAppealsPublic,
+)
+from app.models.attendance import (
+    Attendance,
+    AttendanceBase,
+    AttendanceCreate,
+    AttendancePublic,
+    AttendancesPublic,
+    AttendanceUpdate,
+)
 from app.models.attendance_image import (
     AttendanceImage,
     AttendanceImageBase,
@@ -10,14 +45,7 @@ from app.models.attendance_image import (
     AttendanceImagesPublic,
     AttendanceImageUpdate,
 )
-from app.models.face_image import (
-    FaceImage,
-    FaceImageBase,
-    FaceImageCreate,
-    FaceImagePublic,
-    FaceImagesPublic,
-    FaceImageUpdate,
-)
+from app.models.attendance_statistics import SemesterAttendanceSummaryPublic
 from app.models.attendance_summary import MonthlyAttendanceSummary
 from app.models.audit_log import (
     AuditLog,
@@ -36,10 +64,13 @@ from app.models.auth import (
     TokenPayload,
     UpdatePassword,
 )
-from app.models.otp import (
-    OTPRecord,
-    SendOtpRequest,
-    StudentRegisterRequest,
+from app.models.class_section import (
+    ClassSection,
+    ClassSectionBase,
+    ClassSectionCreate,
+    ClassSectionPublic,
+    ClassSectionsPublic,
+    ClassSectionUpdate,
 )
 from app.models.class_session import (
     ClassSession,
@@ -49,37 +80,7 @@ from app.models.class_session import (
     ClassSessionsPublic,
     ClassSessionUpdate,
 )
-from app.models.academic_warning import AbsenceWarningItem, AbsenceWarningsPublic
-from app.models.staff import (
-    Staff,
-    StaffBase,
-    StaffCreate,
-    StaffPublic,
-    StaffMembersPublic,
-    StaffUpdate,
-    StaffClassSectionItem,
-    StaffClassSectionsPublic,
-    AttendanceReportDataPoint,
-    StaffAttendanceReportItem,
-)
 from app.models.common import Message
-from app.models.course_registration import (
-    CourseRegistration,
-    CourseRegistrationBase,
-    CourseRegistrationCreate,
-    CourseRegistrationPublic,
-    CourseRegistrationsPublic,
-    CourseRegistrationUpdate,
-)
-from app.models.attendance import (
-    Attendance,
-    AttendanceBase,
-    AttendanceCreate,
-    AttendancePublic,
-    AttendancesPublic,
-    AttendanceUpdate,
-)
-from app.models.attendance_statistics import SemesterAttendanceSummaryPublic
 from app.models.course import (
     Course,
     CourseBase,
@@ -88,37 +89,22 @@ from app.models.course import (
     CoursesPublic,
     CourseUpdate,
 )
-from app.models.appeal import (
-    Appeal,
-    AppealBase,
-    PendingAppealDetail,
-    PendingAppealItem,
-    PendingAppealsPublic,
-    AppealApprovalRequest,
-    PendingAppealMetric,
-    AppealCreate,
-    AppealPublic,
-    AppealsPublic,
-    AppealUpdate,
-    AppealResolutionRequest,
-    AppealResolutionResult,
+from app.models.course_registration import (
+    CourseRegistration,
+    CourseRegistrationBase,
+    CourseRegistrationCreate,
+    CourseRegistrationPublic,
+    CourseRegistrationsPublic,
+    CourseRegistrationUpdate,
 )
-from app.models.class_section import (
-    ClassSection,
-    ClassSectionBase,
-    ClassSectionCreate,
-    ClassSectionPublic,
-    ClassSectionsPublic,
-    ClassSectionUpdate,
+from app.models.face_image import (
+    FaceImage,
+    FaceImageBase,
+    FaceImageCreate,
+    FaceImagePublic,
+    FaceImagesPublic,
+    FaceImageUpdate,
 )
-from app.models.teaching_schedule import (
-    RecentClassSessionItem,
-    RecentClassSessionsPublic,
-    TeachingScheduleItem,
-    TeachingSchedulesPublic,
-    ActiveClassSectionCountPublic,
-)
-from app.models.student_schedule import TodayScheduleItem, TodaySchedulePublic
 from app.models.major import (
     Major,
     MajorBase,
@@ -128,31 +114,53 @@ from app.models.major import (
     MajorUpdate,
 )
 from app.models.oauth_identity import OAuthIdentity
+from app.models.otp import (
+    OTPRecord,
+    SendOtpRequest,
+    StudentRegisterRequest,
+)
 from app.models.refresh_token import RefreshToken
+from app.models.semester import (
+    Semester,
+    SemesterBase,
+    SemesterCreate,
+    SemesterPublic,
+    SemestersPublic,
+    SemesterUpdate,
+)
+from app.models.staff import (
+    AttendanceReportDataPoint,
+    Staff,
+    StaffAttendanceReportItem,
+    StaffBase,
+    StaffClassSectionItem,
+    StaffClassSectionsPublic,
+    StaffCreate,
+    StaffMembersPublic,
+    StaffPublic,
+    StaffUpdate,
+)
 from app.models.student import (
     Student,
-    StudentBase,
-    StudentCreate,
-    StudentPublic,
-    StudentsPublic,
-    StudentUpdate,
-    StudentScheduleItem,
-    StudentSchedulePublic,
     StudentAttendanceItem,
     StudentAttendancePublic,
     StudentAvailableClassItem,
     StudentAvailableClassPublic,
+    StudentBase,
+    StudentCreate,
+    StudentPublic,
+    StudentScheduleItem,
+    StudentSchedulePublic,
+    StudentsPublic,
+    StudentUpdate,
 )
-from app.models.account import (
-    Account,
-    AccountBase,
-    AccountCreate,
-    AccountListPublic,
-    AccountProfile,
-    AccountPublic,
-    AccountRegister,
-    AccountsPublic,
-    AccountUpdate,
+from app.models.student_schedule import TodayScheduleItem, TodaySchedulePublic
+from app.models.teaching_schedule import (
+    ActiveClassSectionCountPublic,
+    RecentClassSessionItem,
+    RecentClassSessionsPublic,
+    TeachingScheduleItem,
+    TeachingSchedulesPublic,
 )
 from app.models.timetable import (
     Timetable,
@@ -161,14 +169,6 @@ from app.models.timetable import (
     TimetablePublic,
     TimetablesPublic,
     TimetableUpdate,
-)
-from app.models.semester import (
-    Semester,
-    SemesterBase,
-    SemesterCreate,
-    SemesterPublic,
-    SemestersPublic,
-    SemesterUpdate,
 )
 
 # Backward-compatible aliases for legacy Vietnamese model names.

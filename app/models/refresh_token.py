@@ -1,13 +1,13 @@
 """Define refresh token database models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class RefreshToken(SQLModel, table=True):

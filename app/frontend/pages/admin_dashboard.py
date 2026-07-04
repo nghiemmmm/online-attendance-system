@@ -1,9 +1,11 @@
-import streamlit as st
+from datetime import datetime
+
 import pandas as pd
-from datetime import datetime, timedelta
-import plotly.graph_objects as go
 import plotly.express as px
-from app.frontend.api_client import StudentAPI, TeacherAPI, AttendanceAPI, ClassAPI
+import plotly.graph_objects as go
+import streamlit as st
+
+from app.frontend.api_client import AttendanceAPI, ClassAPI, StudentAPI, TeacherAPI
 
 st.set_page_config(page_title="Admin Dashboard", layout="wide")
 
@@ -47,13 +49,13 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📊 Thống kê điểm danh 7 ngày qua")
 
-    if attendance_stats and 'attendance_rates' in attendance_stats:
-        days = attendance_stats.get('days', ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'])
-        attendance = attendance_stats.get('attendance_rates', [85, 87, 86, 88, 90, 89, 85])
+    if attendance_stats and "attendance_rates" in attendance_stats:
+        days = attendance_stats.get("days", ["T2", "T3", "T4", "T5", "T6", "T7", "CN"])
+        attendance = attendance_stats.get(
+            "attendance_rates", [85, 87, 86, 88, 90, 89, 85]
+        )
 
-        fig = go.Figure(data=[
-            go.Bar(x=days, y=attendance, marker_color='lightblue')
-        ])
+        fig = go.Figure(data=[go.Bar(x=days, y=attendance, marker_color="lightblue")])
         fig.update_layout(height=300, xaxis_title="Ngày", yaxis_title="Tỷ lệ (%)")
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -66,12 +68,12 @@ with col2:
         # Count students per class
         class_counts = {}
         for cls in classes:
-            class_name = cls.get('name', 'Unknown')
+            class_name = cls.get("name", "Unknown")
             class_counts[class_name] = 0
 
         if students:
             for student in students:
-                student_class = student.get('class', 'Unknown')
+                student_class = student.get("class", "Unknown")
                 if student_class in class_counts:
                     class_counts[student_class] += 1
 
@@ -97,9 +99,9 @@ activity_data = {
         "Thêm học sinh Trần Hương Nhi vào lớp 11B",
         "Thay đổi giáo viên lớp 10C",
         "Điểm danh hoàn thành lớp 10B",
-        "Khởi động hệ thống"
+        "Khởi động hệ thống",
     ],
-    "Người dùng": ["Nguyễn Quốc Anh", "Admin", "Admin", "Trần Hương Ly", "System"]
+    "Người dùng": ["Nguyễn Quốc Anh", "Admin", "Admin", "Trần Hương Ly", "System"],
 }
 
 df_activity = pd.DataFrame(activity_data)
@@ -119,7 +121,9 @@ with col1:
     if st.checkbox("Chế độ bảo trì"):
         st.warning("⚠️ Chế độ bảo trì đã bật")
 
-    backup_frequency = st.selectbox("Tần suất sao lưu", ["Hàng ngày", "Hàng tuần", "Hàng tháng"])
+    backup_frequency = st.selectbox(
+        "Tần suất sao lưu", ["Hàng ngày", "Hàng tuần", "Hàng tháng"]
+    )
 
 with col2:
     st.subheader("🔐 Bảo mật")

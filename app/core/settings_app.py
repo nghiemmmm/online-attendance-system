@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import AnyUrl, BeforeValidator, computed_field
 
@@ -28,7 +28,9 @@ class AppSettings(BaseSettings):
 
     FRONTEND_HOST: str = "http://localhost:5173"
     GOOGLE_ALLOWED_EMAIL_DOMAIN: str = ""
-    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
     CLOUDINARY_CLOUD_NAME: str = ""
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""

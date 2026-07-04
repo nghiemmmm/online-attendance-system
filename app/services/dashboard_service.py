@@ -4,24 +4,23 @@ Dashboard service.
 Contains logic for admin dashboard statistics and system reports.
 """
 
-from sqlmodel import Session, select, func, col
-from fastapi import Depends
 from typing import Any
-from datetime import datetime
 
+from fastapi import Depends
+from sqlmodel import Session, func, select
+
+from app.api.deps import get_db
 from app.models import (
     Account,
-    Student,
-    Staff,
-    ClassSection,
     Attendance,
+    ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
     FaceImage,
     Major,
-    Course,
-    ClassSession,
-    CourseRegistration,
+    Student,
 )
-from app.api.deps import get_db
 
 
 class DashboardService:
@@ -32,49 +31,78 @@ class DashboardService:
 
     def get_system_stats(self) -> dict[str, Any]:
         """Lấy số liệu thống kê hệ thống dành cho Admin."""
-        total_users = self.session.exec(select(func.count(Account.account_id))).first() or 0
-        total_students = self.session.exec(
-            select(func.count(Account.account_id)).where(Account.role == "SINH_VIEN")
-        ).first() or 0
-        total_lecturers = self.session.exec(
-            select(func.count(Account.account_id)).where(Account.role.in_(["GIANG_VIEN", "CAN_BO"]))
-        ).first() or 0
-        total_admins = self.session.exec(
-            select(func.count(Account.account_id)).where(Account.role == "ADMIN")
-        ).first() or 0
+        total_users = (
+            self.session.exec(select(func.count(Account.account_id))).first() or 0
+        )
+        total_students = (
+            self.session.exec(
+                select(func.count(Account.account_id)).where(
+                    Account.role == "SINH_VIEN"
+                )
+            ).first()
+            or 0
+        )
+        total_lecturers = (
+            self.session.exec(
+                select(func.count(Account.account_id)).where(
+                    Account.role.in_(["GIANG_VIEN", "CAN_BO"])
+                )
+            ).first()
+            or 0
+        )
+        total_admins = (
+            self.session.exec(
+                select(func.count(Account.account_id)).where(Account.role == "ADMIN")
+            ).first()
+            or 0
+        )
 
-        total_classes = self.session.exec(select(func.count(ClassSection.class_section_id))).first() or 0
+        total_classes = (
+            self.session.exec(select(func.count(ClassSection.class_section_id))).first()
+            or 0
+        )
 
         # Calculate true average attendance rate: total present/late vs expected enrollments of active/completed sessions
         class_sessions = self.session.exec(
-            select(ClassSession).where(ClassSession.status.in_(["DANG_DIEN_RA", "DA_KET_THUC"]))
+            select(ClassSession).where(
+                ClassSession.status.in_(["DANG_DIEN_RA", "DA_KET_THUC"])
+            )
         ).all()
 
         total_expected = 0
         for class_session in class_sessions:
-            reg_count = self.session.exec(
-                select(func.count(CourseRegistration.student_id))
-                .where(CourseRegistration.class_section_id == class_session.class_section_id)
-            ).first() or 0
+            reg_count = (
+                self.session.exec(
+                    select(func.count(CourseRegistration.student_id)).where(
+                        CourseRegistration.class_section_id
+                        == class_session.class_section_id
+                    )
+                ).first()
+                or 0
+            )
             total_expected += reg_count
 
         class_session_ids = [
             class_session.class_session_id for class_session in class_sessions
         ]
         if class_session_ids and total_expected > 0:
-            total_present = self.session.exec(
-                select(func.count(Attendance.attendance_id))
-                .where(
-                    Attendance.status.in_(["CO_MAT", "DI_MUON", "MUON"]),
-                    Attendance.class_session_id.in_(class_session_ids)
-                )
-            ).first() or 0
+            total_present = (
+                self.session.exec(
+                    select(func.count(Attendance.attendance_id)).where(
+                        Attendance.status.in_(["CO_MAT", "DI_MUON", "MUON"]),
+                        Attendance.class_session_id.in_(class_session_ids),
+                    )
+                ).first()
+                or 0
+            )
             avg_rate = total_present / total_expected
         else:
             avg_rate = 0.0
 
         subquery = select(FaceImage.student_id).distinct()
-        stmt = select(func.count(Student.student_id)).where(Student.student_id.not_in(subquery))
+        stmt = select(func.count(Student.student_id)).where(
+            Student.student_id.not_in(subquery)
+        )
         students_without_face = self.session.exec(stmt).first() or 0
 
         return {
@@ -84,44 +112,60 @@ class DashboardService:
             "total_admins": total_admins,
             "total_classes": total_classes,
             "avg_attendance_rate": avg_rate,
-            "students_without_face": students_without_face
+            "students_without_face": students_without_face,
         }
 
     def get_system_reports(self) -> dict[str, Any]:
         """Lấy dữ liệu thống kê báo cáo chi tiết cho Admin."""
         # 1. Summary Metrics
-        total_students = self.session.exec(select(func.count(Student.student_id))).first() or 0
+        total_students = (
+            self.session.exec(select(func.count(Student.student_id))).first() or 0
+        )
         # Calculate true average attendance rate: total present/late vs expected enrollments of active/completed sessions
         class_sessions = self.session.exec(
-            select(ClassSession).where(ClassSession.status.in_(["DANG_DIEN_RA", "DA_KET_THUC"]))
+            select(ClassSession).where(
+                ClassSession.status.in_(["DANG_DIEN_RA", "DA_KET_THUC"])
+            )
         ).all()
 
         total_expected = 0
         for class_session in class_sessions:
-            reg_count = self.session.exec(
-                select(func.count(CourseRegistration.student_id))
-                .where(CourseRegistration.class_section_id == class_session.class_section_id)
-            ).first() or 0
+            reg_count = (
+                self.session.exec(
+                    select(func.count(CourseRegistration.student_id)).where(
+                        CourseRegistration.class_section_id
+                        == class_session.class_section_id
+                    )
+                ).first()
+                or 0
+            )
             total_expected += reg_count
 
         class_session_ids = [
             class_session.class_session_id for class_session in class_sessions
         ]
         if class_session_ids and total_expected > 0:
-            total_present = self.session.exec(
-                select(func.count(Attendance.attendance_id))
-                .where(
-                    Attendance.status.in_(["CO_MAT", "DI_MUON", "MUON"]),
-                    Attendance.class_session_id.in_(class_session_ids)
-                )
-            ).first() or 0
+            total_present = (
+                self.session.exec(
+                    select(func.count(Attendance.attendance_id)).where(
+                        Attendance.status.in_(["CO_MAT", "DI_MUON", "MUON"]),
+                        Attendance.class_session_id.in_(class_session_ids),
+                    )
+                ).first()
+                or 0
+            )
             avg_rate = round((total_present / total_expected * 100), 1)
         else:
             avg_rate = 0.0
 
-        total_sessions = self.session.exec(
-            select(func.count(ClassSession.class_session_id)).where(ClassSession.status == "DA_KET_THUC")
-        ).first() or 0
+        total_sessions = (
+            self.session.exec(
+                select(func.count(ClassSession.class_session_id)).where(
+                    ClassSession.status == "DA_KET_THUC"
+                )
+            ).first()
+            or 0
+        )
 
         # Cảnh báo: Số sinh viên có trên 3 buổi Vắng
         statement_warning = (
@@ -141,11 +185,15 @@ class DashboardService:
                 "present": 0,
                 "absent": 0,
                 "late": 0,
-                "rate": 0.0
+                "rate": 0.0,
             }
 
         statement_dept = (
-            select(Student.major_id, Attendance.status, func.count(Attendance.attendance_id))
+            select(
+                Student.major_id,
+                Attendance.status,
+                func.count(Attendance.attendance_id),
+            )
             .join(Attendance, Attendance.student_id == Student.student_id)
             .group_by(Student.major_id, Attendance.status)
         )
@@ -159,7 +207,7 @@ class DashboardService:
                 elif status in ["DI_MUON", "MUON"]:
                     dept_data[major_id]["late"] += count
 
-        for major_id, info in list(dept_data.items()):
+        for _major_id, info in list(dept_data.items()):
             total = info["present"] + info["absent"] + info["late"]
             info["rate"] = (
                 round(((info["present"] + info["late"]) / total * 100), 1)
@@ -170,8 +218,20 @@ class DashboardService:
         attendance_by_department = list(dept_data.values())
         if not attendance_by_department:
             attendance_by_department = [
-                {"department": "CNTT", "present": 0, "absent": 0, "late": 0, "rate": 0.0},
-                {"department": "QTKD", "present": 0, "absent": 0, "late": 0, "rate": 0.0}
+                {
+                    "department": "CNTT",
+                    "present": 0,
+                    "absent": 0,
+                    "late": 0,
+                    "rate": 0.0,
+                },
+                {
+                    "department": "QTKD",
+                    "present": 0,
+                    "absent": 0,
+                    "late": 0,
+                    "rate": 0.0,
+                },
             ]
 
         # 3. status_distribution
@@ -217,8 +277,14 @@ class DashboardService:
 
         # 4. weekly_trend (last 7 days of completed sessions)
         statement_weekly = (
-            select(ClassSession.class_date, Attendance.status, func.count(Attendance.attendance_id))
-            .join(Attendance, Attendance.class_session_id == ClassSession.class_session_id)
+            select(
+                ClassSession.class_date,
+                Attendance.status,
+                func.count(Attendance.attendance_id),
+            )
+            .join(
+                Attendance, Attendance.class_session_id == ClassSession.class_session_id
+            )
             .group_by(ClassSession.class_date, Attendance.status)
             .order_by(ClassSession.class_date.desc())
             .limit(21)
@@ -244,15 +310,11 @@ class DashboardService:
                 if tot > 0
                 else 0.0
             )
-            weekly_trend.append({
-                "week": date_label,
-                "rate": rate,
-                "students": tot
-            })
+            weekly_trend.append({"week": date_label, "rate": rate, "students": tot})
         if not weekly_trend:
             weekly_trend = [
                 {"week": "T2", "rate": 0.0, "students": 0},
-                {"week": "T3", "rate": 0.0, "students": 0}
+                {"week": "T3", "rate": 0.0, "students": 0},
             ]
 
         # 5. monthly_comparison
@@ -275,7 +337,9 @@ class DashboardService:
         absent_results = self.session.exec(statement_absent).all()
         top_absent_students = []
         for student, absent_count in absent_results:
-            major = self.session.get(Major, student.major_id) if student.major_id else None
+            major = (
+                self.session.get(Major, student.major_id) if student.major_id else None
+            )
             total_attendance_count = (
                 self.session.exec(
                     select(func.count(Attendance.attendance_id)).where(
@@ -284,22 +348,43 @@ class DashboardService:
                 ).first()
                 or 1
             )
-            rate = round(((total_attendance_count - absent_count) / total_attendance_count * 100), 1)
-            top_absent_students.append({
-                "id": f"STUDENT{student.student_id:03d}",
-                "name": f"{student.last_name} {student.first_name}".strip(),
-                "department": major.major_name if major else "CNTT",
-                "absences": absent_count,
-                "rate": rate
-            })
+            rate = round(
+                (
+                    (total_attendance_count - absent_count)
+                    / total_attendance_count
+                    * 100
+                ),
+                1,
+            )
+            top_absent_students.append(
+                {
+                    "id": f"STUDENT{student.student_id:03d}",
+                    "name": f"{student.last_name} {student.first_name}".strip(),
+                    "department": major.major_name if major else "CNTT",
+                    "absences": absent_count,
+                    "rate": rate,
+                }
+            )
 
         # 7. class_performance
         statement_class = (
-            select(ClassSection, Course, Attendance.status, func.count(Attendance.attendance_id))
+            select(
+                ClassSection,
+                Course,
+                Attendance.status,
+                func.count(Attendance.attendance_id),
+            )
             .join(Course, Course.course_id == ClassSection.course_id)
-            .join(ClassSession, ClassSession.class_session_id == ClassSection.class_section_id)
-            .join(Attendance, Attendance.class_session_id == ClassSession.class_session_id)
-            .group_by(ClassSection.class_section_id, Course.course_id, Attendance.status)
+            .join(
+                ClassSession,
+                ClassSession.class_session_id == ClassSection.class_section_id,
+            )
+            .join(
+                Attendance, Attendance.class_session_id == ClassSession.class_session_id
+            )
+            .group_by(
+                ClassSection.class_section_id, Course.course_id, Attendance.status
+            )
         )
         class_results = self.session.exec(statement_class).all()
         class_map = {}
@@ -317,36 +402,42 @@ class DashboardService:
         class_performance = []
         for name, info in class_map.items():
             tot = info["present"] + info["absent"] + info["late"]
-            average_rate = round(
-                ((info["present"] + info["late"]) / tot * 100), 1
-            ) if tot > 0 else 0.0
-            studs = self.session.exec(
-                select(func.count(CourseRegistration.student_id))
-                .where(
-                    CourseRegistration.class_section_id
-                    == int(name.split("(")[-1].replace(")", ""))
-                )
-            ).first() or 0
-            class_performance.append({
-                "class": name.split(" (")[0],
-                "students": studs,
-                "avgRate": average_rate,
-                "trend": "up" if average_rate >= 80 else "down"
-            })
+            average_rate = (
+                round(((info["present"] + info["late"]) / tot * 100), 1)
+                if tot > 0
+                else 0.0
+            )
+            studs = (
+                self.session.exec(
+                    select(func.count(CourseRegistration.student_id)).where(
+                        CourseRegistration.class_section_id
+                        == int(name.split("(")[-1].replace(")", ""))
+                    )
+                ).first()
+                or 0
+            )
+            class_performance.append(
+                {
+                    "class": name.split(" (")[0],
+                    "students": studs,
+                    "avgRate": average_rate,
+                    "trend": "up" if average_rate >= 80 else "down",
+                }
+            )
 
         return {
             "summary": {
                 "total_students": total_students,
                 "avg_attendance_rate": avg_rate,
                 "total_sessions": total_sessions,
-                "attendance_warnings": attendance_warnings
+                "attendance_warnings": attendance_warnings,
             },
             "attendanceByDepartment": attendance_by_department,
             "statusDistribution": status_distribution,
             "weeklyTrend": weekly_trend,
             "monthlyComparison": monthly_comparison,
             "topAbsentStudents": top_absent_students,
-            "classPerformance": class_performance
+            "classPerformance": class_performance,
         }
 
 

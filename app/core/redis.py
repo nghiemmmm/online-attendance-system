@@ -8,6 +8,7 @@ from app.utils.logger import logger
 # Global Redis client instance
 redis_client = None
 
+
 async def init_redis_client() -> None:
     """Initialize Redis connection pool."""
     global redis_client
@@ -21,7 +22,7 @@ async def init_redis_client() -> None:
             settings.REDIS_URL,
             encoding="utf-8",
             decode_responses=True,
-            socket_timeout=5.0, # Fail fast on connection timeout
+            socket_timeout=5.0,  # Fail fast on connection timeout
         )
         # Ping connection to verify it is active
         await redis_client.ping()
@@ -30,6 +31,7 @@ async def init_redis_client() -> None:
         logger.error(f"❌ Failed to connect to Redis at {settings.REDIS_URL}: {e}")
         # Keep client as None, system will fallback to in-memory mode
         redis_client = None
+
 
 async def close_redis_client() -> None:
     """Close Redis client connection pool."""
@@ -43,6 +45,7 @@ async def close_redis_client() -> None:
             logger.error(f"Error closing Redis client: {e}")
         finally:
             redis_client = None
+
 
 async def get_redis():
     """Safe getter for redis client."""

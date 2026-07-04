@@ -8,17 +8,22 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query, status
 
-from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_student, CurrentAccount
+from app.api.deps import (
+    CurrentAccount,
+    SessionDep,
+    get_current_active_student,
+    get_current_active_superuser,
+)
 from app.models import (
+    AbsenceWarningsPublic,
     Message,
-    StudentCreate,
-    StudentPublic,
-    StudentsPublic,
-    StudentUpdate,
-    StudentSchedulePublic,
     StudentAttendancePublic,
     StudentAvailableClassPublic,
-    AbsenceWarningsPublic,
+    StudentCreate,
+    StudentPublic,
+    StudentSchedulePublic,
+    StudentsPublic,
+    StudentUpdate,
 )
 from app.services import student_service
 

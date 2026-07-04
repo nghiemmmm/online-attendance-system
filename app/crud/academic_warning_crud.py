@@ -8,7 +8,13 @@ from dataclasses import dataclass
 
 from sqlmodel import Session, func, select
 
-from app.models import ClassSession, CourseRegistration, Attendance, Course, ClassSection
+from app.models import (
+    Attendance,
+    ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
+)
 
 ABSENT_ATTENDANCE_STATUSES = {"VANG", "VANG_MAT"}
 
@@ -23,9 +29,7 @@ class AbsenceWarningSource:
     absent_session_count: int
 
 
-def count_lessons_by_class_section(
-    *, session: Session, class_section_id: int
-) -> int:
+def count_lessons_by_class_section(*, session: Session, class_section_id: int) -> int:
     """Count lessons for one class section."""
     statement = (
         select(func.count())
@@ -45,7 +49,9 @@ def count_absences_by_student_and_class_section(
     statement = (
         select(func.count())
         .select_from(Attendance)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
         .where(
             Attendance.student_id == student_id,
             ClassSession.class_section_id == class_section_id,

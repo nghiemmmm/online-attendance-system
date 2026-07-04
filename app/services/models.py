@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 """Core FaceNet and MTCNN helpers."""
 
 import numpy as np
 import torch
-from facenet_pytorch import InceptionResnetV1, MTCNN
+from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
 
 from app.utils.logger import logger
@@ -75,7 +74,7 @@ def face_encodings(img, known_face_locations=None):
 def face_distance(face_encodings, face_to_compare):
     """Calculate L2 distances between known embeddings and one face."""
     if len(face_encodings) == 0:
-        return np.empty((0))
+        return np.empty(0)
     return np.linalg.norm(np.array(face_encodings) - face_to_compare, axis=1)
 
 

@@ -10,8 +10,8 @@ from typing import Any
 
 from sqlmodel import Session
 
-from app.crud.attendance_summary_crud import get_attendance_counts_for_teacher
 from app.core.exceptions import ClassSectionNotFoundError, PermissionDeniedError
+from app.crud.attendance_summary_crud import get_attendance_counts_for_teacher
 from app.models import MonthlyAttendanceSummary
 
 
@@ -202,10 +202,17 @@ def get_attendance_report_df(
     unsigned: bool = False,
 ) -> tuple[Any, int]:
     """Retrieve and format attendance records as a pandas DataFrame for exporting."""
-    from app.models import ClassSection, ClassSession, Attendance, Student, CourseRegistration
-    from app.crud import staff_crud
-    from sqlmodel import select
     import pandas as pd
+    from sqlmodel import select
+
+    from app.crud import staff_crud
+    from app.models import (
+        Attendance,
+        ClassSection,
+        ClassSession,
+        CourseRegistration,
+        Student,
+    )
 
     # Check class section
     class_section = session.get(ClassSection, class_section_id)
@@ -213,18 +220,28 @@ def get_attendance_report_df(
         raise ClassSectionNotFoundError("Lớp học phần không tồn tại")
 
     # Check permissions
-    staff = staff_crud.get_staff_member_by_account_id(session=session, account_id=current_account.account_id)
+    staff = staff_crud.get_staff_member_by_account_id(
+        session=session, account_id=current_account.account_id
+    )
     if current_account.role != "ADMIN" and (
         not staff or class_section.staff_id != staff.staff_id
     ):
         raise PermissionDeniedError("Không có quyền truy cập dữ liệu lớp này")
 
     # Get enrolled students
-    student_statement = select(Student).join(CourseRegistration).where(CourseRegistration.class_section_id == class_section_id)
+    student_statement = (
+        select(Student)
+        .join(CourseRegistration)
+        .where(CourseRegistration.class_section_id == class_section_id)
+    )
     students = session.exec(student_statement).all()
 
     # Get lessons
-    class_session_statement = select(ClassSession).where(ClassSession.class_section_id == class_section_id).order_by(ClassSession.class_date, ClassSession.start_time)
+    class_session_statement = (
+        select(ClassSession)
+        .where(ClassSession.class_section_id == class_section_id)
+        .order_by(ClassSession.class_date, ClassSession.start_time)
+    )
     class_sessions = session.exec(class_session_statement).all()
 
     # Optimize query: fetch all attendance records in ONE query
@@ -232,7 +249,9 @@ def get_attendance_report_df(
         class_session.class_session_id for class_session in class_sessions
     ]
     if class_session_ids:
-        attendance_statement = select(Attendance).where(Attendance.class_session_id.in_(class_session_ids))
+        attendance_statement = select(Attendance).where(
+            Attendance.class_session_id.in_(class_session_ids)
+        )
         attendances = session.exec(attendance_statement).all()
         # Map to dict: (class_session_id, student_id) -> status
         attendance_map = {

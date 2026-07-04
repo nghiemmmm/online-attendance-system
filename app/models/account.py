@@ -1,9 +1,9 @@
 """Define account database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import ClassVar
 
-from pydantic import field_serializer, field_validator
+from pydantic import field_serializer
 from sqlalchemy.orm import synonym
 from sqlmodel import Field, SQLModel
 
@@ -13,7 +13,7 @@ from app.models.base import AppBaseModel
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AccountBase(SQLModel):
@@ -88,7 +88,7 @@ class AccountPublic(AppBaseModel, AccountBase):
     def _serialize_datetime(self, value: datetime | None) -> str | None:
         if value is None:
             return None
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class AccountsPublic(SQLModel):

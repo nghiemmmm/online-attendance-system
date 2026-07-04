@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
@@ -38,7 +38,7 @@ def create_oauth_identity(
 def update_oauth_identity_last_login(
     *, session: Session, identity: OAuthIdentity
 ) -> OAuthIdentity:
-    identity.last_login_at = datetime.now(timezone.utc)
+    identity.last_login_at = datetime.now(UTC)
     session.add(identity)
     session.commit()
     session.refresh(identity)

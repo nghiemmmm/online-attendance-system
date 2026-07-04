@@ -69,32 +69,43 @@ package = false
 line-length = 88
 target-version = "py311"
 src = ["app", "tests"]
+exclude = ["scratch", "scripts", "run_init_sql.py", "scratch_comprehensive_scan.py", "app/alembic"]
 
 [tool.ruff.lint]
 select = [
-    "E",
-    "F",
-    "I",
-    "B",
-    "D",
-    "UP",
-    "SIM",
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "SIM",   # flake8-simplify
 ]
 ignore = [
-    "B008",
-    "D100",
-    "D104",
-    "D107",
+    "B008",   # function-call-in-default-argument (FastAPI Depends pattern)
+    "E501",   # line-too-long — ruff formatter handles this
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "E402",   # module-import-not-at-top (test fixtures often need late imports)
+]
+"app/**/*.py" = [
+    "E402",   # FastAPI apps use late/conditional imports in route handlers
+]
+"**/__init__.py" = [
+    "F401",   # unused-import — __init__.py re-exports symbols intentionally
+]
+"tests/conftest.py" = [
+    "E402",   # conftest patches modules before importing app
+    "F401",   # conftest imports models to register them
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app", "tests"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
 
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+

@@ -1,24 +1,36 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
+
 from sqlmodel import Session, select
-from typing import List
 
-from app.models import Attendance, ClassSession, CourseRegistration, AttendanceCreate, AttendanceUpdate
+from app.models import Attendance, ClassSession, CourseRegistration
 
-def calculate_attendance_status(class_session: ClassSession, current_time: datetime) -> str:
+
+def calculate_attendance_status(
+    class_session: ClassSession, current_time: datetime
+) -> str:
     """Xác định trạng thái CO_MAT hoặc MUON dựa trên giờ bắt đầu và số phút muộn tối đa."""
     if not class_session.start_time:
-        return "CO_MAT" # Nếu không cấu hình giờ, mặc định là có mặt
+        return "CO_MAT"  # Nếu không cấu hình giờ, mặc định là có mặt
 
     # Kết hợp ngày học và giờ học
-    start_datetime = datetime.combine(class_session.class_date, class_session.start_time)
-    latest_on_time_datetime = start_datetime + timedelta(minutes=class_session.late_grace_minutes)
+    start_datetime = datetime.combine(
+        class_session.class_date, class_session.start_time
+    )
+    latest_on_time_datetime = start_datetime + timedelta(
+        minutes=class_session.late_grace_minutes
+    )
 
     if current_time > latest_on_time_datetime:
         return "MUON"
     return "CO_MAT"
 
+
 def mark_attendance_by_lora(
-    *, session: Session, class_session_id: int, student_ids: List[int], average_confidence: float = 0.8
+    *,
+    session: Session,
+    class_session_id: int,
+    student_ids: list[int],
+    average_confidence: float = 0.8,
 ) -> dict:
     """Xử lý điểm danh hàng loạt từ AI."""
     class_session = session.get(ClassSession, class_session_id)
@@ -26,7 +38,10 @@ def mark_attendance_by_lora(
         return {"success": False, "message": "Buổi học không tồn tại"}
 
     if class_session.status != "DANG_DIEN_RA":
-        return {"success": False, "message": "Buổi học không trong trạng thái ĐANG_DIEN_RA"}
+        return {
+            "success": False,
+            "message": "Buổi học không trong trạng thái ĐANG_DIEN_RA",
+        }
 
     current_time = datetime.now()
     current_status = calculate_attendance_status(class_session, current_time)
@@ -34,7 +49,7 @@ def mark_attendance_by_lora(
     # Lấy các record điểm danh đã có của các sinh viên này trong buổi học
     statement = select(Attendance).where(
         Attendance.class_session_id == class_session_id,
-        Attendance.student_id.in_(student_ids)
+        Attendance.student_id.in_(student_ids),
     )
     existing_records = session.exec(statement).all()
     existing_map = {record.student_id: record for record in existing_records}
@@ -62,7 +77,7 @@ def mark_attendance_by_lora(
                 status=current_status,
                 method="KHUON_MAT",
                 confidence=average_confidence,
-                attendance_time=current_time
+                attendance_time=current_time,
             )
             new_records.append(new_dd)
 
@@ -71,7 +86,10 @@ def mark_attendance_by_lora(
         session.commit()
         for record in new_records:
             session.refresh(record)
-            if record.attendance_id is not None and record.attendance_id not in attendance_ids:
+            if (
+                record.attendance_id is not None
+                and record.attendance_id not in attendance_ids
+            ):
                 attendance_ids.append(record.attendance_id)
 
     return {
@@ -82,14 +100,26 @@ def mark_attendance_by_lora(
         "attendance_ids": attendance_ids,
     }
 
-    return {"success": True, "message": f"Đã điểm danh cho {len(new_records)} sinh viên", "status": current_status}
+    return {
+        "success": True,
+        "message": f"Đã điểm danh cho {len(new_records)} sinh viên",
+        "status": current_status,
+    }
 
 
 def mark_attendance_manually(
-    *, session: Session, class_session_id: int, student_id: int, status: str, note: str | None = None
+    *,
+    session: Session,
+    class_session_id: int,
+    student_id: int,
+    status: str,
+    note: str | None = None,
 ) -> Attendance:
     """Giảng viên điểm danh thủ công 1 sinh viên."""
-    statement = select(Attendance).where(Attendance.class_session_id == class_session_id, Attendance.student_id == student_id)
+    statement = select(Attendance).where(
+        Attendance.class_session_id == class_session_id,
+        Attendance.student_id == student_id,
+    )
     attendance = session.exec(statement).first()
 
     if attendance:
@@ -105,7 +135,7 @@ def mark_attendance_manually(
             status=status,
             method="THU_CONG",
             attendance_time=datetime.now(),
-            edit_reason=note
+            edit_reason=note,
         )
         session.add(attendance)
 
@@ -113,14 +143,19 @@ def mark_attendance_manually(
     session.refresh(attendance)
     return attendance
 
+
 def finalize_absent_attendance(*, session: Session, class_session: ClassSession) -> int:
     """Tạo bản ghi VANG cho toàn bộ sinh viên chưa có record khi buổi học kết thúc."""
     # Lấy toàn bộ sinh viên đăng ký lớp học phần
-    statement = select(CourseRegistration.student_id).where(CourseRegistration.class_section_id == class_session.class_section_id)
+    statement = select(CourseRegistration.student_id).where(
+        CourseRegistration.class_section_id == class_session.class_section_id
+    )
     registered_student_ids = session.exec(statement).all()
 
     # Lấy các sinh viên đã điểm danh
-    attendance_statement = select(Attendance.student_id).where(Attendance.class_session_id == class_session.class_session_id)
+    attendance_statement = select(Attendance.student_id).where(
+        Attendance.class_session_id == class_session.class_session_id
+    )
     attended_student_ids = set(session.exec(attendance_statement).all())
 
     missing_student_ids = [
@@ -137,7 +172,7 @@ def finalize_absent_attendance(*, session: Session, class_session: ClassSession)
             status="VANG",
             method="TU_DONG",
             attendance_time=datetime.now(),
-            edit_reason="Tự động đánh vắng khi chốt phiên"
+            edit_reason="Tự động đánh vắng khi chốt phiên",
         )
         absent_records.append(attendance)
 

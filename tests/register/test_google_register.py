@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from app.api.routes import google_auth_router as google_auth
 from app.core.exceptions import AccountInactiveError
-from app.models import GoogleAuthPending, OAuthIdentity, Account
+from app.models import Account, GoogleAuthPending, OAuthIdentity
 
 
 class FakeSession:

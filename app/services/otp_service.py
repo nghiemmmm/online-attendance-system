@@ -1,14 +1,15 @@
 """OTP verification service for student registration."""
 
-import random
 import logging
-from datetime import datetime, timedelta, timezone
-from sqlmodel import Session, select, col
-from fastapi import HTTPException
+import random
+from datetime import UTC, datetime, timedelta
 
-from app.models import Student, Account, OTPRecord
-from app.utils import send_email, EmailData
+from fastapi import HTTPException
+from sqlmodel import Session, col, select
+
 from app.core.config import settings
+from app.models import OTPRecord, Student
+from app.utils import send_email
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def generate_and_send_otp(*, session: Session, mssv: int, email: str) -> dict[st
 
     # 4. Generate 6-digit OTP code
     otp_code = f"{random.randint(100000, 999999)}"
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires_at = now + timedelta(minutes=5)
 
     # Store OTP in DB
@@ -72,21 +73,26 @@ def generate_and_send_otp(*, session: Session, mssv: int, email: str) -> dict[st
             send_email(email_to=email, subject=subject, html_content=html_content)
             logger.info("OTP sent successfully to %s", email)
         else:
-            logger.warning("[DEV MODE] Email disabled. OTP for %s is %s", email, otp_code)
+            logger.warning(
+                "[DEV MODE] Email disabled. OTP for %s is %s", email, otp_code
+            )
     except Exception as e:
         logger.error("Failed to send OTP email: %s. OTP code was %s", str(e), otp_code)
 
-    return {"message": f"Mã OTP đã được gửi tới email {email}", "dev_otp": otp_code if not settings.emails_enabled else None}
+    return {
+        "message": f"Mã OTP đã được gửi tới email {email}",
+        "dev_otp": otp_code if not settings.emails_enabled else None,
+    }
 
 
 def verify_otp(*, session: Session, email: str, code: str) -> bool:
     """Verify if the OTP code is valid and active."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     statement = (
         select(OTPRecord)
         .where(OTPRecord.email == email.strip().lower())
         .where(OTPRecord.code == code.strip())
-        .where(OTPRecord.is_used == False)
+        .where(OTPRecord.is_used.is_(False))
         .where(OTPRecord.expires_at > now)
         .order_by(col(OTPRecord.created_at).desc())
     )

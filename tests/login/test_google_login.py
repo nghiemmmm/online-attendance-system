@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from app.api.routes import google_auth_router as google_auth
 from app.core.exceptions import AccountInactiveError
-from app.models import OAuthIdentity, RefreshToken, Account
+from app.models import Account, OAuthIdentity, RefreshToken
 
 
 class FakeSession:
@@ -96,7 +96,12 @@ def test_existing_google_login_links_profile_account_and_returns_token(
     monkeypatch.setattr(
         google_auth.crud,
         "create_oauth_identity",
-        lambda *, session, provider, provider_subject, email, account_id: created_identity,
+        lambda *,
+        session,
+        provider,
+        provider_subject,
+        email,
+        account_id: created_identity,
     )
     monkeypatch.setattr(
         google_auth.crud,
@@ -259,6 +264,7 @@ async def test_google_callback_logs_in_with_existing_oauth_identity(
     result = await google_auth.google_callback(request=request, session=session)
 
     from fastapi.responses import RedirectResponse
+
     assert isinstance(result, RedirectResponse)
     assert "token=" in result.headers["location"]
     assert account.last_login_at is not None
@@ -299,11 +305,9 @@ async def test_google_callback_rejects_missing_linked_account(monkeypatch) -> No
     )
 
     from fastapi.responses import RedirectResponse
+
     result = await google_auth.google_callback(request=request, session=session)
     assert isinstance(result, RedirectResponse)
     location = result.headers["location"]
     assert "error=" in location
     assert "Account" in location
-
-
-

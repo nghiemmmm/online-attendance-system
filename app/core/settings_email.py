@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing_extensions import Self
+from typing import Self
 
 from pydantic import computed_field, model_validator
 

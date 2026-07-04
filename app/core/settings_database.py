@@ -23,10 +23,14 @@ class DatabaseSettings(BaseSettings):
 
     def _normalize_database_url(self, url: str, async_driver: bool) -> str:
         if url.startswith("postgres://"):
-            prefix = "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            prefix = (
+                "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            )
             url = url.replace("postgres://", prefix, 1)
         elif url.startswith("postgresql://"):
-            prefix = "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            prefix = (
+                "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            )
             url = url.replace("postgresql://", prefix, 1)
         elif async_driver and url.startswith("postgresql+psycopg://"):
             url = url.replace("postgresql+psycopg://", "postgresql+asyncpg://", 1)

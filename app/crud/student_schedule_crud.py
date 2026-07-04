@@ -9,11 +9,11 @@ from datetime import date
 from sqlmodel import Session, select
 
 from app.models import (
-    ClassSession,
-    CourseRegistration,
-    Course,
-    TodayScheduleItem,
     ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
+    TodayScheduleItem,
 )
 
 
@@ -26,7 +26,9 @@ def get_today_schedule_by_student(
     """Lay danh sach buoi hoc trong ngay cua sinh vien."""
     statement = (
         select(ClassSession, ClassSection, Course)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .join(Course, ClassSection.course_id == Course.course_id)
         .join(
             CourseRegistration,

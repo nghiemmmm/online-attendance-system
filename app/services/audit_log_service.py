@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import Request
 from sqlmodel import Session, func, select
 
-from app.models import AuditLog, AuditLogsPublic, Account
+from app.models import Account, AuditLog, AuditLogsPublic
 
 
 def request_ip(request: Request | None) -> str | None:
@@ -51,6 +51,7 @@ def write_audit_log(
     except Exception as e:
         session.rollback()
         import logging
+
         logging.getLogger("app.audit").error("Failed to write audit log: %s", e)
     return audit_log
 

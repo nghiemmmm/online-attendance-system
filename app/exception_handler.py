@@ -34,7 +34,7 @@ async def validation_exception_handler(
         err_type = err.get("type", "")
         msg = err.get("msg", "")
         display_field = field_name_map.get(str(loc_field), str(loc_field))
-        
+
         if "string_too_short" in err_type or "at least" in msg:
             ctx = err.get("ctx", {})
             min_l = ctx.get("min_length", 5)
@@ -46,8 +46,14 @@ async def validation_exception_handler(
         else:
             translated_msgs.append(f"Lỗi {display_field}: {msg}")
 
-    final_msg = " ".join(translated_msgs) if translated_msgs else "Dữ liệu nhập vào không hợp lệ. Vui lòng kiểm tra lại."
-    return JSONResponse(status_code=400, content={"detail": final_msg, "message": final_msg})
+    final_msg = (
+        " ".join(translated_msgs)
+        if translated_msgs
+        else "Dữ liệu nhập vào không hợp lệ. Vui lòng kiểm tra lại."
+    )
+    return JSONResponse(
+        status_code=400, content={"detail": final_msg, "message": final_msg}
+    )
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
@@ -66,7 +72,13 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 async def not_found_handler(request: Request, exc: HTTPException) -> JSONResponse:
     logger.info("not_found path=%s", request.url.path)
-    return JSONResponse(status_code=404, content={"detail": "Không tìm thấy đường dẫn hoặc tài nguyên yêu cầu.", "message": "Không tìm thấy tài nguyên yêu cầu."})
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": "Không tìm thấy đường dẫn hoặc tài nguyên yêu cầu.",
+            "message": "Không tìm thấy tài nguyên yêu cầu.",
+        },
+    )
 
 
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:

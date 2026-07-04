@@ -9,6 +9,7 @@ MODELS = [
     ("ThoiKhoaBieu", "thoikhoabieu", "ma_thoi_khoa_bieu"),
 ]
 
+
 def generate_crud(model_name, module_name, pk):
     return f"""from sqlmodel import Session, select, func
 from app.models import {model_name}, {model_name}Create, {model_name}Update
@@ -44,6 +45,7 @@ def delete_{module_name}(*, session: Session, db_item: {model_name}) -> None:
     session.commit()
 """
 
+
 def generate_router(model_name, module_name, pk):
     return f"""from typing import Any
 from fastapi import APIRouter, HTTPException
@@ -53,7 +55,7 @@ from app.api.deps import SessionDep, get_current_active_superuser
 from app.models import {model_name}, {model_name}Create, {model_name}Update, {model_name}Public, {model_name}sPublic
 from app.crud import {module_name}_crud
 
-router = APIRouter(prefix="/{module_name.replace('_', '-')}", tags=["{module_name.replace('_', '-')}"])
+router = APIRouter(prefix="/{module_name.replace("_", "-")}", tags=["{module_name.replace("_", "-")}"])
 
 @router.get("/", response_model={model_name}sPublic)
 def read_{module_name}s(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
@@ -89,10 +91,11 @@ def delete_{module_name}(session: SessionDep, {pk}: int) -> Any:
     return {{"message": "{model_name} deleted successfully"}}
 """
 
+
 def generate_all():
     crud_dir = "app/crud"
     route_dir = "app/api/routes"
-    
+
     for model_name, module_name, pk in MODELS:
         # Generate CRUD
         crud_path = os.path.join(crud_dir, f"{module_name}_crud.py")
@@ -100,13 +103,14 @@ def generate_all():
             with open(crud_path, "w", encoding="utf-8") as f:
                 f.write(generate_crud(model_name, module_name, pk))
             print(f"Created {crud_path}")
-        
+
         # Generate Router
         route_path = os.path.join(route_dir, f"{module_name}.py")
         if not os.path.exists(route_path):
             with open(route_path, "w", encoding="utf-8") as f:
                 f.write(generate_router(model_name, module_name, pk))
             print(f"Created {route_path}")
+
 
 if __name__ == "__main__":
     generate_all()

@@ -5,14 +5,15 @@ Contains business logic for student study schedules.
 """
 
 from datetime import date
-from sqlmodel import Session
-from fastapi import Depends
 
-from app.crud.student_schedule_crud import get_today_schedule_by_student
-from app.crud.student_crud import get_student
-from app.models import TodaySchedulePublic, Account
-from app.core.exceptions import StudentNotFoundError, PermissionDeniedError
+from fastapi import Depends
+from sqlmodel import Session
+
 from app.api.deps import get_db
+from app.core.exceptions import PermissionDeniedError, StudentNotFoundError
+from app.crud.student_crud import get_student
+from app.crud.student_schedule_crud import get_today_schedule_by_student
+from app.models import Account, TodaySchedulePublic
 
 
 class StudentScheduleService:
@@ -33,8 +34,13 @@ class StudentScheduleService:
         if not student:
             raise StudentNotFoundError("Student profile not found")
 
-        if current_account.role != "ADMIN" and student.account_id != current_account.account_id:
-            raise PermissionDeniedError("Not authorized to access this Sinh Vien's data")
+        if (
+            current_account.role != "ADMIN"
+            and student.account_id != current_account.account_id
+        ):
+            raise PermissionDeniedError(
+                "Not authorized to access this Sinh Vien's data"
+            )
 
         items, count = get_today_schedule_by_student(
             session=self.session,

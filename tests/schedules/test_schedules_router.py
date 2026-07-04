@@ -6,21 +6,21 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.api.deps import (
+    get_current_account,
+    get_current_active_student,
     get_current_active_superuser,
     get_db,
-    get_current_active_student,
-    get_current_account,
 )
 from app.main import app
 from app.models import (
-    ClassSession,
-    Staff,
-    CourseRegistration,
-    Course,
-    ClassSection,
-    Major,
-    Student,
     Account,
+    ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
+    Major,
+    Staff,
+    Student,
 )
 
 
@@ -65,6 +65,7 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
         # Link any seeded student profiles in test database to student account
         from sqlalchemy import event
+
         @event.listens_for(session, "before_flush")
         def set_student_account_id(sess, flush_context, instances):
             for obj in sess.new:
@@ -95,7 +96,11 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 def test_read_today_schedule_returns_student_lessons() -> None:
     """Test today schedule API returns only active registered lessons."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Nguyen", first_name="Giang", google_ten_dang_nhap="gv@example.edu")
+        staff = Staff(
+            last_name="Nguyen",
+            first_name="Giang",
+            google_ten_dang_nhap="gv@example.edu",
+        )
         major = Major(major_name="Cong nghe thong tin")
         course_1 = Course(
             course_id=801,
@@ -206,7 +211,10 @@ def test_read_today_schedule_returns_student_lessons() -> None:
         assert body["data"][0]["class_section_id"] == active_lop.class_section_id
         assert body["data"][0]["course_name"] == "Co so du lieu"
         # Service currently hardcodes phong_hoc; accept any non-empty string
-        assert body["data"][0]["phong_hoc"] is not None or body["data"][0]["phong_hoc"] is None
+        assert (
+            body["data"][0]["phong_hoc"] is not None
+            or body["data"][0]["phong_hoc"] is None
+        )
         assert body["data"][0]["start_time"] == "07:00:00"
         assert body["data"][0]["end_time"] == "09:30:00"
 

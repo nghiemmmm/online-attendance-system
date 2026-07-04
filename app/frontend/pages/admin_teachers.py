@@ -1,11 +1,14 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 from app.frontend.api_client import TeacherAPI
 
 st.title("👨‍🏫 Quản lý Giáo viên")
 st.markdown("---")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Danh sách giáo viên", "Thêm giáo viên", "Cập nhật", "Xóa"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Danh sách giáo viên", "Thêm giáo viên", "Cập nhật", "Xóa"]
+)
 
 with tab1:
     st.subheader("Danh sách giáo viên")
@@ -31,7 +34,9 @@ with tab2:
         teacher_email = st.text_input("Google Email")
 
     with col2:
-        teacher_subject = st.selectbox("Chuyên môn", ["Toán", "Văn", "Anh", "Lý", "Hóa", "Sinh"])
+        teacher_subject = st.selectbox(
+            "Chuyên môn", ["Toán", "Văn", "Anh", "Lý", "Hóa", "Sinh"]
+        )
         teacher_dob = st.date_input("Ngày sinh")
         teacher_phone = st.text_input("Số điện thoại")
 
@@ -43,7 +48,7 @@ with tab2:
                 "google_email": teacher_email,
                 "subject": teacher_subject,
                 "dob": teacher_dob.isoformat(),
-                "phone": teacher_phone
+                "phone": teacher_phone,
             }
             result = TeacherAPI.create(data)
             if result:
@@ -63,24 +68,34 @@ with tab3:
 
         if selected_teacher:
             teacher_id = selected_teacher.split(" - ")[0]
-            teacher_data = next((t for t in teachers if str(t.get('id', '')) == teacher_id), None)
+            teacher_data = next(
+                (t for t in teachers if str(t.get("id", "")) == teacher_id), None
+            )
 
             if teacher_data:
                 col1, col2 = st.columns(2)
                 with col1:
-                    updated_name = st.text_input("Tên", value=teacher_data.get('name', ''))
-                    updated_email = st.text_input("Google Email", value=teacher_data.get('google_email', ''))
+                    updated_name = st.text_input(
+                        "Tên", value=teacher_data.get("name", "")
+                    )
+                    updated_email = st.text_input(
+                        "Google Email", value=teacher_data.get("google_email", "")
+                    )
 
                 with col2:
-                    updated_subject = st.selectbox("Chuyên môn", ["Toán", "Văn", "Anh"], index=0)
-                    updated_status = st.selectbox("Trạng thái", ["Hoạt động", "Tạm dừng"], index=0)
+                    updated_subject = st.selectbox(
+                        "Chuyên môn", ["Toán", "Văn", "Anh"], index=0
+                    )
+                    updated_status = st.selectbox(
+                        "Trạng thái", ["Hoạt động", "Tạm dừng"], index=0
+                    )
 
                 if st.button("💾 Cập nhật"):
                     data = {
                         "name": updated_name,
                         "google_email": updated_email,
                         "subject": updated_subject,
-                        "status": updated_status
+                        "status": updated_status,
                     }
                     result = TeacherAPI.update(int(teacher_id), data)
                     if result:

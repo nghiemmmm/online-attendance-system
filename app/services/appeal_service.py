@@ -4,34 +4,42 @@ Appeal service.
 Contains business logic for complaint metrics used by dashboard APIs.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from app.core.exceptions import StaffNotFoundError, AppealNotFoundError, DuplicateAppealError, AppealTimeLimitExceededError, LessonNotFoundError, PermissionDeniedError, AppException
 from sqlmodel import Session
 
-from app.crud.staff_crud import get_staff_member
+from app.core.exceptions import (
+    AppealNotFoundError,
+    AppealTimeLimitExceededError,
+    AppException,
+    DuplicateAppealError,
+    LessonNotFoundError,
+    PermissionDeniedError,
+    StaffNotFoundError,
+)
 from app.crud.appeal_crud import (
-    PENDING_STATUS,
     APPROVED_STATUS,
+    PENDING_STATUS,
     REJECTED_STATUS,
     count_pending_appeals_by_staff,
-    get_actionable_appeals_by_staff,
     get_actionable_appeal_detail_by_staff,
+    get_actionable_appeals_by_staff,
     get_appeal_detail_context_by_staff,
     update_appeal_resolution,
 )
+from app.crud.staff_crud import get_staff_member
 from app.models import (
     Appeal,
+    AppealApprovalRequest,
     AppealCreate,
     AppealPublic,
-    AppealsPublic,
-    PendingAppealDetail,
-    PendingAppealsPublic,
-    AppealApprovalRequest,
-    PendingAppealMetric,
     AppealResolutionRequest,
     AppealResolutionResult,
+    AppealsPublic,
+    PendingAppealDetail,
+    PendingAppealMetric,
+    PendingAppealsPublic,
 )
 
 TRANG_THAI_DIEM_DANH_HOP_LE = {"CO_MAT", "DI_MUON", "VANG", "VANG_MAT"}
@@ -55,7 +63,7 @@ def get_pending_appeal_metric(
             session=session,
             staff_id=staff_id,
         ),
-        calculated_at=datetime.now(timezone.utc),
+        calculated_at=datetime.now(UTC),
     )
 
 
@@ -162,7 +170,7 @@ def approve_appeal(
         staff_id=staff_id,
         appeal_id=appeal_id,
     )
-    resolved_at = datetime.now(timezone.utc)
+    resolved_at = datetime.now(UTC)
     update_appeal_resolution(
         session=session,
         appeal=appeal,
@@ -196,7 +204,7 @@ def reject_appeal(
         staff_id=staff_id,
         appeal_id=appeal_id,
     )
-    resolved_at = datetime.now(timezone.utc)
+    resolved_at = datetime.now(UTC)
     update_appeal_resolution(
         session=session,
         appeal=appeal,
@@ -224,16 +232,22 @@ def create_appeal(
 ) -> Appeal:
     """Create a new complaint for attendance records."""
     from datetime import timedelta
-    from sqlmodel import select
-    from app.models import Student, Attendance, ClassSession
 
-    student = session.exec(select(Student).where(Student.account_id == current_account.account_id)).first()
+    from sqlmodel import select
+
+    from app.models import Attendance, ClassSession, Student
+
+    student = session.exec(
+        select(Student).where(Student.account_id == current_account.account_id)
+    ).first()
     if not student:
         raise PermissionDeniedError("Not a student")
     if payload.student_id != student.student_id:
         raise PermissionDeniedError("Cannot submit claim for another student")
 
-    existing_appeal = session.exec(select(Appeal).where(Appeal.attendance_id == payload.attendance_id)).first()
+    existing_appeal = session.exec(
+        select(Appeal).where(Appeal.attendance_id == payload.attendance_id)
+    ).first()
     if existing_appeal:
         raise DuplicateAppealError("Đã tồn tại khiếu nại cho bản ghi điểm danh này")
 
@@ -246,12 +260,16 @@ def create_appeal(
         raise LessonNotFoundError("Buổi học không tồn tại")
 
     if class_session.end_time:
-        end_datetime = datetime.combine(class_session.class_date, class_session.end_time)
+        end_datetime = datetime.combine(
+            class_session.class_date, class_session.end_time
+        )
     else:
         end_datetime = datetime.combine(class_session.class_date, datetime.max.time())
 
     if datetime.now() > end_datetime + timedelta(hours=48):
-        raise AppealTimeLimitExceededError("Đã quá thời hạn 48 giờ để gửi khiếu nại cho buổi học này")
+        raise AppealTimeLimitExceededError(
+            "Đã quá thời hạn 48 giờ để gửi khiếu nại cho buổi học này"
+        )
 
     db_appeal = Appeal.model_validate(payload)
     session.add(db_appeal)
@@ -268,21 +286,32 @@ def list_my_appeals(
     limit: int = 100,
 ) -> AppealsPublic:
     """List appeals submitted by the current student."""
-    from sqlmodel import select, func, col
-    from app.models import Student, Attendance, ClassSession, ClassSection, Course
+    from sqlmodel import col, func, select
 
-    student = session.exec(select(Student).where(Student.account_id == current_account.account_id)).first()
+    from app.models import Attendance, ClassSection, ClassSession, Course, Student
+
+    student = session.exec(
+        select(Student).where(Student.account_id == current_account.account_id)
+    ).first()
     if not student:
         raise PermissionDeniedError("Not a student")
 
-    count_statement = select(func.count()).select_from(Appeal).where(Appeal.student_id == student.student_id)
+    count_statement = (
+        select(func.count())
+        .select_from(Appeal)
+        .where(Appeal.student_id == student.student_id)
+    )
     count = session.exec(count_statement).one()
 
     statement = (
         select(Appeal, Attendance, ClassSession, ClassSection, Course)
         .join(Attendance, Appeal.attendance_id == Attendance.attendance_id)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .join(Course, ClassSection.course_id == Course.course_id)
         .where(Appeal.student_id == student.student_id)
         .order_by(col(Appeal.submitted_at).desc())
@@ -294,8 +323,12 @@ def list_my_appeals(
     statement = (
         select(Appeal, Attendance, ClassSession, ClassSection, Course)
         .join(Attendance, Appeal.attendance_id == Attendance.attendance_id)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .join(Course, ClassSection.course_id == Course.course_id)
         .where(Appeal.student_id == student.student_id)
         .order_by(col(Appeal.submitted_at).desc())

@@ -1,5 +1,6 @@
-import streamlit as st
 import os
+
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -54,7 +55,9 @@ st.subheader("💾 Sao lưu dữ liệu")
 col1, col2 = st.columns(2)
 
 with col1:
-    backup_frequency = st.selectbox("Tần suất sao lưu", ["Hàng ngày", "Hàng tuần", "Hàng tháng"])
+    backup_frequency = st.selectbox(
+        "Tần suất sao lưu", ["Hàng ngày", "Hàng tuần", "Hàng tháng"]
+    )
 
     if st.button("🔄 Sao lưu ngay"):
         st.success("✓ Sao lưu dữ liệu thành công!")

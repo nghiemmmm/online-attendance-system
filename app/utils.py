@@ -1,4 +1,4 @@
-'''
+"""
 là bộ hàm tiện ích dùng chung cho backend, chủ yếu phục vụ email và token reset mật khẩu.
 
 Các phần chính:
@@ -11,10 +11,11 @@ generate_reset_password_email(): tạo email quên mật khẩu, có link reset.
 generate_new_account_email(): tạo email thông báo tài khoản mới.
 generate_password_reset_token(): tạo JWT token dùng cho reset password.
 verify_password_reset_token(): kiểm tra token và lấy lại email nếu hợp lệ.
-'''
+"""
+
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -116,7 +117,7 @@ def generate_new_account_email(
 
 def generate_password_reset_token(email: str) -> str:
     delta = timedelta(hours=settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires = now + delta
     exp = expires.timestamp()
     encoded_jwt = jwt.encode(
