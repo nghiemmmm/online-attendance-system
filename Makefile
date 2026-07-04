@@ -61,7 +61,7 @@ help: ## Display this help message containing all available commands
 
 dev: ## Run development backend server locally
 	$(call print_status, "Starting FastAPI development server locally...")
-	$(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port 5050 --reload
+	$(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 build: ## Build docker images using development compose configuration
 	$(call print_status, "Building development Docker images...")
