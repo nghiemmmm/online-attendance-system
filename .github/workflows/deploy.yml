@@ -219,7 +219,7 @@ jobs:
             # Sleep 15 seconds to let the FastAPI server initialize
             sleep 15
             
-            HEALTH_ENDPOINT="http://localhost:5050/api/v1/health" # Or fallback /api/docs
+            HEALTH_ENDPOINT="http://localhost/health" # Or fallback /api/docs
             
             # Try to fetch backend health status
             HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" || echo "failed")
