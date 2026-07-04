@@ -210,6 +210,8 @@ jobs:
             CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            FIRST_SUPERUSER=${{ secrets.FIRST_SUPERUSER }}
+            FIRST_SUPERUSER_PASSWORD=${{ secrets.FIRST_SUPERUSER_PASSWORD }}
             IMAGE_STORAGE_PROVIDER=CLOUDINARY
             ENVIRONMENT=production
             DEBUG=False
