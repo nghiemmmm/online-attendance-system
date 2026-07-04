@@ -1,3 +1,32 @@
-**
-!Dockerfile
-!init.sql
+﻿# Version control
+.git/
+.github/
+
+# Virtual environments and local node modules
+venv/
+.venv/
+node_modules/
+frontend/node_modules/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+docker-compose.override.yml*
+*.log
+htmlcov/
+.agents/
+
+# Uploads and temporary database files
+uploads/
+dataset/
+vector_db/
+app/database/db_face/

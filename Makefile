@@ -14,7 +14,7 @@
 PYTHON := venv/Scripts/python
 PIP := venv/Scripts/pip
 DOCKER_COMPOSE_DEV := docker-compose.dev.yml
-DOCKER_COMPOSE_PROD := docker-compose.yml
+DOCKER_COMPOSE_PROD := -f docker-compose.yml -f docker-compose.pro.yml
 
 # Colors for terminal styling
 BLUE   := \033[1;34m
