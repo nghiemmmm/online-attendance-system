@@ -3,11 +3,16 @@ name: CI - Run Tests
 on:
   push:
     branches:
+      - master
+      - production
       - main
       - develop
       - 'feature/**'
+      - 'refactor'
   pull_request:
     branches:
+      - master
+      - production
       - main
       - develop
 
@@ -258,7 +263,9 @@ jobs:
 
       - name: Start Docker Compose Stack
         run: |
-          if [ -f "docker-compose.yml" ]; then
+          if [ -f "docker-compose.yml" ] && [ -f "docker-compose.dev.yml" ]; then
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+          elif [ -f "docker-compose.yml" ]; then
             docker compose up -d --build
           elif [ -f "docker-compose.dev.yml" ]; then
             docker compose -f docker-compose.dev.yml up -d --build
@@ -284,7 +291,9 @@ jobs:
 
       - name: Stop Docker Stack
         run: |
-          if [ -f "docker-compose.yml" ]; then
+          if [ -f "docker-compose.yml" ] && [ -f "docker-compose.dev.yml" ]; then
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+          elif [ -f "docker-compose.yml" ]; then
             docker compose down -v
           elif [ -f "docker-compose.dev.yml" ]; then
             docker compose -f docker-compose.dev.yml down -v

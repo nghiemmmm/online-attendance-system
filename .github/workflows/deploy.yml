@@ -183,6 +183,9 @@ jobs:
             git checkout production
             git pull origin production
             
+            echo "==== Step 3.5: Switch to Production Docker Configuration ===="
+            bash switch-environment.sh prod
+
             # Check or recreate .env file with secrets
             cat <<EOF > .env
             DATABASE_URL=${{ secrets.DATABASE_URL }}
