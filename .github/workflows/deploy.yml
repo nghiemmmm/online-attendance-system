@@ -67,11 +67,22 @@ jobs:
           echo "backend_tags=${TAGS_BACKEND}" >> $GITHUB_OUTPUT
           echo "frontend_tags=${TAGS_FRONTEND}" >> $GITHUB_OUTPUT
           echo "deps_tags=${TAGS_DEPS}" >> $GITHUB_OUTPUT
+          echo "deps_image=${DEPS_IMAGE}" >> $GITHUB_OUTPUT
           echo "sha_tag=${SHA_SHORT}" >> $GITHUB_OUTPUT
 
       # ----------------------------------------------------
       # 1. Build and Load Locally for Security Scanning
       # ----------------------------------------------------
+      - name: Build Dependency Image Locally
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.deps
+          load: true
+          tags: attendance-deps:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build Backend Locally (for Scan)
         uses: docker/build-push-action@v5
         with:
@@ -79,6 +90,8 @@ jobs:
           file: ./Dockerfile
           load: true
           tags: local-backend:test
+          build-args: |
+            DEPS_IMAGE=attendance-deps:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -116,6 +129,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.backend_tags }}
+          build-args: |
+            DEPS_IMAGE=${{ steps.meta.outputs.deps_image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

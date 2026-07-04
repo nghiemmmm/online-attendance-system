@@ -32,6 +32,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ghcr.io/nghiemmmm/online-attendance-system/attendance-backend:latest
     container_name: backend-app
     depends_on:
       postgres:
@@ -43,6 +44,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: ghcr.io/nghiemmmm/online-attendance-system/attendance-frontend:latest
     container_name: frontend-app
     depends_on:
       - backend
@@ -51,6 +53,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ghcr.io/nghiemmmm/online-attendance-system/attendance-backend:latest
     container_name: face-recognition-service
     command: uvicorn app.main:app --host 0.0.0.0 --port 9000
     depends_on:
