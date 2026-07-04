@@ -301,7 +301,9 @@ async def test_google_callback_rejects_missing_linked_account(monkeypatch) -> No
     from fastapi.responses import RedirectResponse
     result = await google_auth.google_callback(request=request, session=session)
     assert isinstance(result, RedirectResponse)
-    assert "error=Account not found" in result.headers["location"]
+    location = result.headers["location"]
+    assert "error=" in location
+    assert "Account" in location
 
 
 

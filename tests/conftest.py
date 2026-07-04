@@ -1,5 +1,24 @@
 import os
+from unittest.mock import AsyncMock, MagicMock
+
 os.environ["DATABASE_URL"] = "sqlite:///test.db"
+
+# Mock Redis globally to isolate tests from local Redis daemon dependency
+mock_redis = MagicMock()
+mock_redis.ping = AsyncMock(return_value=True)
+mock_redis.aclose = AsyncMock()
+mock_redis.pipeline = MagicMock(return_value=mock_redis)
+mock_redis.zremrangebyscore = AsyncMock()
+mock_redis.zadd = AsyncMock()
+mock_redis.zcard = AsyncMock()
+mock_redis.expire = AsyncMock()
+mock_redis.execute = AsyncMock(return_value=(0, 0, 1, 0))
+
+mock_redis_asyncio = MagicMock()
+mock_redis_asyncio.from_url = MagicMock(return_value=mock_redis)
+
+import app.core.redis
+app.core.redis.aioredis = mock_redis_asyncio
 
 from collections.abc import Generator
 

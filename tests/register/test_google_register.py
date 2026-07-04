@@ -54,7 +54,7 @@ def test_validate_google_user_info_accepts_verified_email() -> None:
     provider_subject, email = google_auth.validate_google_user_info(
         {
             "sub": "google-subject",
-            "username": "student@example.edu",
+            "email": "student@example.edu",
             "email_verified": True,
         }
     )
@@ -69,7 +69,7 @@ def test_validate_google_user_info_rejects_unverified_email() -> None:
         google_auth.validate_google_user_info(
             {
                 "sub": "google-subject",
-                "username": "student@example.edu",
+                "email": "student@example.edu",
                 "email_verified": False,
             }
         )

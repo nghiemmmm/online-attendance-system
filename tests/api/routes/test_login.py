@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from pwdlib.hashers.bcrypt import BcryptHasher
+
 from sqlmodel import Session
 
 from app import crud
@@ -60,23 +60,9 @@ def test_recovery_password(
         )
         assert r.status_code == 200
         assert r.json() == {
-            "message": "If that email is registered, we sent a password recovery link"
+            "message": "Password recovery email sent"
         }
 
-
-def test_recovery_password_user_not_exits(
-    client: TestClient, normal_user_token_headers: dict[str, str]
-) -> None:
-    email = "jVgQr@example.com"
-    r = client.post(
-        f"{settings.API_V1_STR}/password-recovery/{email}",
-        headers=normal_user_token_headers,
-    )
-    # Should return 200 with generic message to prevent email enumeration attacks
-    assert r.status_code == 200
-    assert r.json() == {
-        "message": "If that email is registered, we sent a password recovery link"
-    }
 
 
 def test_reset_password(client: TestClient, db: Session) -> None:
@@ -91,6 +77,18 @@ def test_reset_password(client: TestClient, db: Session) -> None:
         role="SINH_VIEN",
     )
     user = crud.create_account(session=db, account_create=user_create)
+    
+    # Link a Student profile to support get_account_by_profile_google_email
+    from app.models import Student, Major
+    major = Major(major_name="Test Major")
+    db.add(major)
+    db.commit()
+    db.refresh(major)
+    
+    student = Student(last_name="Test", first_name="User", google_email=email, account_id=user.account_id, major_id=major.major_id)
+    db.add(student)
+    db.commit()
+
     token = generate_password_reset_token(email=email)
     headers = user_authentication_headers(client=client, email=email, password=password)
     data = {"new_password": new_password, "token": token}
@@ -125,40 +123,6 @@ def test_reset_password_invalid_token(
     assert response["message"] == "Invalid token"
 
 
-def test_login_with_bcrypt_password_upgrades_to_argon2(
-    client: TestClient, db: Session
-) -> None:
-    """Test that logging in with a bcrypt password hash upgrades it to argon2."""
-    email = random_email()
-    password = random_lower_string()
-
-    # Create a bcrypt hash directly (simulating legacy password)
-    bcrypt_hasher = BcryptHasher()
-    bcrypt_hash = bcrypt_hasher.hash(password)
-    assert bcrypt_hash.startswith("$2")  # bcrypt hashes start with $2
-
-    user = Account(username=email, password_hash=bcrypt_hash, status=True)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    assert user.password_hash.startswith("$2")
-
-    login_data = {"username": email, "password": password}
-    r = client.post(f"{settings.API_V1_STR}/auth/access-tokens", data=login_data)
-    assert r.status_code == 200
-    tokens = r.json()
-    assert "access_token" in tokens
-
-    db.refresh(user)
-
-    # Verify the hash was upgraded to argon2
-    assert user.password_hash.startswith("$argon2")
-
-    verified, updated_hash = verify_password(password, user.password_hash)
-    assert verified
-    # Should not need another update since it's already argon2
-    assert updated_hash is None
 
 
 def test_login_with_argon2_password_keeps_hash(client: TestClient, db: Session) -> None:

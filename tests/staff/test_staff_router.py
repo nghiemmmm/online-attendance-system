@@ -24,6 +24,8 @@ from app.models import (
     Student,
     Account,
     Timetable,
+    Semester,
+    CourseRegistration,
 )
 
 
@@ -47,6 +49,8 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             Student.__table__,
             Attendance.__table__,
             Appeal.__table__,
+            Semester.__table__,
+            CourseRegistration.__table__,
         ],
     )
 
@@ -66,6 +70,14 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             status=True,
         )
         session.add(lecturer)
+        lecturer_2 = Account(
+            account_id=3,
+            username="lecturer_2",
+            password_hash="hashed-password",
+            role="GIANG_VIEN",
+            status=True,
+        )
+        session.add(lecturer_2)
         session.commit()
 
         # Link any seeded staff profiles in test database to lecturer account
@@ -239,8 +251,8 @@ def test_read_staff_teaching_schedule_rejects_invalid_date_range() -> None:
 def test_read_staff_recent_class_sessions_returns_recent_lessons() -> None:
     """Kiem tra API buoi hoc gan day tra ve thong ke diem danh cua can bo."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Mai", first_name="Lan", google_ten_dang_nhap="lan@example.edu")
-        other_staff = Staff(last_name="Mai", first_name="Khac", google_ten_dang_nhap="khac@example.edu")
+        staff = Staff(last_name="Mai", first_name="Lan", google_ten_dang_nhap="lan@example.edu", account_id=2)
+        other_staff = Staff(last_name="Mai", first_name="Khac", google_ten_dang_nhap="khac@example.edu", account_id=3)
         major = Major(major_name="Khoa hoc may tinh")
         course = Course(
             course_id=151,
@@ -521,8 +533,8 @@ def test_read_monthly_attendance_summary_returns_change_from_previous_month() ->
 def test_count_pending_appeals_returns_staff_owned_pending_count() -> None:
     """Kiểm tra API chỉ đếm khiếu nại chờ xử lý thuộc lớp cán bộ phụ trách."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Vu", first_name="Minh", google_ten_dang_nhap="minh@example.edu")
-        other_staff = Staff(last_name="Hoang", first_name="Nam", google_ten_dang_nhap="nam@example.edu")
+        staff = Staff(last_name="Vu", first_name="Minh", google_ten_dang_nhap="minh@example.edu", account_id=2)
+        other_staff = Staff(last_name="Hoang", first_name="Nam", google_ten_dang_nhap="nam@example.edu", account_id=3)
         major = Major(major_name="He thong thong tin")
         course = Course(
             course_id=401,

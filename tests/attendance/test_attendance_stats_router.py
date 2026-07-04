@@ -213,4 +213,4 @@ def test_read_semester_attendance_summary_rejects_missing_student() -> None:
         )
 
         assert response.status_code == 404
-        assert response.json()["message"] == "Not found"
+        assert response.json()["detail"] == "Student profile not found"
