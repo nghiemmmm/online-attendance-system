@@ -36,10 +36,10 @@ jobs:
           NGHIEM_SECRET_DIEMDANH: ${{ secrets.NGHIEM_SECRET_DIEMDANH }}
         run: |
           echo "==== Verifying Secrets Presence ===="
-          if [ -z "$EC2_HOST" ]; then echo "❌ EC2_HOST is MISSING"; exit 1; else echo "✅ EC2_HOST is present"; fi
-          if [ -z "$EC2_USER" ]; then echo "❌ EC2_USER is MISSING"; exit 1; else echo "✅ EC2_USER is present"; fi
-          if [ -z "$SSH_KEY" ]; then echo "❌ SSH_KEY is MISSING"; exit 1; else echo "✅ SSH_KEY is present"; fi
-          if [ -z "$NGHIEM_SECRET_DIEMDANH" ]; then echo "❌ NGHIEM_SECRET_DIEMDANH is MISSING"; exit 1; else echo "✅ NGHIEM_SECRET_DIEMDANH is present"; fi
+          if [ -z "$EC2_HOST" ]; then echo "❌ Error: Code 101"; exit 1; fi
+          if [ -z "$EC2_USER" ]; then echo "❌ Error: Code 102"; exit 1; fi
+          if [ -z "$SSH_KEY" ]; then echo "❌ Error: Code 103"; exit 1; fi
+          if [ -z "$NGHIEM_SECRET_DIEMDANH" ]; then echo "❌ Error: Code 104"; exit 1; fi
           echo "==== All required secrets are present ===="
 
       - name: Set up QEMU
