@@ -42,6 +42,7 @@ RUN groupadd -g 10001 appgroup && \
 # Install Python packages (cached unless requirements.txt changes)
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && \
+    pip install torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cpu && \
     pip install -r requirements.txt && \
     pip check
 
