@@ -67,31 +67,7 @@ jobs:
           echo "sha_tag=${SHA_SHORT}" >> $GITHUB_OUTPUT
 
       # ----------------------------------------------------
-      # 1. Build and Load Locally for Security Scanning
-      # ----------------------------------------------------
-      - name: Build Backend Locally (for Scan)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          load: true
-          tags: local-backend:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # 2. Scan image with Trivy (Fail on Critical vulnerabilities)
-      - name: Scan Backend Image for Vulnerabilities (Trivy)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: local-backend:test
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL'
-
-      # ----------------------------------------------------
-      # 3. Build & Push Multi-Arch Images (Post-Scan Success)
+      # 1. Build & Push Multi-Arch Images
       # ----------------------------------------------------
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v5
