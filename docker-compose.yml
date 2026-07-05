@@ -34,6 +34,8 @@ services:
       dockerfile: Dockerfile
     image: ghcr.io/nghiemmmm/online-attendance-system/attendance-backend:latest
     container_name: backend-app
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,6 +58,8 @@ services:
     image: ghcr.io/nghiemmmm/online-attendance-system/attendance-backend:latest
     container_name: face-recognition-service
     command: uvicorn app.main:app --host 0.0.0.0 --port 9000
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
