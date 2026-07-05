@@ -202,10 +202,10 @@ jobs:
             # Sleep 15 seconds to let the FastAPI server initialize
             sleep 15
             
-            HEALTH_ENDPOINT="http://localhost/health" # Or fallback /api/docs
-            
-            # Try to fetch backend health status
-            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" || echo "failed")
+            # Try to fetch backend health status via Nginx (HTTP -> HTTPS Redirect -> Backend)
+            # -L: Follows the redirect (301) to HTTPS
+            # -k: Bypasses SSL certificate verification for localhost
+            HEALTH_STATUS=$(curl -s -L -k -o /dev/null -w "%{http_code}" "http://localhost/health" || echo "failed")
             
             if [ "$HEALTH_STATUS" = "200" ]; then
               echo "✅ Health check passed! Deployment successful."
