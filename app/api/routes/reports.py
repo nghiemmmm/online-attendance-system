@@ -1,17 +1,23 @@
 import io
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from sqlmodel import select
 
-from app.api.deps import SessionDep, get_current_active_lecturer, get_current_active_superuser, CurrentAccount
-from app.models import ClassSection, ClassSession, Attendance, Student, CourseRegistration, Staff
-from app.crud import staff_crud
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
+
+from app.api.deps import (
+    CurrentAccount,
+    SessionDep,
+    get_current_active_lecturer,
+)
 from app.services.attendance_summary_service import get_attendance_report_df
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
-@router.get("/class-sections/{class_section_id}/attendance", dependencies=[Depends(get_current_active_lecturer)])
+
+@router.get(
+    "/class-sections/{class_section_id}/attendance",
+    dependencies=[Depends(get_current_active_lecturer)],
+)
 def export_attendance_report(
     session: SessionDep,
     current_account: CurrentAccount,
@@ -35,6 +41,7 @@ def export_attendance_report(
 
     # Chuyển DataFrame thành file Excel trong bộ nhớ
     import pandas as pd
+
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Attendance")
@@ -42,11 +49,13 @@ def export_attendance_report(
 
     # Đặt tên file
     filename = f"DiemDanh_{class_section_id}.xlsx"
-    headers = {
-        'Content-Disposition': f'attachment; filename="{filename}"'
-    }
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
 
-    return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    return StreamingResponse(
+        output,
+        headers=headers,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 def _build_attendance_csv_response(

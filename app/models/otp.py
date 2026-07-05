@@ -1,14 +1,17 @@
 """Define OTP database table and request models."""
 
-from datetime import datetime, timezone
-from pydantic import EmailStr, Field as PydanticField
+from datetime import UTC, datetime
+
+from pydantic import Field as PydanticField
 from sqlmodel import Field, SQLModel
+
+from app.core.email_compat import EmailStr
 from app.models.base import AppBaseModel
 
 
 def get_datetime_utc() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class OTPRecord(SQLModel, table=True):

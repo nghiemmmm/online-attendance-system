@@ -23,9 +23,7 @@ def get_student_by_google_email(
     return session.exec(statement).first()
 
 
-def get_student_by_account_id(
-    *, session: Session, account_id: int
-) -> Student | None:
+def get_student_by_account_id(*, session: Session, account_id: int) -> Student | None:
     """Tim sinh vien theo tai khoan lien ket."""
     statement = select(Student).where(Student.account_id == account_id)
     return session.exec(statement).first()
@@ -68,9 +66,7 @@ def get_students(
     return list(students), count
 
 
-def create_student(
-    *, session: Session, student_create: StudentCreate
-) -> Student:
+def create_student(*, session: Session, student_create: StudentCreate) -> Student:
     """Tao last_name so sinh vien moi."""
     db_student = Student.model_validate(student_create)
     session.add(db_student)

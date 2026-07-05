@@ -1,13 +1,13 @@
 """Define class section database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ClassSectionBase(SQLModel):
@@ -15,7 +15,9 @@ class ClassSectionBase(SQLModel):
 
     course_id: int
     staff_id: int
-    semester_id: int | None = Field(default=None, foreign_key="semesters.semester_id", index=True)
+    semester_id: int | None = Field(
+        default=None, foreign_key="semesters.semester_id", index=True
+    )
     semester: int | None = None
     academic_year: str | None = Field(default=None, max_length=20)
     minimum_attendance_rate: float = 0.8
@@ -48,7 +50,9 @@ class ClassSection(ClassSectionBase, table=True):
     class_section_id: int | None = Field(default=None, primary_key=True)
     course_id: int = Field(foreign_key="courses.course_id")
     staff_id: int = Field(foreign_key="staff.staff_id")
-    semester_id: int | None = Field(default=None, foreign_key="semesters.semester_id", index=True)
+    semester_id: int | None = Field(
+        default=None, foreign_key="semesters.semester_id", index=True
+    )
     created_at: datetime = Field(default_factory=get_datetime_utc)
 
 

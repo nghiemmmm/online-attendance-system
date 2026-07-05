@@ -9,7 +9,7 @@ from datetime import date
 
 from sqlmodel import Session, select
 
-from app.models import ClassSession, Attendance, ClassSection
+from app.models import Attendance, ClassSection, ClassSession
 
 PRESENT_ATTENDANCE_STATUSES = {"PRESENT", "LATE", "CO_MAT", "DI_MUON"}
 
@@ -49,8 +49,12 @@ def get_attendance_counts_for_teacher(
     """
     base_statement = (
         select(Attendance.status)
-        .join(ClassSession, Attendance.class_session_id == ClassSession.class_session_id)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSession, Attendance.class_session_id == ClassSession.class_session_id
+        )
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .where(
             ClassSection.staff_id == staff_id,
             ClassSession.class_date >= start_date,

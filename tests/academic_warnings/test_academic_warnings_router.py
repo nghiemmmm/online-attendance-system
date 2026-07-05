@@ -8,15 +8,15 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.api.deps import get_current_active_superuser, get_db
 from app.main import app
 from app.models import (
-    ClassSession,
-    Staff,
-    CourseRegistration,
-    Attendance,
-    Course,
-    ClassSection,
-    Major,
-    Student,
     Account,
+    Attendance,
+    ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
+    Major,
+    Staff,
+    Student,
 )
 
 
@@ -68,7 +68,9 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
 def seed_warning_data(session: Session):
     """Seed student, classes, lessons and attendance records for warning tests."""
-    staff = Staff(last_name="Nguyen", first_name="Giang", google_ten_dang_nhap="gv@example.edu")
+    staff = Staff(
+        last_name="Nguyen", first_name="Giang", google_ten_dang_nhap="gv@example.edu"
+    )
     major = Major(major_name="Cong nghe thong tin")
     course_1 = Course(course_id=901, course_name="Co so du lieu")
     course_2 = Course(course_id=902, course_name="Lap trinh web")
@@ -202,7 +204,9 @@ def test_read_absence_warnings_can_include_safe_classes() -> None:
 def test_read_absence_warnings_returns_empty_when_no_warnings() -> None:
     """Test absence warning API returns empty response when there are no warnings."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Tran", first_name="Giang", google_ten_dang_nhap="gv2@example.edu")
+        staff = Staff(
+            last_name="Tran", first_name="Giang", google_ten_dang_nhap="gv2@example.edu"
+        )
         major = Major(major_name="He thong thong tin")
         course = Course(course_id=903, course_name="Kiem weekday phan mem")
         session.add_all([staff, major, course])

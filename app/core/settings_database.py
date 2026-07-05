@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from pydantic import PostgresDsn, computed_field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.core.settings_compat import BaseSettings, SettingsConfigDict
 
 
 class DatabaseSettings(BaseSettings):
@@ -17,22 +18,22 @@ class DatabaseSettings(BaseSettings):
     POSTGRES_PORT: int = 5433
     POSTGRES_USER: str = "root"
     POSTGRES_PASSWORD: str = "123456"
-    POSTGRES_DB: str = "attendance"
+    POSTGRES_DB: str = "diemdanh"
     DATABASE_URL: str | None = None
 
     def _normalize_database_url(self, url: str, async_driver: bool) -> str:
         if url.startswith("postgres://"):
-            prefix = "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            prefix = (
+                "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            )
             url = url.replace("postgres://", prefix, 1)
         elif url.startswith("postgresql://"):
-            prefix = "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            prefix = (
+                "postgresql+asyncpg://" if async_driver else "postgresql+psycopg://"
+            )
             url = url.replace("postgresql://", prefix, 1)
         elif async_driver and url.startswith("postgresql+psycopg://"):
             url = url.replace("postgresql+psycopg://", "postgresql+asyncpg://", 1)
-        elif async_driver and url.startswith("sqlite://"):
-            url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
-        elif not async_driver and url.startswith("sqlite+aiosqlite://"):
-            url = url.replace("sqlite+aiosqlite://", "sqlite://", 1)
 
         if "render.com" in url and "sslmode=" not in url:
             separator = "&" if "?" in url else "?"

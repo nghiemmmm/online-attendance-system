@@ -6,9 +6,10 @@ based on course credits, timetable weekday, and start/end dates.
 """
 
 from datetime import date, timedelta
+
 from sqlmodel import Session, select
 
-from app.models import ClassSection, Course, Timetable, ClassSession
+from app.models import ClassSection, ClassSession, Course, Timetable
 
 
 def generate_sessions_for_class_section(
@@ -35,8 +36,12 @@ def generate_sessions_for_class_section(
     ).first()
 
     # Fallback default dates if timetable is missing
-    start_date = timetable.start_date if timetable and timetable.start_date else date(2026, 2, 2)
-    end_date = timetable.end_date if timetable and timetable.end_date else date(2026, 5, 31)
+    start_date = (
+        timetable.start_date if timetable and timetable.start_date else date(2026, 2, 2)
+    )
+    end_date = (
+        timetable.end_date if timetable and timetable.end_date else date(2026, 5, 31)
+    )
     # Target weekday (1=Monday, 7=Sunday in standard ISOWEEKDAY)
     target_weekday = timetable.weekday if timetable and timetable.weekday else 1
     start_time = timetable.start_time if timetable else None
@@ -52,7 +57,9 @@ def generate_sessions_for_class_section(
         select(ClassSession).where(ClassSession.class_section_id == class_section_id)
     ).all()
     existing_dates = {s.class_date for s in existing_sessions}
-    existing_max_number = max([s.session_number for s in existing_sessions if s.session_number], default=0)
+    existing_max_number = max(
+        [s.session_number for s in existing_sessions if s.session_number], default=0
+    )
 
     inserted_count = 0
     current_date = start_date
@@ -60,7 +67,10 @@ def generate_sessions_for_class_section(
 
     while current_date <= end_date and session_num <= max_sessions:
         # Check if current_date matches target weekday (isoweekday: Mon=1, Sun=7)
-        if current_date.isoweekday() == target_weekday and current_date not in existing_dates:
+        if (
+            current_date.isoweekday() == target_weekday
+            and current_date not in existing_dates
+        ):
             new_session = ClassSession(
                 class_section_id=class_section_id,
                 class_date=current_date,

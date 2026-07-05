@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -301,7 +302,13 @@ export default function AdminFaceManagement() {
                   <div className="relative w-24 h-24 mx-auto mb-4 rounded-lg overflow-hidden bg-[#F8FAFC]">
                     {student.status !== "none" ? (
                       student.imageUrl ? (
-                        <img src={student.imageUrl} alt={student.name} className="w-full h-full object-cover" />
+                        <Image
+                          src={student.imageUrl}
+                          alt={student.name}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1A3A5C] to-[#0A2540]">
                           <User className="w-12 h-12 text-white/50" />
@@ -434,7 +441,13 @@ export default function AdminFaceManagement() {
                           <div className="p-3 flex flex-col items-center justify-center space-y-2">
                             <div className="w-24 h-24 rounded-lg overflow-hidden border border-[#E2E8F0] bg-gray-50 flex items-center justify-center relative">
                               {angleUrl ? (
-                                <img src={angleUrl} alt={angle.label} className="w-full h-full object-cover" />
+                                <Image
+                                  src={angleUrl}
+                                  alt={angle.label}
+                                  fill
+                                  sizes="96px"
+                                  className="object-cover"
+                                />
                               ) : (
                                 <Camera className="w-7 h-7 text-[#94A3B8]" />
                               )}

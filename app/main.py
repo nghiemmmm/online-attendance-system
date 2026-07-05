@@ -14,7 +14,6 @@ from app.middleware.logging_middleware import RequestLoggingMiddleware
 from app.services.face_service import get_or_create_face_service
 from app.utils.logger import logger
 
-
 setup_logging()
 
 # Create uploads, dataset and static directory if it doesn't exist
@@ -23,51 +22,59 @@ os.makedirs("uploads/faces", exist_ok=True)
 os.makedirs("uploads/attendance", exist_ok=True)
 os.makedirs("dataset", exist_ok=True)
 os.makedirs("vector_db/embeddings_db", exist_ok=True)
+# tesssssss
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize Redis connection pool
     from app.core.redis import init_redis_client
+
     await init_redis_client()
 
     app.state.face_service = get_or_create_face_service()
     logger.info("FaceRecognitionService initialized and cached in app.state")
-    
+
     # Spawn daily background cleanup task (deletes attendance images older than 1 day)
     import asyncio
+
     async def periodic_cleanup():
         from app.services.cleanup_service import cleanup_expired_attendance_evidence
+
         logger.info("Starting periodic attendance evidence cleanup task...")
         while True:
             try:
                 deleted = cleanup_expired_attendance_evidence(days=1)
                 if deleted > 0:
-                    logger.info(f"Periodic Cleanup: Successfully removed {deleted} expired attendance images.")
+                    logger.info(
+                        f"Periodic Cleanup: Successfully removed {deleted} expired attendance images."
+                    )
             except Exception as e:
                 logger.error(f"Error in periodic cleanup background task: {e}")
             await asyncio.sleep(24 * 3600)
 
     cleanup_task = asyncio.create_task(periodic_cleanup())
-    
+
     yield
-    
+
     # Clean up background task, active WebRTC peer connections, and Redis client
     cleanup_task.cancel()
     try:
         from app.services.webrtc_manager import get_webrtc_manager
+
         webrtc_manager = get_webrtc_manager()
         await webrtc_manager.close_all()
         logger.info("Closed all active WebRTC connections on shutdown.")
     except Exception as e:
         logger.error(f"Error closing WebRTC connections on shutdown: {e}")
-        
+
     try:
         from app.core.redis import close_redis_client
+
         await close_redis_client()
     except Exception as e:
         logger.error(f"Error closing Redis connection on shutdown: {e}")
-        
+
     logger.info("%s shutting down...", settings.APP_NAME)
 
 

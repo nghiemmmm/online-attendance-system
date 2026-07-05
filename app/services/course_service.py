@@ -2,9 +2,9 @@
 
 from sqlmodel import Session
 
+from app.core.exceptions import CourseNotFoundError
 from app.crud import course_crud
 from app.models import Course, CourseCreate, CourseUpdate, Message
-from app.core.exceptions import CourseNotFoundError
 
 
 def list_courses(

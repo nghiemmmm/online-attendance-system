@@ -3,12 +3,12 @@ from datetime import date
 from sqlmodel import Session, select
 
 from app.models import (
-    ClassSession,
-    RecentClassSessionItem,
     Attendance,
-    Course,
-    TeachingScheduleItem,
     ClassSection,
+    ClassSession,
+    Course,
+    RecentClassSessionItem,
+    TeachingScheduleItem,
     Timetable,
 )
 
@@ -25,6 +25,7 @@ def get_vietnamese_weekday(value: date) -> int:
 def get_current_semester_from_db(session: Session):
     """Lấy học kỳ hiện tại từ bảng semesters trong CSDL (is_current = True)."""
     from app.models.semester import Semester
+
     return session.exec(select(Semester).where(Semester.is_current.is_(True))).first()
 
 
@@ -45,7 +46,10 @@ def timetable_matches_lesson(
         return False
 
     class_session_weekday = get_vietnamese_weekday(class_session.class_date)
-    return timetable.weekday in {class_session_weekday, class_session.class_date.isoweekday()}
+    return timetable.weekday in {
+        class_session_weekday,
+        class_session.class_date.isoweekday(),
+    }
 
 
 def timetable_overlaps_date_range(
@@ -57,9 +61,7 @@ def timetable_overlaps_date_range(
     """Kiểm tra thời khóa biểu mẫu có giao với khoảng ngày lọc không."""
     if from_date and timetable.end_date < from_date:
         return False
-    if to_date and timetable.start_date > to_date:
-        return False
-    return True
+    return not (to_date and timetable.start_date > to_date)
 
 
 def build_teaching_schedule_item(
@@ -73,22 +75,26 @@ def build_teaching_schedule_item(
     """Ghép dữ liệu lớp học phần, học phần, thời khóa biểu và buổi học thành response."""
     st_count = 0
     if db_session:
-        from app.models import CourseRegistration
         from sqlalchemy import func
-        st_count = db_session.exec(
-            select(func.count(CourseRegistration.student_id)).where(
-                CourseRegistration.class_section_id == class_section.class_section_id
-            )
-        ).first() or 0
+
+        from app.models import CourseRegistration
+
+        st_count = (
+            db_session.exec(
+                select(func.count(CourseRegistration.student_id)).where(
+                    CourseRegistration.class_section_id
+                    == class_section.class_section_id
+                )
+            ).first()
+            or 0
+        )
 
     return TeachingScheduleItem(
         staff_id=class_section.staff_id,
         class_section_id=class_section.class_section_id,
         course_id=class_section.course_id,
         course_name=course.course_name if course else None,
-        timetable_id=(
-            timetable.timetable_id if timetable else None
-        ),
+        timetable_id=(timetable.timetable_id if timetable else None),
         class_session_id=class_session.class_session_id if class_session else None,
         class_date=class_session.class_date if class_session else None,
         weekday=timetable.weekday if timetable else None,
@@ -143,7 +149,9 @@ def get_recent_lessons_by_staff_member(
     """Lay danh sach buoi hoc gan day cua can bo kem thong ke diem danh."""
     statement = (
         select(ClassSession)
-        .join(ClassSection, ClassSession.class_section_id == ClassSection.class_section_id)
+        .join(
+            ClassSection, ClassSession.class_section_id == ClassSection.class_section_id
+        )
         .where(ClassSection.staff_id == staff_id)
         .order_by(ClassSession.class_date.desc(), ClassSession.class_session_id.desc())
         .limit(limit)
@@ -153,11 +161,7 @@ def get_recent_lessons_by_staff_member(
 
     for class_session in class_sessions:
         class_section = session.get(ClassSection, class_session.class_section_id)
-        course = (
-            session.get(Course, class_section.course_id)
-            if class_section
-            else None
-        )
+        course = session.get(Course, class_section.course_id) if class_section else None
         present_count, late_count, absent_count = count_attendance_by_status(
             session=session,
             class_session_id=class_session.class_session_id,
@@ -225,10 +229,16 @@ def get_teaching_schedule_by_staff_member(
             ClassSession.class_section_id == class_section.class_section_id
         )
         if from_date:
-            class_session_statement = class_session_statement.where(ClassSession.class_date >= from_date)
+            class_session_statement = class_session_statement.where(
+                ClassSession.class_date >= from_date
+            )
         if to_date:
-            class_session_statement = class_session_statement.where(ClassSession.class_date <= to_date)
-        class_sessions = session.exec(class_session_statement.order_by(ClassSession.class_date)).all()
+            class_session_statement = class_session_statement.where(
+                ClassSession.class_date <= to_date
+            )
+        class_sessions = session.exec(
+            class_session_statement.order_by(ClassSession.class_date)
+        ).all()
 
         if class_sessions:
             for class_session in class_sessions:
@@ -319,7 +329,9 @@ def count_current_teaching_class_sections_by_staff_member(
             ClassSession.class_section_id == class_section.class_section_id,
             ClassSession.class_date == as_of_date,
         )
-        has_current_class_session = session.exec(class_session_statement).first() is not None
+        has_current_class_session = (
+            session.exec(class_session_statement).first() is not None
+        )
 
         if has_current_timetable or has_current_class_session:
             active_class_ids.add(class_section.class_section_id)

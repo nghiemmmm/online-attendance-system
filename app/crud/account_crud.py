@@ -1,17 +1,14 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from fastapi import HTTPException
-from app.core.exceptions import AccountLockedError
 from app.core.security import get_password_hash, verify_password
-from app.models import Staff, Student, Account, AccountCreate, AccountUpdate
+from app.models import Account, AccountCreate, AccountUpdate, Staff, Student
 
 
-def get_account_by_username(
-    *, session: Session, username: str
-) -> Account | None:
+def get_account_by_username(*, session: Session, username: str) -> Account | None:
     statement = select(Account).where(Account.username == username)
     return session.exec(statement).first()
 
@@ -35,9 +32,7 @@ def get_account_by_profile_google_email(
 
 
 def get_account_by_profile_email(*, session: Session, email: str) -> Account | None:
-    return get_account_by_profile_google_email(
-        session=session, google_email=email
-    )
+    return get_account_by_profile_google_email(session=session, google_email=email)
 
 
 def get_account_profile(*, session: Session, account: Account) -> dict | None:
@@ -47,13 +42,22 @@ def get_account_profile(*, session: Session, account: Account) -> dict | None:
         ).first()
         if profile:
             profile_dict = profile.model_dump()
-            from app.models import FaceImage, Major
             from sqlalchemy import func
-            face_count = session.exec(
-                select(func.count(FaceImage.image_id)).where(FaceImage.student_id == profile.student_id)
-            ).first() or 0
+
+            from app.models import FaceImage, Major
+
+            face_count = (
+                session.exec(
+                    select(func.count(FaceImage.image_id)).where(
+                        FaceImage.student_id == profile.student_id
+                    )
+                ).first()
+                or 0
+            )
             major = session.get(Major, profile.major_id) if profile.major_id else None
-            profile_dict["major_name"] = major.major_name if major else f"Ngành {profile.major_id}"
+            profile_dict["major_name"] = (
+                major.major_name if major else f"Ngành {profile.major_id}"
+            )
             profile_dict["face_registered"] = face_count > 0
             profile_dict["registered_faces_count"] = face_count
             return profile_dict
@@ -101,14 +105,13 @@ def update_account(
 
 
 def get_datetime_utc() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
+
 
 def authenticate_account(
     *, session: Session, username: str, password: str
 ) -> Account | None:
-    db_account = get_account_by_username(
-        session=session, username=username
-    )
+    db_account = get_account_by_username(session=session, username=username)
     if not db_account:
         db_account = get_account_by_profile_email(session=session, email=username)
     if not db_account:
@@ -170,5 +173,7 @@ def get_user_by_email(*, session: Session, username: str) -> Account | None:
     return get_account_by_username(session=session, username=username)
 
 
-def update_user(*, session: Session, db_user: Account, user_in: AccountUpdate) -> Account:
+def update_user(
+    *, session: Session, db_user: Account, user_in: AccountUpdate
+) -> Account:
     return update_account(session=session, db_account=db_user, account_in=user_in)

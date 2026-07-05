@@ -9,7 +9,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
 
-from app.api.deps import get_current_active_student, CurrentAccount
+from app.api.deps import CurrentAccount, get_current_active_student
 from app.models import TodaySchedulePublic
 from app.services.student_schedule_service import (
     StudentScheduleService,
@@ -31,7 +31,10 @@ def read_my_today_student_schedule(
 ) -> TodaySchedulePublic:
     """Lấy danh sách buổi học trong ngày của sinh viên đang đăng nhập."""
     from app.services.student_service import get_student_by_account_or_404
-    student = get_student_by_account_or_404(session=service.session, account_id=current_account.account_id)
+
+    student = get_student_by_account_or_404(
+        session=service.session, account_id=current_account.account_id
+    )
     return service.get_today_schedule(
         student_id=student.student_id,
         target_date=target_date or date.today(),

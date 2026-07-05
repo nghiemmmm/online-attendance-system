@@ -1,10 +1,12 @@
-import os
-import mimetypes
-from typing import Any, Dict
-from PIL import Image
 import io
+import mimetypes
+import os
+from typing import Any
+
+from PIL import Image
 
 from app.storage.storage_service import StorageService
+
 
 class LocalStorageService(StorageService):
     """Local Filesystem Implementation of StorageService."""
@@ -14,8 +16,8 @@ class LocalStorageService(StorageService):
         file_bytes: bytes,
         filename: str,
         folder: str,
-        public_id: str | None = None
-    ) -> Dict[str, Any]:
+        public_id: str | None = None,
+    ) -> dict[str, Any]:
         # Determine the base directory based on folder name
         if "dataset" in folder:
             base_dir = "dataset"
@@ -25,7 +27,7 @@ class LocalStorageService(StorageService):
             base_dir = os.path.join("uploads", folder)
 
         os.makedirs(base_dir, exist_ok=True)
-        
+
         # Decide the filename/path
         if public_id:
             # If public_id is provided, make sure it is just the basename
@@ -36,16 +38,16 @@ class LocalStorageService(StorageService):
             name = filename
 
         filepath = os.path.join(base_dir, name)
-        
+
         # Save bytes
         with open(filepath, "wb") as f:
             f.write(file_bytes)
-            
+
         file_size = len(file_bytes)
         mime_type, _ = mimetypes.guess_type(filepath)
         if not mime_type:
             mime_type = "image/jpeg"
-            
+
         # Get image dimensions using PIL
         width, height = None, None
         try:
@@ -70,14 +72,14 @@ class LocalStorageService(StorageService):
             "mime_type": mime_type,
             "width": width,
             "height": height,
-            "version": None
+            "version": None,
         }
 
     def delete_image(self, public_id: str, local_path: str | None = None) -> bool:
         path_to_delete = local_path or public_id
         if not path_to_delete:
             return False
-            
+
         # Clean prefix slashes
         path_to_delete = path_to_delete.lstrip("/")
         if os.path.exists(path_to_delete):

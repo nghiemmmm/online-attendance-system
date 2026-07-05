@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.core.exceptions import RefreshTokenRevokedError
-from app.models import RefreshToken, Account
+from app.models import Account, RefreshToken
 from app.services import auth_token_service
 
 
@@ -52,7 +52,7 @@ def make_refresh_token(*, raw_token: str, account_id: int = 1) -> RefreshToken:
         refresh_token_id=1,
         account_id=account_id,
         token_hash=auth_token_service.hash_refresh_token(raw_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+        expires_at=datetime.now(UTC) + timedelta(days=1),
     )
 
 
@@ -146,7 +146,7 @@ def test_refresh_access_token_rejects_revoked_token(monkeypatch) -> None:
     """Kiểm tra refresh token đã revoke không được cấp access token mới."""
     raw_token = "refresh-token"
     db_token = make_refresh_token(raw_token=raw_token)
-    db_token.revoked_at = datetime.now(timezone.utc)
+    db_token.revoked_at = datetime.now(UTC)
     session = FakeSession(account=make_account())
 
     monkeypatch.setattr(
@@ -174,10 +174,7 @@ def test_logout_all_refresh_tokens_calls_crud(monkeypatch) -> None:
     monkeypatch.setattr(
         auth_token_service.crud,
         "revoke_all_refresh_tokens_for_account",
-        lambda *, session, account_id: called.setdefault(
-            "account_id", account_id
-        )
-        or 2,
+        lambda *, session, account_id: called.setdefault("account_id", account_id) or 2,
     )
 
     result = auth_token_service.logout_all_refresh_tokens(

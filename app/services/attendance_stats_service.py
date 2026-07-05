@@ -5,14 +5,20 @@ Contains business logic for student attendance summaries.
 """
 
 from typing import Any
+
 from sqlmodel import Session
 
+from app.core.exceptions import (
+    AppException,
+    LessonNotFoundError,
+    PermissionDeniedError,
+    StudentNotFoundError,
+)
 from app.crud.attendance_stats_crud import (
     get_attendance_semester_counts_by_student,
 )
 from app.crud.student_crud import get_student
 from app.models import SemesterAttendanceSummaryPublic
-from app.core.exceptions import StudentNotFoundError, LessonNotFoundError, PermissionDeniedError, AppException
 
 
 def get_semester_present_lesson_total(
@@ -79,16 +85,20 @@ def mark_attendance_manually_service(
     note: str | None = None,
 ) -> Any:
     """Process manual attendance modification by a lecturer."""
-    from app.crud import class_session_crud, staff_crud, attendance_crud
+    from app.crud import attendance_crud, class_session_crud, staff_crud
     from app.models import ClassSection
 
-    class_session = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    class_session = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not class_session:
         raise LessonNotFoundError("Buổi học không tồn tại")
 
     # Check permissions
     class_section = session.get(ClassSection, class_session.class_section_id)
-    staff = staff_crud.get_staff_member_by_account_id(session=session, account_id=current_account.account_id)
+    staff = staff_crud.get_staff_member_by_account_id(
+        session=session, account_id=current_account.account_id
+    )
     if current_account.role != "ADMIN" and (
         not staff or class_section.staff_id != staff.staff_id
     ):

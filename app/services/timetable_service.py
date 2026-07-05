@@ -1,9 +1,17 @@
 """Provide timetable application services."""
 
 from typing import Any
-from app.core.exceptions import TimetableNotFoundError, ClassSectionNotFoundError, PermissionDeniedError, LessonNotFoundError, LessonClosedError, LessonCompletedError, AppException
+
 from sqlmodel import Session
 
+from app.core.exceptions import (
+    ClassSectionNotFoundError,
+    LessonClosedError,
+    LessonCompletedError,
+    LessonNotFoundError,
+    PermissionDeniedError,
+    TimetableNotFoundError,
+)
 from app.crud import timetable_crud
 from app.models import Message, Timetable, TimetableCreate, TimetableUpdate
 
@@ -84,8 +92,8 @@ def ensure_can_manage_class_section(
     current_account: Any,
     class_section_id: int,
 ) -> Any:
-    from app.models import ClassSection
     from app.crud import staff_crud
+    from app.models import ClassSection
 
     class_section = session.get(ClassSection, class_section_id)
     if not class_section:
@@ -124,7 +132,10 @@ def list_lessons(
 ) -> Any:
     """Return paginated lessons list."""
     from app.crud import class_session_crud
-    return class_session_crud.get_class_sessions(session=session, skip=skip, limit=limit)
+
+    return class_session_crud.get_class_sessions(
+        session=session, skip=skip, limit=limit
+    )
 
 
 def list_lessons_by_class_section(
@@ -134,8 +145,9 @@ def list_lessons_by_class_section(
     class_section_id: int,
 ) -> list[Any]:
     """Return lessons for a specific class section."""
-    from app.models import ClassSession
     from sqlmodel import select
+
+    from app.models import ClassSession
 
     # Validate access
     ensure_can_manage_class_section(
@@ -143,7 +155,9 @@ def list_lessons_by_class_section(
         current_account=current_account,
         class_section_id=class_section_id,
     )
-    statement = select(ClassSession).where(ClassSession.class_section_id == class_section_id)
+    statement = select(ClassSession).where(
+        ClassSession.class_section_id == class_section_id
+    )
     return session.exec(statement).all()
 
 
@@ -157,7 +171,9 @@ def get_lesson_detail(
     from app.crud import class_session_crud
     from app.models import ClassSection, Course, Staff
 
-    item = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    item = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not item:
         raise LessonNotFoundError("Buoi hoc khong ton tai")
 
@@ -173,7 +189,9 @@ def get_lesson_detail(
     result = item.model_dump()
     result["class_session_id"] = item.class_session_id
     result["course_name"] = course.course_name if course else "N/A"
-    result["lecturer_name"] = f"{staff.last_name} {staff.first_name}".strip() if staff else "N/A"
+    result["lecturer_name"] = (
+        f"{staff.last_name} {staff.first_name}".strip() if staff else "N/A"
+    )
     return result
 
 
@@ -206,7 +224,9 @@ def update_lesson(
     """Update a lesson."""
     from app.crud import class_session_crud
 
-    item = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    item = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not item:
         raise LessonNotFoundError("Buoi hoc khong ton tai")
 
@@ -221,7 +241,9 @@ def update_lesson(
             current_account=current_account,
             class_section_id=item_in.class_section_id,
         )
-    return class_session_crud.update_class_session(session=session, db_item=item, item_update=item_in)
+    return class_session_crud.update_class_session(
+        session=session, db_item=item, item_update=item_in
+    )
 
 
 def delete_lesson(
@@ -232,7 +254,9 @@ def delete_lesson(
     """Delete a lesson."""
     from app.crud import class_session_crud
 
-    item = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    item = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not item:
         raise LessonNotFoundError("Buoi hoc khong ton tai")
     class_session_crud.delete_class_session(session=session, db_item=item)
@@ -248,7 +272,9 @@ def open_attendance(
     """Open attendance for a lesson."""
     from app.crud import class_session_crud
 
-    item = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    item = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not item:
         raise LessonNotFoundError("Buoi hoc khong ton tai")
 
@@ -274,9 +300,11 @@ def close_attendance(
     class_session_id: int,
 ) -> Any:
     """Close attendance for a lesson."""
-    from app.crud import class_session_crud, attendance_crud
+    from app.crud import attendance_crud, class_session_crud
 
-    item = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    item = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not item:
         raise LessonNotFoundError("Buoi hoc khong ton tai")
 
@@ -306,7 +334,9 @@ def cancel_lesson_by_lecturer(
     """Cancel a lesson by a teacher/lecturer."""
     from app.crud import class_session_crud
 
-    item = class_session_crud.get_class_session(session=session, class_session_id=class_session_id)
+    item = class_session_crud.get_class_session(
+        session=session, class_session_id=class_session_id
+    )
     if not item:
         raise LessonNotFoundError("Buoi hoc khong ton tai")
 
@@ -332,8 +362,15 @@ def get_lesson_attendance_list(
     class_session_id: int,
 ) -> list[dict[str, Any]]:
     """Return attendance list for a lesson."""
-    from app.models import ClassSession, Student, CourseRegistration, Attendance, AttendanceImage
     from sqlmodel import select
+
+    from app.models import (
+        Attendance,
+        AttendanceImage,
+        ClassSession,
+        CourseRegistration,
+        Student,
+    )
 
     class_session = session.get(ClassSession, class_session_id)
     if not class_session:
@@ -352,7 +389,9 @@ def get_lesson_attendance_list(
     )
     students = session.exec(student_statement).all()
 
-    attendance_statement = select(Attendance).where(Attendance.class_session_id == class_session_id)
+    attendance_statement = select(Attendance).where(
+        Attendance.class_session_id == class_session_id
+    )
     attendances = session.exec(attendance_statement).all()
     attendance_map = {attendance.student_id: attendance for attendance in attendances}
 
@@ -373,13 +412,15 @@ def get_lesson_attendance_list(
             evidence = session.exec(evidence_statement).first()
             evidence_path = evidence.image_path if evidence else None
 
-        result.append({
-            "student_id": student.student_id,
-            "last_name": student.last_name,
-            "first_name": student.first_name,
-            "class_section_id": class_session.class_section_id,
-            "status": status,
-            "note": note,
-            "evidence_image": evidence_path
-        })
+        result.append(
+            {
+                "student_id": student.student_id,
+                "last_name": student.last_name,
+                "first_name": student.first_name,
+                "class_section_id": class_session.class_section_id,
+                "status": status,
+                "note": note,
+                "evidence_image": evidence_path,
+            }
+        )
     return result

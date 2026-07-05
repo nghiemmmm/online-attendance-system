@@ -8,15 +8,15 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.api.deps import get_current_active_superuser, get_db
 from app.main import app
 from app.models import (
-    ClassSession,
-    Staff,
-    CourseRegistration,
-    Attendance,
-    Course,
-    ClassSection,
-    Major,
-    Student,
     Account,
+    Attendance,
+    ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
+    Major,
+    Staff,
+    Student,
 )
 
 
@@ -68,7 +68,9 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
 
 def seed_attendance_summary_data(session: Session):
     """Seed student semester attendance data for summary tests."""
-    staff = Staff(last_name="Nguyen", first_name="Giang", google_ten_dang_nhap="gv@example.edu")
+    staff = Staff(
+        last_name="Nguyen", first_name="Giang", google_ten_dang_nhap="gv@example.edu"
+    )
     major = Major(major_name="Cong nghe thong tin")
     course = Course(course_id=1001, course_name="Co so du lieu")
     other_course = Course(course_id=1002, course_name="Tri tue nhan tao")
@@ -213,4 +215,4 @@ def test_read_semester_attendance_summary_rejects_missing_student() -> None:
         )
 
         assert response.status_code == 404
-        assert response.json()["message"] == "Not found"
+        assert response.json()["detail"] == "Student profile not found"

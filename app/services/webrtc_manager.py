@@ -1,6 +1,7 @@
 from aiortc import RTCPeerConnection
 from aiortc.contrib.media import MediaRelay
 
+
 class WebRTCManager:
     """Manage WebRTC PeerConnections, DataChannels, and MediaRelays."""
 
@@ -35,6 +36,7 @@ class WebRTCManager:
 
 # Create singleton instance
 webrtc_manager = WebRTCManager()
+
 
 def get_webrtc_manager() -> WebRTCManager:
     """Dependency provider for WebRTCManager."""

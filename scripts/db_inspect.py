@@ -68,10 +68,7 @@ async def main():
             col_names = [c[0] for c in col_rows]
             # pick up to first 6 columns for display
             show_cols = col_names[:6]
-            select_q = (
-                f"SELECT {', '.join(show_cols)} FROM public.{t} "
-                "LIMIT 5;"
-            )
+            select_q = f"SELECT {', '.join(show_cols)} FROM public.{t} LIMIT 5;"
             data_res = await conn.execute(text(select_q))
             data_rows = data_res.fetchall()
             data_keys = data_res.keys()
@@ -84,4 +81,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

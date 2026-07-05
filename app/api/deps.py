@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator, Generator
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -11,14 +11,15 @@ from sqlmodel import Session, create_engine, select
 
 from app.core import security
 from app.core.config import settings
-from app.core.db import AsyncSessionFactory, AsyncSessionFactory
+from app.core.db import AsyncSessionFactory
 from app.models import Account, TokenPayload
 
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/access-tokens")
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/login/access-token")
 
 # ⚠️ TEMPORARY: Use sync session for backward compatibility
 # Migration to AsyncSession happens per-route basis
 sync_engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+
 
 def get_db() -> Generator[Session, None, None]:
     """Sync database session dependency for existing routes.
@@ -34,6 +35,10 @@ async def async_get_db() -> AsyncGenerator[AsyncSession, None]:
 
     Use this for new routes or when migrating from sync to async.
     """
+    if AsyncSessionFactory is None:
+        raise RuntimeError(
+            "Async database sessions are unavailable for the current DATABASE_URL"
+        )
     async with AsyncSessionFactory() as session:
         yield session
 
@@ -57,7 +62,7 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Account:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
-        )
+        ) from None
 
     if not token_data.sub:
         raise HTTPException(
@@ -71,7 +76,7 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Account:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
-        )
+        ) from None
 
     # Sync database query
     account = session.get(Account, account_id)
@@ -87,7 +92,9 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Account:
     return account
 
 
-async def async_get_current_account(session: AsyncSessionDep, token: TokenDep) -> Account:
+async def async_get_current_account(
+    session: AsyncSessionDep, token: TokenDep
+) -> Account:
     """Retrieve and validate current account from JWT token (async version).
 
     Use this for async routes that need async database access.
@@ -101,7 +108,7 @@ async def async_get_current_account(session: AsyncSessionDep, token: TokenDep) -
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
-        )
+        ) from None
 
     if not token_data.sub:
         raise HTTPException(
@@ -115,7 +122,7 @@ async def async_get_current_account(session: AsyncSessionDep, token: TokenDep) -
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
-        )
+        ) from None
 
     # ✅ Async database query
     stmt = select(Account).where(Account.account_id == account_id)
@@ -167,6 +174,7 @@ def get_current_active_superuser(current_account: CurrentAccount) -> Account:
         )
     return current_account
 
+
 def get_current_active_student(current_account: CurrentAccount) -> Account:
     if normalize_role(current_account.role) != "SINH_VIEN":
         raise HTTPException(
@@ -174,6 +182,7 @@ def get_current_active_student(current_account: CurrentAccount) -> Account:
             detail=f"Yeu cau vai tro SINH_VIEN, tai khoan hien tai la {current_account.role}",
         )
     return current_account
+
 
 def get_current_active_lecturer(current_account: CurrentAccount) -> Account:
     if normalize_role(current_account.role) != "GIANG_VIEN":
@@ -185,7 +194,9 @@ def get_current_active_lecturer(current_account: CurrentAccount) -> Account:
 
 
 # Async role checkers for use with async routes
-async def get_current_active_superuser_async(current_account: AsyncCurrentAccount) -> Account:
+async def get_current_active_superuser_async(
+    current_account: AsyncCurrentAccount,
+) -> Account:
     """Async version - check superuser role."""
     if normalize_role(current_account.role) != "ADMIN":
         raise HTTPException(
@@ -194,7 +205,10 @@ async def get_current_active_superuser_async(current_account: AsyncCurrentAccoun
         )
     return current_account
 
-async def get_current_active_student_async(current_account: AsyncCurrentAccount) -> Account:
+
+async def get_current_active_student_async(
+    current_account: AsyncCurrentAccount,
+) -> Account:
     """Async version - check student role."""
     if normalize_role(current_account.role) != "SINH_VIEN":
         raise HTTPException(
@@ -203,7 +217,10 @@ async def get_current_active_student_async(current_account: AsyncCurrentAccount)
         )
     return current_account
 
-async def get_current_active_lecturer_async(current_account: AsyncCurrentAccount) -> Account:
+
+async def get_current_active_lecturer_async(
+    current_account: AsyncCurrentAccount,
+) -> Account:
     """Async version - check lecturer role."""
     if normalize_role(current_account.role) != "GIANG_VIEN":
         raise HTTPException(
@@ -213,58 +230,31 @@ async def get_current_active_lecturer_async(current_account: AsyncCurrentAccount
     return current_account
 
 
-from collections import defaultdict
 import time
+from collections import defaultdict
 
 
 class RateLimiter:
-    """A lightweight IP-based rate limiter dependency supporting Redis with in-memory fallback."""
+    """A lightweight IP-based rate limiter dependency."""
 
     def __init__(self, times: int, seconds: int):
         self.times = times
         self.seconds = seconds
         self.history = defaultdict(list)
 
-    async def __call__(self, request: Request):
-        from app.core.redis import redis_client
-        from app.utils.logger import logger
-        
+    def __call__(self, request: Request):
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
 
-        # Try to use Redis rate limiter
-        if redis_client is not None:
-            try:
-                key = f"rate_limit:{client_ip}"
-                pipe = redis_client.pipeline()
-                # Remove timestamps older than the window
-                pipe.zremrangebyscore(key, 0, now - self.seconds)
-                # Add current request timestamp
-                pipe.zadd(key, {str(now): now})
-                # Count current requests in the window
-                pipe.zcard(key)
-                # Expire key to clean up memory
-                pipe.expire(key, self.seconds)
-                
-                _, _, count, _ = await pipe.execute()
-                if count > self.times:
-                    raise HTTPException(
-                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                        detail="Too many requests. Please try again later."
-                    )
-                return
-            except HTTPException:
-                raise
-            except Exception as e:
-                logger.error(f"Redis rate limiter failed: {e}. Falling back to in-memory mode.")
-
-        # Fallback to local in-memory rate limiting
-        self.history[client_ip] = [t for t in self.history[client_ip] if now - t < self.seconds]
+        # Clean up old timestamps
+        self.history[client_ip] = [
+            t for t in self.history[client_ip] if now - t < self.seconds
+        ]
 
         if len(self.history[client_ip]) >= self.times:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests. Please try again later."
+                detail="Too many requests. Please try again later.",
             )
 
         self.history[client_ip].append(now)

@@ -1,6 +1,7 @@
-'''
+"""
 là bước kiểm tra database trước khi backend chính thức khởi động. Nó không chạy API, mà chỉ làm một việc: thử kết nối tới database cho tới khi DB sẵn sàng.
-'''
+"""
+
 import logging
 
 from sqlalchemy import Engine

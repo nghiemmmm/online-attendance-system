@@ -3,25 +3,30 @@
 from datetime import date
 from typing import Any
 
-from app.core.exceptions import StaffNotFoundError, StaffAlreadyExistsError, PermissionDeniedError, AppException
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, select
 
 from app import crud
+from app.core.exceptions import (
+    AppException,
+    PermissionDeniedError,
+    StaffAlreadyExistsError,
+    StaffNotFoundError,
+)
 from app.models import (
+    Attendance,
+    ClassSection,
     ClassSession,
+    Course,
+    CourseRegistration,
+    Message,
+    MonthlyAttendanceSummary,
     Staff,
     StaffCreate,
     StaffUpdate,
-    CourseRegistration,
-    Attendance,
-    Course,
-    ClassSection,
-    Message,
-    MonthlyAttendanceSummary,
 )
-from app.services.attendance_summary_service import get_monthly_attendance_summary
 from app.services.appeal_service import get_pending_appeal_metric
+from app.services.attendance_summary_service import get_monthly_attendance_summary
 
 
 def ensure_unique_staff_fields(
@@ -46,7 +51,9 @@ def ensure_unique_staff_fields(
             account_id=account_id,
         )
         if existing_staff and existing_staff.staff_id != current_staff_id:
-            raise StaffAlreadyExistsError("Account is already linked to another staff profile")
+            raise StaffAlreadyExistsError(
+                "Account is already linked to another staff profile"
+            )
 
 
 def get_staff_member_or_404(*, session: Session, staff_id: int) -> Staff:
@@ -110,7 +117,9 @@ def create_staff_member(*, session: Session, item_in: StaffCreate) -> Staff:
         return crud.create_staff_member(session=session, staff_create=item_in)
     except IntegrityError as exc:
         session.rollback()
-        raise StaffAlreadyExistsError("Staff profile violates a unique or foreign key constraint") from exc
+        raise StaffAlreadyExistsError(
+            "Staff profile violates a unique or foreign key constraint"
+        ) from exc
 
 
 def update_staff_member(
@@ -135,7 +144,9 @@ def update_staff_member(
         )
     except IntegrityError as exc:
         session.rollback()
-        raise StaffAlreadyExistsError("Staff profile violates a unique or foreign key constraint") from exc
+        raise StaffAlreadyExistsError(
+            "Staff profile violates a unique or foreign key constraint"
+        ) from exc
 
 
 def delete_staff_member(*, session: Session, staff_id: int) -> Message:
@@ -145,7 +156,9 @@ def delete_staff_member(*, session: Session, staff_id: int) -> Message:
         crud.delete_staff_member(session=session, db_staff=db_staff)
     except IntegrityError as exc:
         session.rollback()
-        raise StaffAlreadyExistsError("Staff profile is referenced by other records") from exc
+        raise StaffAlreadyExistsError(
+            "Staff profile is referenced by other records"
+        ) from exc
     return Message(message="Staff profile deleted successfully")
 
 
@@ -189,11 +202,15 @@ def read_my_class_sections(*, session: Session, account_id: int) -> dict[str, An
 
     class_sections = []
     for class_section, course in results:
-        registration_count = session.exec(
-            select(func.count(CourseRegistration.student_id)).where(
-                CourseRegistration.class_section_id == class_section.class_section_id
-            )
-        ).first() or 0
+        registration_count = (
+            session.exec(
+                select(func.count(CourseRegistration.student_id)).where(
+                    CourseRegistration.class_section_id
+                    == class_section.class_section_id
+                )
+            ).first()
+            or 0
+        )
         class_sections.append(
             {
                 "class_section_id": class_section.class_section_id,
@@ -223,7 +240,9 @@ def read_staff_teaching_schedule(
 ) -> tuple[list[Any], int]:
     """Return teaching schedule for an authorized staff profile."""
     if from_date and to_date and from_date > to_date:
-        raise AppException("from_date must be before or equal to to_date", status_code=400)
+        raise AppException(
+            "from_date must be before or equal to to_date", status_code=400
+        )
     ensure_staff_owns_profile(
         session=session,
         staff_id=staff_id,
@@ -276,10 +295,12 @@ def count_current_teaching_class_sections(
         account_id=current_account_id,
     )
     target_date = as_of_date or date.today()
-    count, semester, academic_year = crud.count_current_teaching_class_sections_by_staff_member(
-        session=session,
-        staff_id=staff_id,
-        as_of_date=target_date,
+    count, semester, academic_year = (
+        crud.count_current_teaching_class_sections_by_staff_member(
+            session=session,
+            staff_id=staff_id,
+            as_of_date=target_date,
+        )
     )
     return count, semester, academic_year, target_date
 
@@ -330,16 +351,23 @@ def read_my_reports(*, session: Session, account_id: int) -> list[dict[str, Any]
 
     reports = []
     for class_section, course in results:
-        student_count = session.exec(
-            select(func.count(CourseRegistration.student_id)).where(
-                CourseRegistration.class_section_id == class_section.class_section_id
-            )
-        ).first() or 0
-        total_sessions = session.exec(
-            select(func.count(ClassSession.class_session_id)).where(
-                ClassSession.class_section_id == class_section.class_section_id
-            )
-        ).first() or 0
+        student_count = (
+            session.exec(
+                select(func.count(CourseRegistration.student_id)).where(
+                    CourseRegistration.class_section_id
+                    == class_section.class_section_id
+                )
+            ).first()
+            or 0
+        )
+        total_sessions = (
+            session.exec(
+                select(func.count(ClassSession.class_session_id)).where(
+                    ClassSession.class_section_id == class_section.class_section_id
+                )
+            ).first()
+            or 0
+        )
         completed_sessions = session.exec(
             select(ClassSession)
             .where(
@@ -348,13 +376,17 @@ def read_my_reports(*, session: Session, account_id: int) -> list[dict[str, Any]
             )
             .order_by(ClassSession.session_number)
         ).all()
-        
+
         # Nếu chưa có buổi kết thúc, lấy tất cả các buổi học của lớp để vẽ biểu đồ minh họa
-        chart_sessions = completed_sessions if completed_sessions else session.exec(
-            select(ClassSession)
-            .where(ClassSession.class_section_id == class_section.class_section_id)
-            .order_by(ClassSession.session_number)
-        ).all()[:10]
+        chart_sessions = (
+            completed_sessions
+            if completed_sessions
+            else session.exec(
+                select(ClassSession)
+                .where(ClassSession.class_section_id == class_section.class_section_id)
+                .order_by(ClassSession.session_number)
+            ).all()[:10]
+        )
 
         attendances = session.exec(
             select(Attendance)
@@ -384,9 +416,15 @@ def read_my_reports(*, session: Session, account_id: int) -> list[dict[str, Any]
                 {
                     "date": lesson.class_date.strftime("%d/%m")
                     + f" (Buổi {lesson.session_number or 1})",
-                    "present": len([a for a in lesson_attendances if a.status in present_statuses]),
-                    "late": len([a for a in lesson_attendances if a.status in late_statuses]),
-                    "absent": len([a for a in lesson_attendances if a.status in absent_statuses]),
+                    "present": len(
+                        [a for a in lesson_attendances if a.status in present_statuses]
+                    ),
+                    "late": len(
+                        [a for a in lesson_attendances if a.status in late_statuses]
+                    ),
+                    "absent": len(
+                        [a for a in lesson_attendances if a.status in absent_statuses]
+                    ),
                 }
             )
 

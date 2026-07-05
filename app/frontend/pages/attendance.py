@@ -1,5 +1,6 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 from app.frontend.api_client import AttendanceAPI
 
 st.title("📋 Điểm danh")
@@ -23,7 +24,7 @@ if st.button("✅ Ghi nhận"):
             "student_id": student_id,
             "date": date.isoformat(),
             "time": time.isoformat(),
-            "status": status
+            "status": status,
         }
         result = AttendanceAPI.create(data)
         if result:

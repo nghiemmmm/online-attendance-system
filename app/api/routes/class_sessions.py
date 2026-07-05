@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, status
+
 from app.api.deps import (
     CurrentAccount,
     SessionDep,
@@ -26,7 +27,9 @@ def read_class_sessions(
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    items, count = timetable_service.list_lessons(session=session, skip=skip, limit=limit)
+    items, count = timetable_service.list_lessons(
+        session=session, skip=skip, limit=limit
+    )
     return {"data": items, "count": count}
 
 
@@ -47,7 +50,9 @@ def read_class_sessions_by_class_section(
     # We still build details for frontend schema
     details = [
         timetable_service.get_lesson_detail(
-            session=session, current_account=current_account, class_session_id=item.class_session_id
+            session=session,
+            current_account=current_account,
+            class_session_id=item.class_session_id,
         )
         for item in items
     ]
@@ -119,12 +124,18 @@ def update_class_session(
     )
 
 
-@router.delete("/{class_session_id}", response_model=Message, dependencies=[Depends(get_current_active_superuser)])
+@router.delete(
+    "/{class_session_id}",
+    response_model=Message,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_class_session(
     session: SessionDep,
     class_session_id: int,
 ) -> Any:
-    return timetable_service.delete_lesson(session=session, class_session_id=class_session_id)
+    return timetable_service.delete_lesson(
+        session=session, class_session_id=class_session_id
+    )
 
 
 @router.delete(
@@ -145,7 +156,9 @@ def cancel_class_session_by_lecturer(
 
 
 from fastapi import HTTPException
+
 from app.models import ClassSession
+
 
 @router.post(
     "/{class_session_id}/postpone",

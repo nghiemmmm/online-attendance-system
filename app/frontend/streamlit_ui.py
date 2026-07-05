@@ -1,18 +1,9 @@
 import os
-from turtle import home
 
-from app.api import routes
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-import streamlit as st
-import cv2
-from PIL import Image
-import numpy as np
-import time
-import base64
-from io import BytesIO
-import requests
 
-from dotenv import load_dotenv, find_dotenv
+import streamlit as st
+from dotenv import find_dotenv, load_dotenv
 
 # Load environment variables from .env file
 load_dotenv(find_dotenv())
@@ -23,6 +14,7 @@ if "role" not in st.session_state:
     st.session_state.role = None
 
 ROLES = [None, "Requester", "Responder", "Admin"]
+
 
 # =========================
 # LOGIN FUNCTION
@@ -36,12 +28,14 @@ def login():
         st.session_state.role = role
         st.rerun()
 
+
 # =========================
 # LOGOUT FUNCTION
 # =========================
 def logout():
     st.session_state.role = None
     st.rerun()
+
 
 role = st.session_state.role
 
@@ -53,7 +47,10 @@ st.title("Request Manager")
 # =========================
 # PAGE DEFINITIONS
 # =========================
-st.logo("app/frontend/images/horizontal_blue.png", icon_image="app/frontend/images/icon_blue.png")
+st.logo(
+    "app/frontend/images/horizontal_blue.png",
+    icon_image="app/frontend/images/icon_blue.png",
+)
 login_page = st.Page(login, title="Login", icon=":material/login:")
 logout_page = st.Page(logout, title="Logout", icon=":material/logout:")
 settings_page = st.Page("settings.py", title="Settings", icon=":material/settings:")
@@ -152,4 +149,3 @@ pg.run()
 # page = st.query_params.get("page", "home")
 
 # routes.get(page, home.show)()
-

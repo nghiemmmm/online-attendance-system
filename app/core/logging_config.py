@@ -4,7 +4,6 @@ from contextvars import ContextVar
 
 from app.core.config import settings
 
-
 request_id_context: ContextVar[str] = ContextVar("request_id", default="-")
 
 

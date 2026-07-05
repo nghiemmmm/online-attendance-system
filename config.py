@@ -1,6 +1,6 @@
-from pydantic_settings import BaseSettings
 import streamlit as st
-import os
+from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     API_URL: str
@@ -9,9 +9,11 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+
 def load_settings():
     if "database" in st.secrets:  # running in Streamlit Cloud
         return Settings(API_URL=st.secrets["api"]["API_URL"])
     return Settings()  # fallback to env vars for local/dev/deploy
+
 
 settings = load_settings()

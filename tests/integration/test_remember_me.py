@@ -7,7 +7,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.api.deps import get_db
 from app.core.security import get_password_hash
 from app.main import app
-from app.models import RefreshToken, Account
+from app.models import Account, RefreshToken
 
 
 def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:

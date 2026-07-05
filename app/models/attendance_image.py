@@ -1,13 +1,13 @@
 """Define attendance evidence image database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AttendanceImageBase(SQLModel):
@@ -16,7 +16,7 @@ class AttendanceImageBase(SQLModel):
     attendance_id: int
     image_path: str | None = Field(default=None, max_length=255)
     confidence: float | None = None
-    
+
     # Storage Abstraction Fields
     storage_provider: str = Field(default="LOCAL", max_length=30)
     public_id: str | None = Field(default=None, max_length=255)
@@ -39,7 +39,7 @@ class AttendanceImageUpdate(SQLModel):
 
     image_path: str | None = Field(default=None, max_length=255)
     confidence: float | None = None
-    
+
     storage_provider: str | None = Field(default=None, max_length=30)
     public_id: str | None = Field(default=None, max_length=255)
     secure_url: str | None = Field(default=None, max_length=512)

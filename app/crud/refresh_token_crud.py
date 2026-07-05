@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
@@ -40,7 +40,7 @@ def update_refresh_token_last_used(
     *, session: Session, refresh_token: RefreshToken
 ) -> RefreshToken:
     """Cập nhật thời điểm refresh token được dùng gần nhất."""
-    refresh_token.last_used_at = datetime.now(timezone.utc)
+    refresh_token.last_used_at = datetime.now(UTC)
     session.add(refresh_token)
     session.commit()
     session.refresh(refresh_token)
@@ -51,23 +51,21 @@ def revoke_refresh_token(
     *, session: Session, refresh_token: RefreshToken
 ) -> RefreshToken:
     """Thu hồi một refresh token để phiên đăng nhập đó không dùng lại được."""
-    refresh_token.revoked_at = datetime.now(timezone.utc)
+    refresh_token.revoked_at = datetime.now(UTC)
     session.add(refresh_token)
     session.commit()
     session.refresh(refresh_token)
     return refresh_token
 
 
-def revoke_all_refresh_tokens_for_account(
-    *, session: Session, account_id: int
-) -> int:
+def revoke_all_refresh_tokens_for_account(*, session: Session, account_id: int) -> int:
     """Thu hồi toàn bộ refresh token còn hiệu lực của một tài khoản."""
     statement = select(RefreshToken).where(
         RefreshToken.account_id == account_id,
         RefreshToken.revoked_at.is_(None),
     )
     tokens = session.exec(statement).all()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for token in tokens:
         token.revoked_at = now
         session.add(token)

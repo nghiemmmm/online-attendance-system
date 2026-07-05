@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import { CourseClass } from "@/types/class"
 import { Video, PlayCircle, Clock, CalendarDays, Loader2, BookOpen, AlertCircle } from "lucide-react"
 
 export default function LecturerLiveOverviewPage() {
+  const router = useRouter()
   const [lecturerUser, setLecturerUser] = useState({
     name: "Giảng viên",
     email: "loading...",
@@ -94,7 +96,7 @@ export default function LecturerLiveOverviewPage() {
                         </div>
                       </div>
                       <Button
-                        onClick={() => window.location.href = `/lecturer/live/${session.class_session_id}`}
+                        onClick={() => router.push(`/lecturer/live/${session.class_session_id}`)}
                         className="bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold shrink-0 shadow-sm"
                       >
                         <PlayCircle className="w-4 h-4 mr-1.5" />
@@ -143,7 +145,7 @@ export default function LecturerLiveOverviewPage() {
                         </div>
                         <Button
                           variant="outline"
-                          onClick={() => window.location.href = `/lecturer/live/${session.class_session_id}`}
+                          onClick={() => router.push(`/lecturer/live/${session.class_session_id}`)}
                           className="w-full border-[#0EA5E9] text-[#0EA5E9] hover:bg-[#EFF6FF] hover:text-[#0EA5E9] font-semibold mt-2"
                         >
                           <Video className="w-4 h-4 mr-1.5" />

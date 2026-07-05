@@ -2,7 +2,11 @@
 
 from sqlmodel import Session, func, select
 
-from app.models import CourseRegistration, CourseRegistrationCreate, CourseRegistrationUpdate
+from app.models import (
+    CourseRegistration,
+    CourseRegistrationCreate,
+    CourseRegistrationUpdate,
+)
 
 
 def get_course_registration(
@@ -57,7 +61,9 @@ def update_course_registration(
     return db_item
 
 
-def delete_course_registration(*, session: Session, db_item: CourseRegistration) -> None:
+def delete_course_registration(
+    *, session: Session, db_item: CourseRegistration
+) -> None:
     """Delete a class registration."""
     session.delete(db_item)
     session.commit()

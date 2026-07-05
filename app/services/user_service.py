@@ -4,27 +4,27 @@ User service.
 Contains database operations and business logic for user profiles and accounts.
 """
 
-from sqlmodel import Session, select, func, col
-from fastapi import Depends, HTTPException
 from typing import Any
-from datetime import datetime
+
+from fastapi import Depends, HTTPException
+from sqlmodel import Session, col, func, select
 
 from app import crud
+from app.api.deps import get_db
+from app.core.security import get_password_hash, verify_password
 from app.models import (
     Account,
     AccountCreate,
     AccountRegister,
     AccountUpdate,
-    UpdatePassword,
-    Student,
-    Staff,
     FaceImage,
     Major,
+    Staff,
+    Student,
     StudentRegisterRequest,
+    UpdatePassword,
 )
-from app.services.otp_service import verify_otp, generate_and_send_otp
-from app.core.security import get_password_hash, verify_password
-from app.api.deps import get_db
+from app.services.otp_service import verify_otp
 
 
 class UserService:
@@ -70,10 +70,16 @@ class UserService:
                 detail="The account with this username already exists",
             )
         account_create = AccountCreate.model_validate(account_in)
-        db_account = crud.create_account(session=self.session, account_create=account_create)
+        db_account = crud.create_account(
+            session=self.session, account_create=account_create
+        )
 
         # Tự động tạo hồ sơ sinh viên liên kết
-        if account_in.role == "SINH_VIEN" and account_in.last_name and account_in.first_name:
+        if (
+            account_in.role == "SINH_VIEN"
+            and account_in.last_name
+            and account_in.first_name
+        ):
             major = self.session.exec(select(Major)).first()
             if not major:
                 major = Major(major_name="Công nghệ thông tin", description="Mặc định")
@@ -88,7 +94,7 @@ class UserService:
                 phone=account_in.phone,
                 gender=account_in.gender,
                 major_id=major.major_id,
-                account_id=db_account.account_id
+                account_id=db_account.account_id,
             )
             self.session.add(db_student)
             self.session.commit()
@@ -99,7 +105,9 @@ class UserService:
     def register_student_with_otp(self, payload: StudentRegisterRequest) -> Account:
         """Đăng ký tài khoản sinh viên với kiểm tra MSSV, Email và xác thực mã OTP."""
         # 1. Verify OTP code
-        if not verify_otp(session=self.session, email=payload.email, code=payload.otp_code):
+        if not verify_otp(
+            session=self.session, email=payload.email, code=payload.otp_code
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="Mã xác thực OTP không chính xác hoặc đã hết hạn",
@@ -145,7 +153,9 @@ class UserService:
             role="SINH_VIEN",
             status=True,
         )
-        db_account = crud.create_account(session=self.session, account_create=account_create)
+        db_account = crud.create_account(
+            session=self.session, account_create=account_create
+        )
 
         student.account_id = db_account.account_id
         self.session.add(student)
@@ -154,7 +164,9 @@ class UserService:
 
         return db_account
 
-    def update_account_me(self, current_account: Account, account_in: AccountUpdate) -> Account:
+    def update_account_me(
+        self, current_account: Account, account_in: AccountUpdate
+    ) -> Account:
         """Cập nhật thông tin tài khoản hiện tại."""
         if account_in.username:
             existing_account = crud.get_account_by_username(
@@ -174,14 +186,19 @@ class UserService:
             session=self.session, db_account=current_account, account_in=account_update
         )
 
-    def update_password_me(self, current_account: Account, body: UpdatePassword) -> None:
+    def update_password_me(
+        self, current_account: Account, body: UpdatePassword
+    ) -> None:
         """Cập nhật mật khẩu cá nhân."""
-        verified, new_hash = verify_password(body.current_password, current_account.password_hash)
+        verified, new_hash = verify_password(
+            body.current_password, current_account.password_hash
+        )
         if not verified:
             raise HTTPException(status_code=400, detail="Incorrect password")
         if body.current_password == body.new_password:
             raise HTTPException(
-                status_code=400, detail="New password cannot be the same as the current one"
+                status_code=400,
+                detail="New password cannot be the same as the current one",
             )
         current_account.password_hash = get_password_hash(body.new_password)
         self.session.add(current_account)
@@ -211,32 +228,38 @@ class UserService:
             statement = statement.where(Account.role.in_(db_roles))
 
         if status and status != "all":
-            db_status = True if status == "active" else False
+            db_status = status == "active"
             statement = statement.where(Account.status == db_status)
 
-        accounts = self.session.exec(statement.order_by(col(Account.created_at).desc())).all()
+        accounts = self.session.exec(
+            statement.order_by(col(Account.created_at).desc())
+        ).all()
 
         data = []
         for acc in accounts:
             profile_data = {}
             if acc.role == "SINH_VIEN":
-                student = self.session.exec(select(Student).where(Student.account_id == acc.account_id)).first()
+                student = self.session.exec(
+                    select(Student).where(Student.account_id == acc.account_id)
+                ).first()
                 if student:
                     profile_data = {
                         "name": f"{student.last_name} {student.first_name}".strip(),
                         "studentId": student.student_id,
                         "google_email": student.google_email,
                         "phone": student.phone,
-                        "gender": student.gender
+                        "gender": student.gender,
                     }
             elif acc.role in ["GIANG_VIEN", "CAN_BO"]:
-                staff_member = self.session.exec(select(Staff).where(Staff.account_id == acc.account_id)).first()
+                staff_member = self.session.exec(
+                    select(Staff).where(Staff.account_id == acc.account_id)
+                ).first()
                 if staff_member:
                     profile_data = {
                         "name": f"{staff_member.last_name} {staff_member.first_name}".strip(),
                         "google_email": staff_member.google_email,
                         "phone": staff_member.phone,
-                        "gender": staff_member.gender
+                        "gender": staff_member.gender,
                     }
 
             name = profile_data.get("name", "") or ""
@@ -245,27 +268,45 @@ class UserService:
 
             if q:
                 q_lower = q.lower()
-                if q_lower not in name.lower() and q_lower not in email.lower() and q_lower not in student_id_str.lower():
+                if (
+                    q_lower not in name.lower()
+                    and q_lower not in email.lower()
+                    and q_lower not in student_id_str.lower()
+                ):
                     continue
 
             face_count = 0
             if acc.role == "SINH_VIEN" and profile_data.get("studentId"):
-                face_count = self.session.exec(
-                    select(func.count(FaceImage.image_id))
-                    .where(FaceImage.student_id == profile_data.get("studentId"))
-                ).first() or 0
+                face_count = (
+                    self.session.exec(
+                        select(func.count(FaceImage.image_id)).where(
+                            FaceImage.student_id == profile_data.get("studentId")
+                        )
+                    ).first()
+                    or 0
+                )
 
-            data.append({
-                "id": acc.account_id,
-                "name": name or acc.username,
-                "email": email,
-                "role": "student" if acc.role == "SINH_VIEN" else "lecturer" if acc.role in ["GIANG_VIEN", "CAN_BO"] else "admin",
-                "status": "active" if acc.status else "locked",
-                "createdAt": acc.created_at.strftime("%d/%m/%Y") if acc.created_at else "N/A",
-                "lastLogin": acc.last_login_at.strftime("%d/%m/%Y") if acc.last_login_at else "N/A",
-                "studentId": student_id_str if acc.role == "SINH_VIEN" else None,
-                "faceDataStatus": "approved" if face_count > 0 else "none",
-            })
+            data.append(
+                {
+                    "id": acc.account_id,
+                    "name": name or acc.username,
+                    "email": email,
+                    "role": "student"
+                    if acc.role == "SINH_VIEN"
+                    else "lecturer"
+                    if acc.role in ["GIANG_VIEN", "CAN_BO"]
+                    else "admin",
+                    "status": "active" if acc.status else "locked",
+                    "createdAt": acc.created_at.strftime("%d/%m/%Y")
+                    if acc.created_at
+                    else "N/A",
+                    "lastLogin": acc.last_login_at.strftime("%d/%m/%Y")
+                    if acc.last_login_at
+                    else "N/A",
+                    "studentId": student_id_str if acc.role == "SINH_VIEN" else None,
+                    "faceDataStatus": "approved" if face_count > 0 else "none",
+                }
+            )
 
         paginated_data = data[skip : skip + limit]
         return {"data": paginated_data, "count": len(data)}
@@ -303,7 +344,8 @@ class UserService:
         """Xóa tài khoản cá nhân."""
         if current_account.role == "ADMIN":
             raise HTTPException(
-                status_code=403, detail="Super users are not allowed to delete themselves"
+                status_code=403,
+                detail="Super users are not allowed to delete themselves",
             )
         self.session.delete(current_account)
         self.session.commit()
@@ -351,7 +393,7 @@ class UserService:
                 phone=payload.phone,
                 gender=payload.gender,
                 major_id=major.major_id,
-                account_id=db_account.account_id
+                account_id=db_account.account_id,
             )
             self.session.add(db_student)
             self.session.commit()
@@ -363,7 +405,7 @@ class UserService:
                 phone=payload.phone,
                 gender=payload.gender,
                 account_id=db_account.account_id,
-                position="Giảng viên"
+                position="Giảng viên",
             )
             self.session.add(db_staff)
             self.session.commit()
@@ -383,6 +425,5 @@ class UserService:
 
 
 def get_user_service(session: Session = Depends(get_db)) -> UserService:
-
     """Dependency provider for UserService."""
     return UserService(session)

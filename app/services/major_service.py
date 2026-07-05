@@ -2,9 +2,9 @@
 
 from sqlmodel import Session
 
-from app.crud import major_crud
-from app.models import Message, Major, MajorCreate, MajorUpdate
 from app.core.exceptions import MajorNotFoundError
+from app.crud import major_crud
+from app.models import Major, MajorCreate, MajorUpdate, Message
 
 
 def list_majors(

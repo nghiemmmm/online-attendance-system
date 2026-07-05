@@ -1,28 +1,29 @@
 from collections.abc import Generator
+from datetime import date, datetime, time
 
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.api.deps import (
+    get_current_account,
+    get_current_active_lecturer,
     get_current_active_superuser,
     get_db,
-    get_current_active_lecturer,
-    get_current_account,
 )
 from app.main import app
-from datetime import date, datetime, time
-
 from app.models import (
-    ClassSession,
-    Staff,
-    Attendance,
-    Course,
-    Appeal,
-    ClassSection,
-    Major,
-    Student,
     Account,
+    Appeal,
+    Attendance,
+    ClassSection,
+    ClassSession,
+    Course,
+    CourseRegistration,
+    Major,
+    Semester,
+    Staff,
+    Student,
     Timetable,
 )
 
@@ -47,6 +48,8 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             Student.__table__,
             Attendance.__table__,
             Appeal.__table__,
+            Semester.__table__,
+            CourseRegistration.__table__,
         ],
     )
 
@@ -66,10 +69,19 @@ def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:
             status=True,
         )
         session.add(lecturer)
+        lecturer_2 = Account(
+            account_id=3,
+            username="lecturer_2",
+            password_hash="hashed-password",
+            role="GIANG_VIEN",
+            status=True,
+        )
+        session.add(lecturer_2)
         session.commit()
 
         # Link any seeded staff profiles in test database to lecturer account
         from sqlalchemy import event
+
         @event.listens_for(session, "before_flush")
         def set_staff_account_id(sess, flush_context, instances):
             for obj in sess.new:
@@ -156,7 +168,9 @@ def test_create_staff_rejects_duplicate_google_email() -> None:
 def test_read_staff_teaching_schedule_returns_teaching_schedule() -> None:
     """Kiểm tra API lịch dạy trả về buổi học của giảng viên theo mã cán bộ."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Le", first_name="Cuong", google_ten_dang_nhap="cuong@example.edu")
+        staff = Staff(
+            last_name="Le", first_name="Cuong", google_ten_dang_nhap="cuong@example.edu"
+        )
         course = Course(
             course_id=101,
             course_name="Co so du lieu",
@@ -233,14 +247,26 @@ def test_read_staff_teaching_schedule_rejects_invalid_date_range() -> None:
         )
 
         assert response.status_code == 400
-        assert response.json()["message"] == "from_date must be before or equal to to_date"
+        assert (
+            response.json()["message"] == "from_date must be before or equal to to_date"
+        )
 
 
 def test_read_staff_recent_class_sessions_returns_recent_lessons() -> None:
     """Kiem tra API buoi hoc gan day tra ve thong ke diem danh cua can bo."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Mai", first_name="Lan", google_ten_dang_nhap="lan@example.edu")
-        other_staff = Staff(last_name="Mai", first_name="Khac", google_ten_dang_nhap="khac@example.edu")
+        staff = Staff(
+            last_name="Mai",
+            first_name="Lan",
+            google_ten_dang_nhap="lan@example.edu",
+            account_id=2,
+        )
+        other_staff = Staff(
+            last_name="Mai",
+            first_name="Khac",
+            google_ten_dang_nhap="khac@example.edu",
+            account_id=3,
+        )
         major = Major(major_name="Khoa hoc may tinh")
         course = Course(
             course_id=151,
@@ -342,7 +368,9 @@ def test_read_staff_recent_class_sessions_returns_recent_lessons() -> None:
 def test_count_active_class_sections_returns_current_semester_count() -> None:
     """Kiểm tra API đếm số lớp học phần đang giảng dạy trong học kỳ hiện tại."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Pham", first_name="Dung", google_ten_dang_nhap="dung@example.edu")
+        staff = Staff(
+            last_name="Pham", first_name="Dung", google_ten_dang_nhap="dung@example.edu"
+        )
         course = Course(
             course_id=201,
             course_name="Lap trinh Python",
@@ -409,7 +437,9 @@ def test_count_active_class_sections_returns_current_semester_count() -> None:
 def test_read_monthly_attendance_summary_returns_change_from_previous_month() -> None:
     """Kiểm tra API thống kê tỷ lệ có mặt tháng hiện tại so với tháng trước."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Do", first_name="Hoa", google_ten_dang_nhap="hoa@example.edu")
+        staff = Staff(
+            last_name="Do", first_name="Hoa", google_ten_dang_nhap="hoa@example.edu"
+        )
         major = Major(major_name="Cong nghe thong tin")
         course = Course(
             course_id=301,
@@ -521,8 +551,18 @@ def test_read_monthly_attendance_summary_returns_change_from_previous_month() ->
 def test_count_pending_appeals_returns_staff_owned_pending_count() -> None:
     """Kiểm tra API chỉ đếm khiếu nại chờ xử lý thuộc lớp cán bộ phụ trách."""
     for client, session in make_test_client():
-        staff = Staff(last_name="Vu", first_name="Minh", google_ten_dang_nhap="minh@example.edu")
-        other_staff = Staff(last_name="Hoang", first_name="Nam", google_ten_dang_nhap="nam@example.edu")
+        staff = Staff(
+            last_name="Vu",
+            first_name="Minh",
+            google_ten_dang_nhap="minh@example.edu",
+            account_id=2,
+        )
+        other_staff = Staff(
+            last_name="Hoang",
+            first_name="Nam",
+            google_ten_dang_nhap="nam@example.edu",
+            account_id=3,
+        )
         major = Major(major_name="He thong thong tin")
         course = Course(
             course_id=401,
@@ -619,9 +659,7 @@ def test_count_pending_appeals_returns_staff_owned_pending_count() -> None:
         )
         session.commit()
 
-        response = client.get(
-            f"/api/staff/{staff.staff_id}/appeals/pending/count"
-        )
+        response = client.get(f"/api/staff/{staff.staff_id}/appeals/pending/count")
         body = response.json()
 
         assert response.status_code == 200

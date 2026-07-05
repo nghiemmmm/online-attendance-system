@@ -9,20 +9,25 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query, status
 
-from app.api.deps import SessionDep, get_current_active_superuser, get_current_active_lecturer, CurrentAccount
+from app.api.deps import (
+    CurrentAccount,
+    SessionDep,
+    get_current_active_lecturer,
+    get_current_active_superuser,
+)
 from app.models import (
-    RecentClassSessionsPublic,
-    StaffCreate,
-    StaffPublic,
-    StaffMembersPublic,
-    StaffUpdate,
-    TeachingSchedulesPublic,
+    ActiveClassSectionCountPublic,
     Message,
     MonthlyAttendanceSummary,
     PendingAppealMetric,
-    ActiveClassSectionCountPublic,
-    StaffClassSectionsPublic,
+    RecentClassSessionsPublic,
     StaffAttendanceReportItem,
+    StaffClassSectionsPublic,
+    StaffCreate,
+    StaffMembersPublic,
+    StaffPublic,
+    StaffUpdate,
+    TeachingSchedulesPublic,
 )
 from app.services import staff_service
 
@@ -167,11 +172,13 @@ def count_current_teaching_class_sections(
     staff_id: Annotated[int, Path(ge=1)],
     as_of_date: date | None = None,
 ) -> ActiveClassSectionCountPublic:
-    count, semester, academic_year, target_date = staff_service.count_current_teaching_class_sections(
-        session=session,
-        current_account_id=current_account.account_id,
-        staff_id=staff_id,
-        as_of_date=as_of_date,
+    count, semester, academic_year, target_date = (
+        staff_service.count_current_teaching_class_sections(
+            session=session,
+            current_account_id=current_account.account_id,
+            staff_id=staff_id,
+            as_of_date=as_of_date,
+        )
     )
     return ActiveClassSectionCountPublic(
         staff_id=staff_id,

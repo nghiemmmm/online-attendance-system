@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 import jwt
@@ -24,7 +24,7 @@ def create_access_token(
     data: dict[str, Any] | None = None,
     expires_delta: timedelta | None = None,
 ) -> str:
-    expire = datetime.now(timezone.utc) + (
+    expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = data.copy() if data is not None else {}
@@ -42,4 +42,3 @@ def verify_password(
 
 def get_password_hash(password: str) -> str:
     return password_hash.hash(password)
-

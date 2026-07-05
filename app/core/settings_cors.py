@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Annotated
 
 from pydantic import AnyUrl, BeforeValidator, computed_field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.settings_common import parse_cors
+from app.core.settings_compat import BaseSettings, SettingsConfigDict
 
 
 class CORSSettings(BaseSettings):
@@ -19,7 +19,9 @@ class CORSSettings(BaseSettings):
 
     FRONTEND_HOST: str = "http://localhost:5173"
     GOOGLE_ALLOWED_EMAIL_DOMAIN: str = ""
-    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
 
     @computed_field  # type: ignore[prop-decorator]
     @property

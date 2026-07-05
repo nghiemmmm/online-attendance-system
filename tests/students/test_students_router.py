@@ -6,7 +6,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from app.api.deps import get_current_active_superuser, get_db
 from app.main import app
-from app.models import Major, Student, Account
+from app.models import Account, Major, Student
 
 
 def make_test_client() -> Generator[tuple[TestClient, Session], None, None]:

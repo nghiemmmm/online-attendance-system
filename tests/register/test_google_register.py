@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from app.api.routes import google_auth_router as google_auth
 from app.core.exceptions import AccountInactiveError
-from app.models import GoogleAuthPending, OAuthIdentity, Account
+from app.models import Account, GoogleAuthPending, OAuthIdentity
 
 
 class FakeSession:
@@ -54,7 +54,7 @@ def test_validate_google_user_info_accepts_verified_email() -> None:
     provider_subject, email = google_auth.validate_google_user_info(
         {
             "sub": "google-subject",
-            "username": "student@example.edu",
+            "email": "student@example.edu",
             "email_verified": True,
         }
     )
@@ -69,7 +69,7 @@ def test_validate_google_user_info_rejects_unverified_email() -> None:
         google_auth.validate_google_user_info(
             {
                 "sub": "google-subject",
-                "username": "student@example.edu",
+                "email": "student@example.edu",
                 "email_verified": False,
             }
         )

@@ -1,5 +1,6 @@
 class AppException(Exception):
     """Base application exception."""
+
     status_code: int = 500
     detail: str = "Internal server error"
 

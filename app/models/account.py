@@ -1,16 +1,19 @@
 """Define account database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import ClassVar
 
-from pydantic import EmailStr, field_serializer, field_validator
+from pydantic import field_serializer
+from sqlalchemy.orm import synonym
 from sqlmodel import Field, SQLModel
 
+from app.core.email_compat import EmailStr
 from app.models.base import AppBaseModel
 
 
 def get_datetime_utc() -> datetime:
     """Return the current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AccountBase(SQLModel):
@@ -62,6 +65,17 @@ class Account(AccountBase, table=True):
     locked_until: datetime | None = None
     created_at: datetime = Field(default_factory=get_datetime_utc)
 
+    # Legacy field aliases retained for compatibility with older routes/tests.
+    ma_tai_khoan: ClassVar = synonym("account_id")
+    ten_dang_nhap: ClassVar = synonym("username")
+    vai_tro: ClassVar = synonym("role")
+    trang_thai: ClassVar = synonym("status")
+    mat_khau_hash: ClassVar = synonym("password_hash")
+    lan_dang_nhap_cuoi: ClassVar = synonym("last_login_at")
+    so_lan_dang_nhap_sai: ClassVar = synonym("failed_login_count")
+    khoa_den: ClassVar = synonym("locked_until")
+    ngay_tao: ClassVar = synonym("created_at")
+
 
 class AccountPublic(AppBaseModel, AccountBase):
     """Represent account data returned by the API."""
@@ -74,7 +88,7 @@ class AccountPublic(AppBaseModel, AccountBase):
     def _serialize_datetime(self, value: datetime | None) -> str | None:
         if value is None:
             return None
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class AccountsPublic(SQLModel):

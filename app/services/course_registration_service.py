@@ -2,6 +2,7 @@
 
 from sqlmodel import Session
 
+from app.core.exceptions import CourseRegistrationNotFoundError
 from app.crud import course_registration_crud
 from app.models import (
     CourseRegistration,
@@ -9,7 +10,6 @@ from app.models import (
     CourseRegistrationUpdate,
     Message,
 )
-from app.core.exceptions import CourseRegistrationNotFoundError
 
 
 def list_course_registrations(

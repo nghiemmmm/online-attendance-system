@@ -44,6 +44,8 @@ def authentication_token_from_email(
         user_in_update = AccountUpdate(password=password)
         if not user.account_id:
             raise Exception("User id not set")
-        user = crud.update_account(session=db, db_account=user, account_in=user_in_update)
+        user = crud.update_account(
+            session=db, db_account=user, account_in=user_in_update
+        )
 
     return user_authentication_headers(client=client, email=email, password=password)

@@ -6,31 +6,36 @@ Defines APIs for staff members to view and process pending attendance complaints
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from pydantic import Field
 
-from app.api.deps import SessionDep, get_current_active_superuser, CurrentAccount, get_current_active_student, get_current_active_lecturer
+from app.api.deps import (
+    CurrentAccount,
+    SessionDep,
+    get_current_active_lecturer,
+    get_current_active_student,
+)
 from app.models import (
+    AppealApprovalRequest,
     AppealCreate,
     AppealPublic,
+    AppealResolutionRequest,
+    AppealResolutionResult,
     AppealsPublic,
     PendingAppealDetail,
     PendingAppealsPublic,
-    AppealApprovalRequest,
-    AppealResolutionRequest,
-    AppealResolutionResult,
 )
+from app.models.base import AppBaseModel
 from app.services.appeal_service import (
     approve_appeal,
+    create_appeal,
     get_actionable_appeal_detail,
     list_actionable_appeals,
-    reject_appeal,
-    create_appeal,
     list_my_appeals,
+    reject_appeal,
 )
-from app.services.staff_service import ensure_staff_owns_profile
 from app.services.audit_log_service import write_audit_log
-from app.models.base import AppBaseModel
+from app.services.staff_service import ensure_staff_owns_profile
 
 router = APIRouter(prefix="/appeals", tags=["appeals"])
 
@@ -41,6 +46,7 @@ class AppealReviewRequest(AppBaseModel):
     status: str = Field(min_length=1, max_length=30)
     resolution_note: str | None = Field(default=None, max_length=255)
     new_attendance_status: str | None = Field(default=None, max_length=30)
+
 
 @router.post(
     "",
@@ -56,8 +62,8 @@ class AppealReviewRequest(AppBaseModel):
         },
         status.HTTP_404_NOT_FOUND: {
             "description": "Bản ghi điểm danh hoặc buổi học không tồn tại"
-        }
-    }
+        },
+    },
 )
 def create_appeal_route(
     request: Request,
@@ -122,7 +128,9 @@ def read_actionable_appeals(
     )
 
     if status_filter not in {"pending", "CHO_XU_LY"}:
-        raise HTTPException(status_code=400, detail="Only pending appeals are actionable")
+        raise HTTPException(
+            status_code=400, detail="Only pending appeals are actionable"
+        )
 
     return list_actionable_appeals(
         session=session,
@@ -207,7 +215,9 @@ def review_appeal_route(
         action=audit_action,
         target_type="Appeal",
         target_id=appeal_id,
-        after_data=result.model_dump(mode="json") if hasattr(result, "model_dump") else None,
+        after_data=result.model_dump(mode="json")
+        if hasattr(result, "model_dump")
+        else None,
         request=request,
     )
     return result

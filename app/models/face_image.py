@@ -1,10 +1,10 @@
 """Define face enrollment image database and response models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from pgvector.sqlalchemy import Vector
 from pydantic import field_serializer
 from sqlalchemy import Column
-from pgvector.sqlalchemy import Vector
 from sqlmodel import Field, SQLModel
 
 from app.models.base import AppBaseModel
@@ -20,7 +20,7 @@ class FaceImageBase(SQLModel):
     review_status: str = Field(default="CHO_DUYET", max_length=30)
     rejection_reason: str | None = Field(default=None, max_length=255)
     reviewed_at: datetime | None = None
-    
+
     # Storage Abstraction Fields
     storage_provider: str = Field(default="LOCAL", max_length=30)
     public_id: str | None = Field(default=None, max_length=255)
@@ -49,7 +49,7 @@ class FaceImageUpdate(SQLModel):
     rejection_reason: str | None = Field(default=None, max_length=255)
     reviewer_id: int | None = None
     reviewed_at: datetime | None = None
-    
+
     storage_provider: str | None = Field(default=None, max_length=30)
     public_id: str | None = Field(default=None, max_length=255)
     secure_url: str | None = Field(default=None, max_length=512)
@@ -88,7 +88,7 @@ class FaceImagePublic(AppBaseModel, FaceImageBase):
     def _serialize_datetime(self, value: datetime | None) -> str | None:
         if value is None:
             return None
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 class FaceImagesPublic(SQLModel):

@@ -30,7 +30,9 @@ async def detect_user(video_transform_track, max_frames=30):
             frame = await video_transform_track.recv()
             if frame is None:
                 results.append(
-                    _build_error(frame_index, "empty_frame", "Track returned None frame")
+                    _build_error(
+                        frame_index, "empty_frame", "Track returned None frame"
+                    )
                 )
                 continue
 
@@ -120,7 +122,9 @@ async def verify_face_and_extract_embeddings(
             frame = await video_transform_track.recv()
             if frame is None:
                 results.append(
-                    _build_error(frame_index, "empty_frame", "Track returned None frame")
+                    _build_error(
+                        frame_index, "empty_frame", "Track returned None frame"
+                    )
                 )
                 continue
 

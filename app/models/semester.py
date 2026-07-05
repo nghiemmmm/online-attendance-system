@@ -1,12 +1,14 @@
 """Define semester database and API models."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
+
 from sqlmodel import Field, SQLModel
+
 from app.models.base import AppBaseModel
 
 
 def get_datetime_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class SemesterBase(SQLModel):

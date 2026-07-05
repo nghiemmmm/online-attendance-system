@@ -1,5 +1,6 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 from app.frontend.api_client import RequestAPI
 
 st.title("💬 Xử lý yêu cầu")
@@ -20,15 +21,26 @@ if requests_data and len(requests_data) > 0:
     st.subheader("Xử lý yêu cầu")
 
     # Get pending requests
-    pending_requests = [req for req in requests_data if req.get('status') == 'Chờ xử lý']
+    pending_requests = [
+        req for req in requests_data if req.get("status") == "Chờ xử lý"
+    ]
 
     if pending_requests:
-        request_options = [f"{req.get('id', '')} - {req.get('type', '')}" for req in pending_requests]
+        request_options = [
+            f"{req.get('id', '')} - {req.get('type', '')}" for req in pending_requests
+        ]
         selected_request = st.selectbox("Chọn yêu cầu", request_options)
 
         if selected_request:
             request_id = selected_request.split(" - ")[0]
-            request_data = next((req for req in pending_requests if str(req.get('id', '')) == request_id), None)
+            request_data = next(
+                (
+                    req
+                    for req in pending_requests
+                    if str(req.get("id", "")) == request_id
+                ),
+                None,
+            )
 
             if request_data:
                 st.write(f"**Yêu cầu:** {selected_request}")
@@ -44,7 +56,7 @@ if requests_data and len(requests_data) > 0:
                         update_data = {
                             "status": "Hoàn thành",
                             "response": response_text,
-                            "processed_by": st.session_state.get('user_id', 'Admin')
+                            "processed_by": st.session_state.get("user_id", "Admin"),
                         }
                         result = RequestAPI.update(int(request_id), update_data)
                         if result:
@@ -58,7 +70,7 @@ if requests_data and len(requests_data) > 0:
                         update_data = {
                             "status": "Từ chối",
                             "response": response_text,
-                            "processed_by": st.session_state.get('user_id', 'Admin')
+                            "processed_by": st.session_state.get("user_id", "Admin"),
                         }
                         result = RequestAPI.update(int(request_id), update_data)
                         if result:
