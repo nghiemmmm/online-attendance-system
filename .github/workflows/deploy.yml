@@ -171,21 +171,13 @@ jobs:
             echo "==== Step 3.5: Switch to Production Docker Configuration ===="
             bash switch-environment.sh prod
 
-            # Check or recreate .env file with secrets
-            cat <<EOF > .env
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
-            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
-            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-            FIRST_SUPERUSER=${{ secrets.FIRST_SUPERUSER }}
-            FIRST_SUPERUSER_PASSWORD=${{ secrets.FIRST_SUPERUSER_PASSWORD }}
-            IMAGE_STORAGE_PROVIDER=CLOUDINARY
-            ENVIRONMENT=production
-            DEBUG=False
-            EOF
+            # Recreate .env file directly from the single consolidated secret
+            cat << 'EOF' > .env
+${{ secrets.NGHIEM_SECRET_DIEMDANH }}
+EOF
+            
+            # Ensure proper permissions on the environment file
+            chmod 600 .env
             
             echo "==== Step 4: Login GHCR & Pull Images ===="
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
