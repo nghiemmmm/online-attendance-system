@@ -173,8 +173,8 @@ jobs:
 
             # Recreate .env file directly from the single consolidated secret
             cat << 'EOF' > .env
-${{ secrets.NGHIEM_SECRET_DIEMDANH }}
-EOF
+            ${{ secrets.NGHIEM_SECRET_DIEMDANH }}
+            EOF
             
             # Ensure proper permissions on the environment file
             chmod 600 .env
