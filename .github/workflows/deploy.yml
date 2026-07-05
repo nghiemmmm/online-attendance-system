@@ -1,6 +1,7 @@
 name: CI/CD - Build, Push to GHCR and Deploy to EC2
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - production
