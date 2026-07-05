@@ -29,12 +29,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify GitHub Secrets Presence
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          NGHIEM_SECRET_DIEMDANH: ${{ secrets.NGHIEM_SECRET_DIEMDANH }}
         run: |
           echo "==== Verifying Secrets Presence ===="
-          if [ -z "${{ secrets.EC2_HOST }}" ]; then echo "❌ EC2_HOST is MISSING"; exit 1; else echo "✅ EC2_HOST is present"; fi
-          if [ -z "${{ secrets.EC2_USER }}" ]; then echo "❌ EC2_USER is MISSING"; exit 1; else echo "✅ EC2_USER is present"; fi
-          if [ -z "${{ secrets.SSH_KEY }}" ]; then echo "❌ SSH_KEY is MISSING"; exit 1; else echo "✅ SSH_KEY is present"; fi
-          if [ -z "${{ secrets.NGHIEM_SECRET_DIEMDANH }}" ]; then echo "❌ NGHIEM_SECRET_DIEMDANH is MISSING"; exit 1; else echo "✅ NGHIEM_SECRET_DIEMDANH is present"; fi
+          if [ -z "$EC2_HOST" ]; then echo "❌ EC2_HOST is MISSING"; exit 1; else echo "✅ EC2_HOST is present"; fi
+          if [ -z "$EC2_USER" ]; then echo "❌ EC2_USER is MISSING"; exit 1; else echo "✅ EC2_USER is present"; fi
+          if [ -z "$SSH_KEY" ]; then echo "❌ SSH_KEY is MISSING"; exit 1; else echo "✅ SSH_KEY is present"; fi
+          if [ -z "$NGHIEM_SECRET_DIEMDANH" ]; then echo "❌ NGHIEM_SECRET_DIEMDANH is MISSING"; exit 1; else echo "✅ NGHIEM_SECRET_DIEMDANH is present"; fi
           echo "==== All required secrets are present ===="
 
       - name: Set up QEMU
