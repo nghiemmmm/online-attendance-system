@@ -34,7 +34,7 @@ COPY requirements.txt .
 
 # Install dependencies into the virtual environment
 RUN pip install --upgrade pip && \
-    pip install torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install torch==2.1.1+cpu torchvision==0.16.1+cpu --find-links https://download.pytorch.org/whl/torch_stable.html && \
     pip install -r requirements.txt
 
 # ==============================================================================
