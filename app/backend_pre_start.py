@@ -33,7 +33,9 @@ def init(db_engine: Engine) -> None:
             if tries >= max_tries:
                 logger.error("Max database connection attempts reached. Exiting.")
                 raise e
-            logger.warning(f"Database not ready yet ({e}). Retrying in {wait_seconds}s...")
+            logger.warning(
+                f"Database not ready yet ({e}). Retrying in {wait_seconds}s..."
+            )
             time.sleep(wait_seconds)
 
 
