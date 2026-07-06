@@ -152,12 +152,11 @@ jobs:
             
             echo "==== Step 2: Database Backup ===="
             # Safe backup of PostgreSQL database before changing anything
-            if docker ps --format '{{.Names}}' | grep -q "db"; then
+            if docker ps --format '{{.Names}}' | grep -q "db-diemdanh"; then
               echo "Backing up database..."
-              docker compose exec -T db pg_dump -U postgres dbdiemdanh > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || echo "Backup warning: check database status"
-            elif docker ps --format '{{.Names}}' | grep -q "postgres"; then
-              echo "Backing up database (postgres name)..."
-              docker exec -t postgres pg_dump -U postgres dbdiemdanh > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || echo "Backup warning"
+              docker exec -i db-diemdanh pg_dump -U root diemdanh > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || \
+              docker exec -i db-diemdanh pg_dump -U postgres dbdiemdanh > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || \
+              echo "Backup warning: check database status"
             else
               echo "No active DB container found to backup. Skipping."
             fi
@@ -224,8 +223,10 @@ jobs:
               echo "Rollback completed. Restoring database from backup..."
               if [ -f "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" ]; then
                 # Restore database backup if Postgres is running
-                if docker ps --format '{{.Names}}' | grep -q "db"; then
-                  docker compose exec -T db psql -U postgres dbdiemdanh < "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
+                if docker ps --format '{{.Names}}' | grep -q "db-diemdanh"; then
+                  docker exec -i db-diemdanh psql -U root diemdanh < "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || \
+                  docker exec -i db-diemdanh psql -U postgres dbdiemdanh < "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" || \
+                  echo "Restore database warning"
                 fi
               fi
               exit 1
