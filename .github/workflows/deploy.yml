@@ -221,7 +221,13 @@ jobs:
               # Remove old unused Docker images to save disk space
               docker image prune -a -f
             else
-              echo "❌ Health check failed with status: $HEALTH_STATUS. Rolling back to previous images!"
+              echo "❌ Health check failed with status: $HEALTH_STATUS."
+              echo "==== DEBUG: Printing backend container logs ===="
+              docker compose logs --tail=100 backend || echo "Failed to fetch backend logs"
+              echo "==== DEBUG: Printing nginx container logs ===="
+              docker compose logs --tail=100 nginx || echo "Failed to fetch nginx logs"
+              
+              echo "Rolling back to previous images!"
               
               # Revert Git checkout and up previous images
               git checkout HEAD@{1}
