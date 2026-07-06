@@ -16,94 +16,94 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 DO $$
 BEGIN
-    -- Check if schema has been created by Alembic
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'taikhoan') THEN
+    -- Check if schema has been created by Alembic (check for accounts table)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'accounts') THEN
         RAISE NOTICE 'Tables not yet created. Skipping seed data — run Alembic migrations first.';
         RETURN;
     END IF;
 
     -- Reset existing data (safe for re-seeding)
     TRUNCATE TABLE
-        anhdiemdanh,
-        anhkhuonmat,
-        dangkyhocphan,
-        khieunai,
-        diemdanh,
-        buoihoc,
-        thoikhoabieu,
-        lophocphan,
-        hocphan,
-        sinhvien,
-        canbo,
+        attendance_images,
+        face_images,
+        course_registrations,
+        appeals,
+        attendance,
+        class_sessions,
+        timetables,
+        class_sections,
+        courses,
+        students,
+        staff,
         refresh_token,
         oauth_identity,
-        taikhoan,
-        nganh
+        accounts,
+        majors
     RESTART IDENTITY CASCADE;
 
-    -- NGÀNH
-    INSERT INTO nganh (ten_nganh, mo_ta)
+    -- MAJORS (NGÀNH)
+    INSERT INTO majors (major_name, description)
     VALUES ('Công nghệ thông tin', 'Ngành CNTT');
 
-    -- TÀI KHOẢN
-    INSERT INTO taikhoan (ten_dang_nhap, mat_khau_hash, vai_tro, trang_thai, so_lan_dang_nhap_sai, thoi_gian_khoa, ngay_tao)
+    -- ACCOUNTS (TÀI KHOẢN)
+    INSERT INTO accounts (username, password_hash, role, status, failed_login_count, locked_until, created_at)
     VALUES
     ('admin@university.edu.vn', '$2b$12$6dCSBvs52cfB14dAASubu.Px4/yiAFg.9yiTHieAKFeVk/C9oP1Lu', 'ADMIN', true, 0, NULL, NOW()),
     ('gv001@university.edu.vn', '$2b$12$6dCSBvs52cfB14dAASubu.Px4/yiAFg.9yiTHieAKFeVk/C9oP1Lu', 'GIANG_VIEN', true, 0, NULL, NOW()),
     ('sv001@student.edu.vn', '$2b$12$6dCSBvs52cfB14dAASubu.Px4/yiAFg.9yiTHieAKFeVk/C9oP1Lu', 'SINH_VIEN', true, 0, NULL, NOW());
 
-    -- CÁN BỘ
-    INSERT INTO canbo (ho, ten, dien_thoai, gioi_tinh, ngay_sinh, google_email, ma_tai_khoan, chuc_vu, trang_thai)
+    -- STAFF (CÁN BỘ)
+    INSERT INTO staff (last_name, first_name, phone, gender, birth_date, google_email, account_id, position, status)
     VALUES (
         'Nguyễn', 'Văn A', '0909000001', 'Nam', '1985-05-20', 'gva@university.edu.vn',
-        (SELECT ma_tai_khoan FROM taikhoan WHERE ten_dang_nhap = 'gv001@university.edu.vn'),
+        (SELECT account_id FROM accounts WHERE username = 'gv001@university.edu.vn'),
         'Giảng viên', true
     );
 
-    -- SINH VIÊN
-    INSERT INTO sinhvien (ho, ten, ngay_sinh, gioi_tinh, dien_thoai, google_email, ma_nganh, ma_tai_khoan, trang_thai_hoc, thoi_gian_bat_dau_hoc)
+    -- STUDENTS (SINH VIÊN)
+    INSERT INTO students (last_name, first_name, birth_date, gender, phone, google_email, major_id, account_id, academic_status, study_started_at)
     VALUES (
         'Trần', 'Văn B', '2004-03-12', 'Nam', '0911111111', 'sv001@student.edu.vn',
-        (SELECT ma_nganh FROM nganh LIMIT 1),
-        (SELECT ma_tai_khoan FROM taikhoan WHERE ten_dang_nhap = 'sv001@student.edu.vn'),
+        (SELECT major_id FROM majors LIMIT 1),
+        (SELECT account_id FROM accounts WHERE username = 'sv001@student.edu.vn'),
         true, NOW()
     );
 
-    -- HỌC PHẦN
-    INSERT INTO hocphan (ma_hoc_phan, ten_hoc_phan, mo_ta, so_tin_chi, trang_thai)
+    -- COURSES (HỌC PHẦN)
+    INSERT INTO courses (course_id, course_name, description, credit_count, status)
     VALUES (101, 'Cơ sở dữ liệu', 'Môn học SQL', 3, true);
 
-    -- LỚP HỌC PHẦN
-    INSERT INTO lophocphan (ma_hoc_phan, ma_can_bo, hoc_ky, nam_hoc, ty_le_chuyen_can_toi_thieu, trang_thai, ngay_tao)
+    -- CLASS_SECTIONS (LỚP HỌC PHẦN)
+    INSERT INTO class_sections (course_id, staff_id, semester, academic_year, minimum_attendance_rate, status, created_at)
     VALUES (
         101,
-        (SELECT ma_can_bo FROM canbo LIMIT 1),
+        (SELECT staff_id FROM staff LIMIT 1),
         1, '2025-2026', 0.8, true, NOW()
     );
 
-    -- BUỔI HỌC
-    INSERT INTO buoihoc (ma_lop_hoc_phan, ngay_hoc, gio_bat_dau, gio_ket_thuc, so_buoi, trang_thai, nguong_nhan_dien, so_phut_muon_toi_da, ghi_chu)
+    -- CLASS_SESSIONS (BUỔI HỌC)
+    INSERT INTO class_sessions (class_section_id, class_date, start_time, end_time, session_number, status, recognition_threshold, late_grace_minutes, note)
     VALUES (
-        (SELECT ma_lop_hoc_phan FROM lophocphan LIMIT 1),
+        (SELECT class_section_id FROM class_sections LIMIT 1),
         '2025-09-08', '07:00', '09:30', 1, 'DA_KET_THUC', 0.5, 15, 'Buổi học đầu tiên'
     );
 
-    -- ĐIỂM DANH
-    INSERT INTO diemdanh (ma_sinh_vien, ma_buoi_hoc, trang_thai, phuong_thuc, do_tin_cay, thoi_diem_diem_danh)
+    -- ATTENDANCE (ĐIỂM DANH)
+    INSERT INTO attendance (student_id, class_session_id, status, method, confidence, attended_at)
     VALUES (
-        (SELECT ma_sinh_vien FROM sinhvien LIMIT 1),
-        (SELECT ma_buoi_hoc FROM buoihoc LIMIT 1),
+        (SELECT student_id FROM students LIMIT 1),
+        (SELECT class_session_id FROM class_sessions LIMIT 1),
         'CO_MAT', 'KHUON_MAT', 0.95, NOW()
     );
 
-    -- KHIẾU NẠI
-    INSERT INTO khieunai (ma_diem_danh, ma_sinh_vien, ly_do, trang_thai, ngay_gui, ma_can_bo_xu_ly, ghi_chu_xu_ly, ngay_xu_ly)
+    -- APPEALS (KHIẾU NẠI)
+    INSERT INTO appeals (attendance_id, student_id, reason, status, submitted_at, resolver_id, resolution_note, resolved_at)
     VALUES (
-        (SELECT ma_diem_danh FROM diemdanh LIMIT 1),
-        (SELECT ma_sinh_vien FROM sinhvien LIMIT 1),
+        (SELECT attendance_id FROM attendance LIMIT 1),
+        (SELECT student_id FROM students LIMIT 1),
         'Em vào lớp đúng giờ nhưng hệ thống nhận diện chậm',
         'DA_DUYET', NOW(),
-        (SELECT ma_can_bo FROM canbo LIMIT 1),
+        (SELECT staff_id FROM staff LIMIT 1),
         'Đã kiểm tra camera', NOW()
     );
 

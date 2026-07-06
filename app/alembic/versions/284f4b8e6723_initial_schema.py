@@ -28,7 +28,7 @@ def upgrade():
     sa.Column('course_id', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('course_id')
     )
-    op.create_table('major',
+    op.create_table('majors',
     sa.Column('major_name', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
     sa.Column('major_id', sa.Integer(), nullable=False),
@@ -84,7 +84,7 @@ def upgrade():
     sa.Column('academic_status', sa.Boolean(), nullable=False),
     sa.Column('student_id', sa.Integer(), nullable=False),
     sa.Column('study_started_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['major_id'], ['major.major_id'], ),
+    sa.ForeignKeyConstraint(['major_id'], ['majors.major_id'], ),
     sa.ForeignKeyConstraint(['account_id'], ['accounts.account_id'], ),
     sa.PrimaryKeyConstraint('student_id'),
     sa.UniqueConstraint('email'),
@@ -205,6 +205,6 @@ def downgrade():
     op.drop_table('user')
     op.drop_index(op.f('ix_accounts_username'), table_name='accounts')
     op.drop_table('accounts')
-    op.drop_table('major')
+    op.drop_table('majors')
     op.drop_table('courses')
     # ### end Alembic commands ###
