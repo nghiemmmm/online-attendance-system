@@ -10,6 +10,9 @@
 # ==============================================================================
 FROM python:3.11-slim-bookworm AS builder
 
+# Declare TARGETARCH to check architecture at build time (e.g. amd64 vs arm64)
+ARG TARGETARCH
+
 # Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -33,9 +36,15 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 
 # Install dependencies into the virtual environment
+# On amd64 (x86_64), use CPU-only wheels to save 2GB+ space.
+# On arm64 (Apple Silicon / Graviton), the standard PyPI wheels are already CPU-only by default.
 RUN pip install --upgrade pip && \
-    pip install torch==2.1.1+cpu torchvision==0.16.1+cpu --find-links https://download.pytorch.org/whl/torch_stable.html && \
-    pip install -r requirements.txt
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        pip install torch==2.1.1+cpu torchvision==0.16.1+cpu --find-links https://download.pytorch.org/whl/torch_stable.html; \
+    else \
+        pip install torch==2.1.1 torchvision==0.16.1; \
+    fi && \
+    pip install -r requirements.txt --find-links https://download.pytorch.org/whl/torch_stable.html
 
 # ==============================================================================
 # STAGE 2: Runtime Runner
