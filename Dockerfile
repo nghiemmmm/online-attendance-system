@@ -1,14 +1,14 @@
 # ==============================================================================
 # MULTI-STAGE DOCKERFILE FOR AI FACE ATTENDANCE BACKEND
 # ==============================================================================
-# Stage 1 (deps): System packages + Python dependencies (heavily cached)
-# Stage 2 (app):  Application source code (changes frequently)
+# Stage 1: Build stage (with compilers for python package wheels)
+# Stage 2: Runtime stage (clean, without compilers for minimum image size)
 # ==============================================================================
 
 # ==============================================================================
-# STAGE 1: Dependencies
+# STAGE 1: Builder
 # ==============================================================================
-FROM python:3.11-slim-bookworm AS deps
+FROM python:3.11-slim-bookworm AS builder
 
 # Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -17,45 +17,60 @@ ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install system-level dependencies required for compilation and runtime:
-# - build-essential, gcc, g++: Compile native Python extensions (faiss, insightface)
-# - libpq-dev: PostgreSQL client (psycopg)
-# - libglib2.0-0, libgl1: OpenCV runtime
-# - ffmpeg: Media processing
+# Install system-level dependencies required ONLY for building/compiling:
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
     curl \
     libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up a python virtual environment to package dependencies cleanly
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements.txt .
+
+# Install dependencies into the virtual environment
+RUN pip install --upgrade pip && \
+    pip install torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install -r requirements.txt
+
+# ==============================================================================
+# STAGE 2: Runtime Runner
+# ==============================================================================
+FROM python:3.11-slim-bookworm AS runner
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Copy the pre-built virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Install only RUNTIME dependencies (no compilers like gcc, g++, build-essential)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
     libglib2.0-0 \
     libgl1 \
     ffmpeg \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN groupadd -g 10001 appgroup && \
-    useradd -u 10001 -g appgroup -m -s /bin/bash appuser && \
-    chown -R appuser:appgroup /app
+    useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
-# Install Python packages (cached unless requirements.txt changes)
-COPY requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip && \
-    pip install torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cpu && \
-    pip install -r requirements.txt && \
-    pip check
-
-# ==============================================================================
-# STAGE 2: Application
-# ==============================================================================
-FROM deps AS app
-
-WORKDIR /app
-
-# Copy backend source code with correct owner permissions
+# Copy application source code with correct owner permissions
 COPY --chown=appuser:appgroup ./app /app/app
 COPY --chown=appuser:appgroup ./alembic.ini /app/alembic.ini
+
+# Fix permissions on /app for the non-root user
+RUN chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
