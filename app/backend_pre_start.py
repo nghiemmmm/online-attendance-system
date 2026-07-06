@@ -1,12 +1,13 @@
 """
-là bước kiểm tra database trước khi backend chính thức khởi động. Nó không chạy API, mà chỉ làm một việc: thử kết nối tới database cho tới khi DB sẵn sàng.
+Kiểm tra database trước khi backend chính thức khởi động.
+Thử kết nối tới database cho tới khi DB sẵn sàng (sử dụng loop và time.sleep thay vì tenacity để giảm thư viện thừa).
 """
 
 import logging
+import time
 
 from sqlalchemy import Engine
 from sqlmodel import Session, select
-from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
 from app.core.db import engine
 
@@ -17,24 +18,27 @@ max_tries = 60 * 5  # 5 minutes
 wait_seconds = 1
 
 
-@retry(
-    stop=stop_after_attempt(max_tries),
-    wait=wait_fixed(wait_seconds),
-    before=before_log(logger, logging.INFO),
-    after=after_log(logger, logging.WARN),
-)
 def init(db_engine: Engine) -> None:
-    try:
-        with Session(db_engine) as session:
-            # Try to create session to check if DB is awake
-            session.exec(select(1))
-    except Exception as e:
-        logger.error(e)
-        raise e
+    tries = 0
+    while tries < max_tries:
+        try:
+            tries += 1
+            logger.info(f"Database connection attempt {tries}/{max_tries}...")
+            with Session(db_engine) as session:
+                # Try to create session to check if DB is awake
+                session.exec(select(1))
+            logger.info("Database is awake and reachable!")
+            return
+        except Exception as e:
+            if tries >= max_tries:
+                logger.error("Max database connection attempts reached. Exiting.")
+                raise e
+            logger.warning(f"Database not ready yet ({e}). Retrying in {wait_seconds}s...")
+            time.sleep(wait_seconds)
 
 
 def main() -> None:
-    logger.info("Initializing service")
+    logger.info("Initializing service connection checks")
     init(engine)
     logger.info("Service finished initializing")
 
