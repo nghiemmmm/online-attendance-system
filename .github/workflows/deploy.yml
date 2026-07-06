@@ -132,11 +132,14 @@ jobs:
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SSL_FULLCHAIN: ${{ secrets.SSL_FULLCHAIN }}
+          SSL_PRIVKEY: ${{ secrets.SSL_PRIVKEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GITHUB_SHA
+          envs: GITHUB_SHA,SSL_FULLCHAIN,SSL_PRIVKEY
           script: |
             set -e
             DEPLOY_DIR="/home/${{ secrets.EC2_USER }}/app"
@@ -179,6 +182,30 @@ jobs:
             
             # Ensure proper permissions on the environment file
             chmod 600 .env
+            
+            echo "==== Step 3.6: Handle SSL Certificates ===="
+            mkdir -p nginx/ssl
+            
+            # Write real certificates if present in secrets, else generate self-signed fallback
+            if [ -n "$SSL_FULLCHAIN" ] && [ "$SSL_FULLCHAIN" != "[PLACEHOLDER FOR PRODUCTION FULLCHAIN SSL CERTIFICATE]" ]; then
+              echo "Installing custom SSL Fullchain Certificate from GitHub Secrets..."
+              echo "$SSL_FULLCHAIN" > nginx/ssl/fullchain.pem
+            else
+              if [ ! -f nginx/ssl/fullchain.pem ] || grep -q "PLACEHOLDER" nginx/ssl/fullchain.pem; then
+                echo "No custom SSL Certificate found. Generating fallback self-signed SSL Certificate..."
+                openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                  -keyout nginx/ssl/privkey.pem \
+                  -out nginx/ssl/fullchain.pem \
+                  -subj "/CN=localhost"
+              fi
+            fi
+
+            if [ -n "$SSL_PRIVKEY" ] && [ "$SSL_PRIVKEY" != "[PLACEHOLDER FOR PRODUCTION PRIVATE KEY]" ]; then
+              echo "Installing custom SSL Private Key from GitHub Secrets..."
+              echo "$SSL_PRIVKEY" > nginx/ssl/privkey.pem
+            fi
+            
+            chmod 600 nginx/ssl/*.pem
             
             echo "==== Step 4: Login GHCR & Pull Images ===="
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
