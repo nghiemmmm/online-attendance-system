@@ -16,9 +16,11 @@ from app.utils.logger import logger
 
 setup_logging()
 
-# Create uploads and vector_db directories if they don't exist
+# Create uploads, dataset and static directory if it doesn't exist
+os.makedirs("app/static", exist_ok=True)
 os.makedirs("uploads/faces", exist_ok=True)
 os.makedirs("uploads/attendance", exist_ok=True)
+os.makedirs("dataset", exist_ok=True)
 os.makedirs("vector_db/embeddings_db", exist_ok=True)
 # tesssssss
 

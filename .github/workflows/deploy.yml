@@ -198,13 +198,21 @@ jobs:
             docker compose up -d
             
             echo "==== Step 8: Health Check & Rollback Logic ===="
-            # Sleep 15 seconds to let the FastAPI server initialize
-            sleep 15
-            
-            # Try to fetch backend health status via Nginx (HTTP -> HTTPS Redirect -> Backend)
-            # -L: Follows the redirect (301) to HTTPS
-            # -k: Bypasses SSL certificate verification for localhost
-            HEALTH_STATUS=$(curl -s -L -k -o /dev/null -w "%{http_code}" "http://localhost/health" || echo "failed")
+            # Dynamic health check: Poll the health endpoint for up to 120 seconds (24 attempts * 5s)
+            # This accounts for PyTorch loading model weights and database connection initialization.
+            HEALTH_STATUS="failed"
+            for i in {1..24}; do
+              echo "Checking backend health status (attempt $i/24)..."
+              # -L: Follows redirect (301) to HTTPS
+              # -k: Bypasses SSL certificate verification for localhost
+              STATUS=$(curl -s -L -k -o /dev/null -w "%{http_code}" "http://localhost/health" || echo "failed")
+              if [ "$STATUS" = "200" ]; then
+                HEALTH_STATUS="200"
+                break
+              fi
+              echo "Backend is not ready yet (HTTP Status: $STATUS). Retrying in 5 seconds..."
+              sleep 5
+            done
             
             if [ "$HEALTH_STATUS" = "200" ]; then
               echo "✅ Health check passed! Deployment successful."
