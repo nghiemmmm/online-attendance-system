@@ -217,9 +217,15 @@ jobs:
             # Save the active container IDs for fallback reference
             ACTIVE_BACKEND_ID=$(docker ps -aqf "name=backend" || echo "")
             
-            echo "==== Step 6: Alembic Database Migration ===="
+            echo "==== Step 6: Alembic Database Migration & Seeding ===="
             # Run migrations on a temporary backend container
             docker compose run --rm backend alembic upgrade head || { echo "Alembic Migration failed!"; exit 1; }
+            
+            # Execute database seeding if the Postgres container is running
+            if docker ps --format '{{.Names}}' | grep -q "db-diemdanh"; then
+              echo "Seeding database with init.sql..."
+              docker exec -i db-diemdanh psql -U root diemdanh < init.sql || echo "Seeding warning: check database init status"
+            fi
             
             echo "==== Step 7: Spin up new containers ===="
             docker compose up -d
