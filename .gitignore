@@ -26,7 +26,6 @@ app/**/tempCodeRunnerFile.py
 .agents/
 .vscode/
 .idea/
-skills-lock.json
 
 # Data and generated model/vector artifacts
 dataset/
@@ -40,3 +39,38 @@ Thumbs.db
 
 # Local Docker override files
 docker-compose.override.yml*
+
+# Ignore all markdown documentation/guides except README.md
+*.md
+!README.md
+
+# Debug and local helper scripts in the root
+debug_*.py
+generate_*.py
+kill_db_conns.py
+migrate_local_to_cloudinary.py
+read_docx.py
+reset_pw.py
+run_*.py
+scratch_comprehensive_scan.py
+
+# Scratch scripts directory
+scratch/
+
+# Ignore local databases
+*.db
+
+# Ignore local uploaded files (face and attendance images)
+uploads/
+
+# Ignore sensitive SSL certificates (should be mounted on the host server, not committed)
+nginx/ssl/
+
+# Ignore all temporary text and logs files
+*.txt
+
+# Ignore Word documents
+*.docx
+
+# Ignore local test directory
+app/test/
