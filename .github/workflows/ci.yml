@@ -234,6 +234,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: false
           tags: attendance-frontend:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
           cache-from: type=gha
           cache-to: type=gha,mode=max
         continue-on-error: true
