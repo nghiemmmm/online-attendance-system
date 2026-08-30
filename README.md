@@ -155,16 +155,6 @@ Sau khi khởi chạy Backend, bạn có thể kiểm thử trực tiếp các A
 
 ---
 
-## Tài khoản Thử nghiệm (Demo Accounts)
-
-| Vai trò | Tên đăng nhập | Mật khẩu | Quyền hạn & Mô tả |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123456` | Quản trị toàn bộ người dùng, dữ liệu khuôn mặt và cấu hình hệ thống |
-| **Lecturer (Giảng viên)** | `gv2101` | `12345` | TS. Nguyễn Văn An - Quản lý lớp học phần, mở phiên điểm danh, duyệt khiếu nại |
-| **Student (Sinh viên)** | `21080001` | `12345` | Nguyễn Đức Nghiêm - Điểm danh live WebRTC, theo dõi chuyên cần, gửi khiếu nại |
-
----
-
 ## Hạn chế Hiện tại
 
 1.  **Hiệu năng đồng thời ⭐⭐⭐⭐⭐**: Gặp độ trễ xử lý khi nhiều sinh viên thực hiện nhận diện khuôn mặt cùng lúc.
