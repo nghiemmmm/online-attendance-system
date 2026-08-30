@@ -45,6 +45,8 @@ docker-compose.override.yml*
 !README.md
 
 # Debug and local helper scripts in the root
+config.py
+create_tables.py
 debug_*.py
 generate_*.py
 kill_db_conns.py
