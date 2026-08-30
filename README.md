@@ -1,39 +1,25 @@
 # Hệ thống Điểm danh Sinh viên Tự động bằng Nhận diện Khuôn mặt
 
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3A%22Test+Docker+Compose%22" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test%20Docker%20Compose/badge.svg" alt="Test Docker Compose"></a>
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3A%22Test+Backend%22" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test%20Backend/badge.svg" alt="Test Backend"></a>
-<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/full-stack-fastapi-template" target="_blank"><img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/full-stack-fastapi-template.svg" alt="Coverage"></a>
+<a href="https://github.com/nghiemmmm/Online-Attendance-System/actions" target="_blank"><img src="https://github.com/nghiemmmm/Online-Attendance-System/actions/workflows/ci.yml/badge.svg" alt="CI - Run Tests"></a>
+<a href="https://github.com/nghiemmmm/Online-Attendance-System/actions" target="_blank"><img src="https://github.com/nghiemmmm/Online-Attendance-System/actions/workflows/deploy.yml/badge.svg" alt="Deploy to EC2"></a>
 
 **Hệ thống Điểm danh Sinh viên Tự động bằng Nhận diện Khuôn mặt (Online Attendance System with AI Face Recognition)** là một giải pháp chuyển đổi số toàn diện trong quản lý giáo dục. Hệ thống tự động hóa hoàn toàn quy trình điểm danh truyền thống bằng cách tích hợp camera thời gian thực qua WebRTC và đối soát danh tính siêu tốc qua mô hình học sâu (FaceNet, MTCNN) kết hợp cơ sở dữ liệu vector FAISS dưới 0.01 giây. Dự án hỗ trợ đắc lực cho Giảng viên trong việc kiểm soát chuyên cần lớp học, giúp Sinh viên tự thực hiện check-in nhanh chóng, minh bạch, đồng thời cung cấp cho Quản trị viên bức tranh thống kê toàn cảnh và nhật ký hoạt động bảo mật.
 
 ## Công nghệ & Tính năng
 
-- ⚡ [**FastAPI**](https://fastapi.tiangolo.com) cho API backend Python.
-  - 🧰 [SQLModel](https://sqlmodel.tiangolo.com) cho tương tác cơ sở dữ liệu SQL trong Python (ORM).
-  - 🔍 [Pydantic](https://docs.pydantic.dev), được FastAPI sử dụng để xác thực dữ liệu và quản lý cấu hình.
-  - 💾 [PostgreSQL](https://www.postgresql.org) làm cơ sở dữ liệu SQL chính.
-- 🤖 **Bộ lõi AI & Thị giác máy tính (Computer Vision)**:
-  - 🧠 [PyTorch](https://pytorch.org) phục vụ chạy các mô hình học máy.
-  - 🎯 **MTCNN** để phát hiện và căn chỉnh khuôn mặt thời gian thực.
-  - ⚡ **InceptionResNetV1 (FaceNet)** để trích xuất vector đặc trưng khuôn mặt 512 chiều.
-  - 🔍 **FAISS (Facebook AI Similarity Search)** phục vụ tìm kiếm vector khuôn mặt tốc độ cao trên bộ nhớ đệm RAM.
-- ☁️ **Lưu trữ đám mây & Tự động dọn dẹp**:
-  - 🌩️ [Cloudinary](https://cloudinary.com) để lưu trữ hình ảnh qua CDN đám mây.
-  - 🧹 **Dịch vụ tự động dọn dẹp chạy ngầm** để tự động xóa hình ảnh minh chứng điểm danh cũ quá 48 giờ (2 ngày).
-- 🚀 [React](https://react.dev) cho ứng dụng Frontend.
-  - 💃 Sử dụng TypeScript, React hooks, Next.js 16 (React 19), và các công nghệ frontend hiện đại.
-  - 🎨 [Tailwind CSS](https://tailwindcss.com) và [shadcn/ui](https://ui.shadcn.com) cho các linh kiện giao diện người dùng.
-  - 🤖 [Hand-crafted Modular Services](https://github.com/anhp1202/online-attendance-system/tree/main/frontend/services) để tích hợp API phân quyền người dùng.
-  - 🧪 [Pytest](https://pytest.org) cho kiểm thử tích hợp và kiểm thử Backend.
-  - 🦇 Hỗ trợ chế độ giao diện tối (Dark mode).
-- 🐋 [Docker Compose](https://www.docker.com) phục vụ môi trường phát triển và vận hành thực tế.
-- 🔒 Băm mật khẩu bảo mật mặc định (Argon2 & Bcrypt qua thư viện `pwdlib`).
-- 🔑 Xác thực người dùng qua JWT (JSON Web Token) với cơ chế phân quyền dựa trên vai trò.
-- 📫 Khôi phục mật khẩu qua Email.
-- 📬 [Mailcatcher](https://mailcatcher.me) để kiểm thử gửi email dưới local trong quá trình phát triển.
-- ✅ Kiểm thử tự động với [Pytest](https://pytest.org).
-- 🚢 Hướng dẫn triển khai dự án bằng Docker Compose.
-- 🏭 Quy trình CI/CD dựa trên GitHub Actions.
+### 🛠️ Công nghệ cốt lõi (Tech Stack)
+* **Backend:** [FastAPI](https://fastapi.tiangolo.com) (Python 3.11), [SQLModel](https://sqlmodel.tiangolo.com), [PostgreSQL](https://www.postgresql.org).
+* **AI & Thị giác máy tính:** [PyTorch](https://pytorch.org), **MTCNN** (phát hiện khuôn mặt), **FaceNet** (trích xuất vector 512 chiều), **FAISS** (tìm kiếm vector siêu tốc).
+* **Frontend:** [Next.js 16](https://nextjs.org) (React 19), [TypeScript](https://www.typescriptlang.org), [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com).
+* **Lưu trữ & Hệ thống:** [Cloudinary](https://cloudinary.com) (CDN lưu trữ ảnh), Redis Cache, Docker & Docker Compose.
+* **CI/CD & DevOps:** GitHub Actions (Automated Test, Build & Deploy EC2), Nginx Reverse Proxy.
+
+### ✨ Tính năng nổi bật
+* 🎯 **Điểm danh AI thời gian thực:** Nhận diện khuôn mặt trực tiếp qua camera WebRTC với tốc độ tra cứu < 0.01s.
+* 🔐 **Bảo mật & Phân quyền:** Xác thực JWT (Access & Refresh Token), phân quyền chặt chẽ 3 vai trò (Admin, Giảng viên, Sinh viên).
+* 📝 **Quản lý & Khiếu nại chuyên cần:** Quản lý lớp học phần, lịch học, gửi và duyệt đơn khiếu nại kèm minh chứng ảnh.
+* 🧹 **Tự động hóa dọn dẹp:** Background worker tự động xóa ảnh điểm danh quá hạn sau 48 giờ để tối ưu lưu trữ.
+* 📊 **Báo cáo & Thống kê:** Xuất báo cáo chuyên cần lớp học và theo dõi nhật ký hoạt động hệ thống.
 
 ## Giao diện Dự án
 
@@ -92,53 +78,92 @@ Hệ thống cung cấp tập hợp các Restful API hỗ trợ đầy đủ lu�
 
 ## Cấu hình dự án
 
-### ⚙️ Cấu hình Biến Môi trường (.env Configuration)
-Trước khi khởi chạy hệ thống ở môi trường Production hoặc Local, bạn cần thiết lập các biến môi trường trong file `.env` theo danh sách các tham số cốt lõi sau:
-#### 1. Các biến bảo mật & CSDL bắt buộc:
-- `SECRET_KEY`: Chuỗi khóa bí mật dùng để ký mã hóa mã thông báo JWT Authentication.
-- `FIRST_SUPERUSER`: Email tài khoản Quản trị viên khởi tạo ban đầu (Mặc định: `admin@example.com`).
-- `FIRST_SUPERUSER_PASSWORD`: Mật khẩu tài khoản Quản trị viên khởi tạo ban đầu.
-- `POSTGRES_SERVER`: Địa chỉ máy chủ CSDL PostgreSQL (Mặc định: `localhost`).
-- `POSTGRES_PORT`: Cổng kết nối PostgreSQL (Mặc định: `5433` hoặc `5432`).
-- `POSTGRES_USER` & `POSTGRES_PASSWORD`: Tài khoản và mật khẩu truy cập PostgreSQL.
-- `POSTGRES_DB`: Tên cơ sở dữ liệu (Mặc định: `attendance`).
-#### 2. Cấu hình Dịch vụ Đám mây Cloudinary:
-- `CLOUDINARY_CLOUD_NAME`: Tên Cloud Name trên tài khoản Cloudinary (`dtdkqzqvo`).
-- `CLOUDINARY_API_KEY`: Mã API Key kết nối (`825222872657695`).
-- `CLOUDINARY_API_SECRET`: Mã API Secret xác thực lưu trữ ảnh đám mây.
-### 🔑 Tạo Mã Bảo mật Secret Key
-Để tạo một chuỗi `SECRET_KEY` an toàn ngẫu nhiên cho mã hóa JWT, bạn có thể chạy lệnh Python sau trong terminal:
+### ⚙️ Cấu hình Biến Môi trường (.env)
+Trước khi khởi chạy hệ thống, hãy tạo file `.env` từ file mẫu [`.env.example`](./.env.example):
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+cp .env.example .env
 ```
 
-## Hướng dẫn Khởi chạy Nhanh (Development)
+Các biến môi trường cốt lõi cần lưu ý:
+- `SECRET_KEY`: Chuỗi khóa bí mật dùng để mã hóa mã thông báo JWT.
+- `FIRST_SUPERUSER` & `FIRST_SUPERUSER_PASSWORD`: Email và mật khẩu tài khoản Admin khởi tạo ban đầu.
+- `DATABASE_URL`: Chuỗi kết nối PostgreSQL (Mặc định: `postgresql://postgres:postgres@localhost:5432/attendance_db`).
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: Thông tin cấu hình lưu trữ ảnh Cloudinary.
 
-### 1. Khởi chạy Backend (FastAPI)
+---
+
+## Hướng dẫn Khởi chạy Dự án
+
+### 🚀 Cách 1: Khởi chạy Nhanh với Docker Compose (Khuyên dùng)
+Chạy toàn bộ dịch vụ (FastAPI Backend, Next.js Frontend, PostgreSQL, Redis, Nginx) chỉ với 1 câu lệnh:
 ```bash
-venv\Scripts\activate
-uvicorn app.main:app --reload
+docker compose up -d --build
+```
+- **Frontend Web App:** [http://localhost:3000](http://localhost:3000)
+- **Backend API & Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+### 💻 Cách 2: Khởi chạy Thủ công (Local Development)
+
+#### 1. Khởi chạy Backend (FastAPI)
+```bash
+# Tạo và kích hoạt môi trường ảo Python
+python -m venv venv
+venv\Scripts\activate  # Trên Windows (hoặc: source venv/bin/activate trên Linux/macOS)
+
+# Cài đặt các thư viện phụ thuộc
+pip install -r requirements.txt
+
+# Thực thi Migration cấu trúc CSDL
+alembic upgrade head
+
+# Khởi chạy máy chủ API
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. Khởi chạy Frontend (Next.js)
+#### 2. Khởi chạy Frontend (Next.js)
 ```bash
 cd frontend
+
+# Cài đặt các gói dependencies
+npm install
+
+# Khởi chạy giao diện chế độ Development
 npm run dev
 ```
 
-## Tài khoản Thử nghiệm
+---
 
-| Vai trò | Tên đăng nhập | Mật khẩu | Ghi chú |
+## 📖 Tài liệu API & Kiểm thử (API Docs & Testing)
+
+### 1. Tài liệu API Tương tác (Interactive Docs)
+Sau khi khởi chạy Backend, bạn có thể kiểm thử trực tiếp các API tại:
+- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+### 2. Chạy Kiểm thử Tự động (Automated Tests)
+- **Kiểm thử Backend (Pytest & Coverage):**
+  ```bash
+  pytest --cov=app --cov-report=term-missing tests/
+  ```
+- **Kiểm thử Frontend (Jest):**
+  ```bash
+  cd frontend
+  npm test
+  ```
+
+---
+
+## Tài khoản Thử nghiệm (Demo Accounts)
+
+| Vai trò | Tên đăng nhập | Mật khẩu | Quyền hạn & Mô tả |
 | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123456` | Quản trị toàn bộ hệ thống |
-| **Lecturer** | `gv2101` | `12345` | TS. Nguyễn Văn An |
-| **Student** | `21080001` | `12345` | Nguyễn Đức Nghiêm |
+| **Admin** | `admin` | `admin123456` | Quản trị toàn bộ người dùng, dữ liệu khuôn mặt và cấu hình hệ thống |
+| **Lecturer (Giảng viên)** | `gv2101` | `12345` | TS. Nguyễn Văn An - Quản lý lớp học phần, mở phiên điểm danh, duyệt khiếu nại |
+| **Student (Sinh viên)** | `21080001` | `12345` | Nguyễn Đức Nghiêm - Điểm danh live WebRTC, theo dõi chuyên cần, gửi khiếu nại |
 
-## Hướng dẫn Phát triển nâng cao
-
-Tài liệu hướng dẫn phát triển chung: [development.md](./development.md).
-
-Tài liệu bao gồm cách sử dụng Docker Compose, cấu hình domain cục bộ, biến môi trường `.env`,...
+---
 
 ## Hạn chế Hiện tại
 
@@ -146,6 +171,7 @@ Tài liệu bao gồm cách sử dụng Docker Compose, cấu hình domain cục
 2.  **Độ chính xác phụ thuộc môi trường ⭐⭐⭐⭐⭐**: Ảnh hưởng bởi ánh sáng yếu, góc nghiêng lớn, chất lượng camera hoặc khi sinh viên đeo khẩu trang, kính.
 3.  **Chưa hỗ trợ Liveness Detection ⭐⭐⭐⭐⭐**: Chưa tích hợp kiểm tra thực thể sống nên có nguy cơ bị gian lận bằng hình ảnh hoặc video.
 
+---
 
 ## Giấy phép
 
