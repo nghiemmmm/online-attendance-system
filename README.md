@@ -173,6 +173,6 @@ Sau khi khởi chạy Backend, bạn có thể kiểm thử trực tiếp các A
 
 ---
 
-## Giấy phép
+## Thông tin Đồ án & Bản quyền
 
-Dự án này được xây dựng cho mục đích học tập và trình diễn công nghệ.
+Dự án này là sản phẩm **Đồ án môn học Thực tập cơ sở (TTCS)**, được xây dựng và phát triển phục vụ mục đích học tập, nghiên cứu và trình diễn giải pháp công nghệ điểm danh tự động ứng dụng Trí tuệ nhân tạo (AI).
